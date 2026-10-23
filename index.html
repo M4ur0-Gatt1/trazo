@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111214">
+  <meta name="description" content="Trazo: estudio de pintura digital para tabletas y portátiles táctiles con Windows.">
+  <title>Trazo</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <!-- Galería -->
+  <section id="gallery" class="screen">
+    <header class="g-head">
+      <div class="brand"><img src="icons/icon.svg" alt=""><h1>Trazo</h1></div>
+      <div class="g-actions">
+        <button id="g-import" class="pill">Importar</button>
+        <button id="g-new" class="pill primary icon-left"><span data-icon="plus"></span>Nuevo lienzo</button>
+      </div>
+    </header>
+    <div id="g-grid" class="g-grid scroll"></div>
+    <div id="g-empty" class="g-empty hidden">
+      <p>Todavía no tienes obras.</p>
+      <button id="g-new-empty" class="pill primary icon-left"><span data-icon="plus"></span>Crear un lienzo</button>
+    </div>
+  </section>
+
+  <!-- Estudio -->
+  <section id="studio" class="screen hidden">
+    <div id="stage"><canvas id="view"></canvas></div>
+
+    <header id="topbar">
+      <div class="group">
+        <button id="btn-gallery" class="text-btn">Galería</button>
+        <button class="tb" data-action="actions" data-icon="wrench" title="Acciones"></button>
+        <button class="tb" data-action="adjust" data-icon="wand" title="Ajustes"></button>
+        <button class="tb" data-action="transform" data-icon="cursor" title="Transformar (V)"></button>
+      </div>
+      <div class="group">
+        <button class="tb" data-tool="brush" data-icon="brush" title="Pintar (B)"></button>
+        <button class="tb" data-tool="smudge" data-icon="smudge" title="Difuminar (S)"></button>
+        <button class="tb" data-tool="eraser" data-icon="eraser" title="Borrar (E)"></button>
+        <button class="tb" data-action="layers" data-icon="layers" title="Capas (L)"></button>
+        <button id="btn-color" class="color-btn" title="Color (C) · arrastra al lienzo para rellenar"></button>
+      </div>
+    </header>
+
+    <aside id="sidebar">
+      <div class="vslider" id="slider-size" title="Tamaño"></div>
+      <button id="btn-eyedrop" class="side-btn" data-icon="eyedrop" title="Cuentagotas (I)"></button>
+      <div class="vslider" id="slider-opacity" title="Opacidad"></div>
+      <button id="btn-undo" class="side-btn" data-icon="undo" title="Deshacer (Ctrl+Z)"></button>
+      <button id="btn-redo" class="side-btn" data-icon="redo" title="Rehacer (Ctrl+Y)"></button>
+    </aside>
+
+    <div id="sheet" class="sheet hidden"></div>
+  </section>
+
+  <div id="popover-layer"></div>
+  <div id="modal-layer"></div>
+  <div id="toast" role="status"></div>
+
+  <script src="js/core.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/brushes.js"></script>
+  <script src="js/document.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/layers.js"></script>
+  <script src="js/view.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/adjust.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

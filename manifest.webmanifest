@@ -1,0 +1,23 @@
+{
+  "name": "Trazo — estudio de pintura",
+  "short_name": "Trazo",
+  "description": "Pintura digital para tabletas y portátiles táctiles con Windows: pinceles con presión, capas, gestos y más.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#111214",
+  "theme_color": "#111214",
+  "categories": ["graphics", "design", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "file_handlers": [
+    { "action": "./", "accept": { "application/x-trazo": [".trazo"] } }
+  ]
+}
