@@ -28,6 +28,7 @@ public sealed partial class StudioView : UserControl
     private readonly DispatcherTimer _autosave = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly SemaphoreSlim _saveLock = new(1, 1);
     private TipCache? _tips;
+    private GrainCache? _grains;
     private PaintDocument? _doc;
     private LayerOperations? _ops;
     private BrushEngine? _engine;
@@ -185,9 +186,10 @@ public sealed partial class StudioView : UserControl
         _doc?.Dispose();
         _doc = doc;
         _tips ??= new TipCache(doc.Device);
+        _grains ??= new GrainCache(doc.Device);
         _ops = new LayerOperations(doc);
         _ops.Message += m => Window.ShowMessage(m);
-        _engine = new BrushEngine(doc, _ops, _tips);
+        _engine = new BrushEngine(doc, _ops, _tips, _grains);
         doc.History.Changed += (_, _) => OnDocumentChanged();
         doc.Layers.CollectionChanged += (_, _) => OnDocumentChanged(markDirty: false);
         RefreshToolUi();

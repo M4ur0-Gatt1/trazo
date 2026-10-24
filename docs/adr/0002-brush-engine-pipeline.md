@@ -11,9 +11,10 @@ El motor se divide en etapas independientes y comprobables por separado:
 | 1. Entrada | Muestras del dispositivo → documento; orden temporal; curva de presión | `StrokeBuilder.Add`, `PressureCurve`, `InputRecording` | BR-01 |
 | 2. Trayectoria | Estabilización (StreamLine), QuickShape | `StreamLineSmoother`, `QuickShape` | BR-01, QuickShape |
 | 3. Dinámicas y espaciado | Paso entre sellos; tamaño y flujo según presión e inclinación; variación con semilla | `StrokeStamper` | BR-01 |
+| 3b. Afinado | Rampas de inicio y final; cola provisional hasta levantar el lápiz | `TaperSettings`, `StrokeBuilder` | BR-05 |
 | 4. Simetría | Reflejos de cada sello | `Symmetry` | pruebas del núcleo |
 | 5. Generación de la punta | Máscaras alfa deterministas | `TipGenerator` | pruebas del núcleo |
-| 6. Textura (grano) | **No existe**: hoy va dentro de la punta | — | BR-03 pendiente |
+| 6. Textura (grano) | Moving por sello o Texturized sobre el trazo acumulado | `GrainGenerator` (Core), `StrokeRasterizer` (Rendering) | BR-03 |
 | 7. Mezcla húmeda | **No existe** | — | BR-04 pendiente |
 | 8. Composición | Sellos → búfer del trazo → capa, con la opacidad de la herramienta y el modo (normal, borrar, bloqueo alfa) | `Trazo.Rendering/BrushEngine` | BR-02 |
 

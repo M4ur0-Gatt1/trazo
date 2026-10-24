@@ -37,6 +37,16 @@ public sealed class BrushPreset
     public float FlowAt(float pressure) =>
         Flow * (1 - FlowPressure + FlowPressure * Math.Clamp(pressure, 0, 1));
 
+    /// <summary>Grano independiente de la punta (BR-03).</summary>
+    public GrainSettings Grain { get; set; } = GrainSettings.Off;
+    /// <summary>Afinado de extremos con lápiz (dispositivos con presión).</summary>
+    public TaperSettings PressureTaper { get; set; } = TaperSettings.None;
+    /// <summary>Afinado de extremos con dedo o ratón (sin presión).</summary>
+    public TaperSettings TouchTaper { get; set; } = TaperSettings.None;
+
+    public TaperSettings TaperFor(bool hasPressure) => hasPressure ? PressureTaper : TouchTaper;
+
+    // GrainSettings y TaperSettings son records inmutables: la copia superficial es segura
     public BrushPreset Clone() => (BrushPreset)MemberwiseClone();
 
     /// <summary>Copia los ajustes editables de otro pincel con el mismo id.</summary>
@@ -49,5 +59,8 @@ public sealed class BrushPreset
         Scatter = o.Scatter;
         MinSizePressure = o.MinSizePressure;
         FlowPressure = o.FlowPressure;
+        Grain = o.Grain;
+        PressureTaper = o.PressureTaper;
+        TouchTaper = o.TouchTaper;
     }
 }

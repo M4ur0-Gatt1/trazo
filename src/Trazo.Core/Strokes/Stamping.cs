@@ -5,8 +5,8 @@ namespace Trazo.Core.Strokes;
 /// <summary>Muestra de entrada en coordenadas del documento. <see cref="Time"/> en milisegundos (0 = sin marca de tiempo).</summary>
 public readonly record struct InputPoint(float X, float Y, float Pressure = 1, float Tilt = 0, double Time = 0);
 
-/// <summary>Un sello del pincel: posición, diámetro, opacidad y giro (radianes).</summary>
-public readonly record struct Dab(float X, float Y, float Size, float Alpha, float Rotation);
+/// <summary>Un sello del pincel: posición, diámetro, opacidad, giro (radianes), distancia recorrida desde el inicio (px) y dirección de avance (radianes).</summary>
+public readonly record struct Dab(float X, float Y, float Size, float Alpha, float Rotation, float Distance = 0, float TravelAngle = 0);
 
 public static class PressureCurve
 {
@@ -55,6 +55,7 @@ public sealed class StrokeStamper
     private readonly Random _rng;
     private InputPoint? _last;
     private float _carry;
+    private float _distance;
 
     public StrokeStamper(BrushPreset brush, float baseSize, float? spacingOverride = null, Random? rng = null)
     {
@@ -70,7 +71,11 @@ public sealed class StrokeStamper
     {
         _last = null;
         _carry = 0;
+        _distance = 0;
     }
+
+    /// <summary>Longitud recorrida hasta la última muestra, en px.</summary>
+    public float Distance => _distance;
 
     private float Step(float pressure) => Math.Max(0.35f, _brush.SizeAt(_baseSize, pressure) * _spacing);
 
@@ -78,7 +83,7 @@ public sealed class StrokeStamper
     {
         if (_last is not { } a)
         {
-            output.Add(MakeDab(p.X, p.Y, p.Pressure, p.Tilt, 0));
+            output.Add(MakeDab(p.X, p.Y, p.Pressure, p.Tilt, 0, 0));
             _carry = Step(p.Pressure);
             _last = p;
             return;
@@ -91,14 +96,15 @@ public sealed class StrokeStamper
         {
             var u = t / len;
             var pr = a.Pressure + (p.Pressure - a.Pressure) * u;
-            output.Add(MakeDab(a.X + dx * u, a.Y + dy * u, pr, a.Tilt + (p.Tilt - a.Tilt) * u, angle));
+            output.Add(MakeDab(a.X + dx * u, a.Y + dy * u, pr, a.Tilt + (p.Tilt - a.Tilt) * u, angle, _distance + t));
             t += Step(pr);
         }
         _carry = t - len;
+        _distance += len;
         _last = p;
     }
 
-    private Dab MakeDab(float x, float y, float pressure, float tilt, float travelAngle)
+    private Dab MakeDab(float x, float y, float pressure, float tilt, float travelAngle, float distance)
     {
         var b = _brush;
         var size = b.SizeAt(_baseSize, pressure);
@@ -116,7 +122,7 @@ public sealed class StrokeStamper
         if (size < 1.5f) alpha *= size / 1.5f;
         var rot = b.Angle + (b.RotationFollowsStroke ? travelAngle : 0)
                   + (b.RotationRandom > 0 ? ((float)_rng.NextDouble() * 2 - 1) * b.RotationRandom : 0);
-        return new Dab(x, y, size, alpha, rot);
+        return new Dab(x, y, size, alpha, rot, distance, travelAngle);
     }
 }
 

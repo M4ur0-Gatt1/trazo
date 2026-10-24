@@ -123,6 +123,47 @@ public sealed partial class StudioView
             // 9. Cuentagotas
             Check("cuentagotas", doc.SampleColor(1050, 150, null) is not null);
 
+            // 9b. Grano y afinado en la GPU real (BR-03, BR-05)
+            var grainLayer = ops.Add()!;
+            var pencil = _brushes["pencil6b"];
+            engine.Begin(new InputPoint(100, 900), ToolKind.Brush, pencil, Colors.Black, 40, 1, SymmetryMode.None, 1, 5, hasPressure: true);
+            foreach (var p in Line(100, 900, 700, 900, 120, 1).Skip(1)) engine.Add(p);
+            engine.End();
+            var row = grainLayer.Surface.GetPixelBytes(300, 900, 200, 1);
+            var alphas = Enumerable.Range(0, 200).Select(i => (double)row[i * 4 + 3]).ToList();
+            var mean = alphas.Average();
+            Check("grano texturizado añade textura", Math.Sqrt(alphas.Average(a => (a - mean) * (a - mean))) > 10);
+
+            var taperLayer = ops.Add()!;
+            var pen = _brushes["studiopen"];
+            engine.Begin(new InputPoint(900, 900), ToolKind.Brush, pen, Colors.Black, 30, 1, SymmetryMode.None, 1, 6, hasPressure: false);
+            foreach (var p in Line(900, 900, 1500, 900, 120, 1).Skip(1)) engine.Add(p);
+            engine.End();
+            int Thick(int x) => Enumerable.Range(860, 80).Count(y => taperLayer.Surface.GetPixelBytes(x, y, 1, 1)[3] > 64);
+            Check("afinado táctil estrecha los extremos", Thick(905) < Thick(1200) / 3 && Thick(1495) < Thick(1200) / 3);
+
+            using (var sheet = new CanvasRenderTarget(doc.Device, 220, 50 * _brushes.All.Count(), 96))
+            {
+                using (var ds = sheet.CreateDrawingSession())
+                {
+                    ds.Clear(Colors.White);
+                    var y = 0;
+                    foreach (var b in _brushes.All)
+                    {
+                        using var cell = new CanvasRenderTarget(ds, 200, 44);
+                        using (var cds = cell.CreateDrawingSession())
+                        {
+                            cds.Clear(Colors.Transparent);
+                            BrushEngine.DrawPreview(cds, _tips!, _grains!, b, 200, 44, Colors.Black);
+                        }
+                        ds.DrawImage(cell, 10, y + 3);
+                        y += 50;
+                    }
+                }
+                await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-brush-previews.png"), await PaintDocument.EncodePngAsync(sheet));
+                Check("vistas previas de los 21 pinceles", true);
+            }
+
             // 10. Guardar y volver a abrir
             Canvas.Invalidate();
             doc.IsDirty = true;

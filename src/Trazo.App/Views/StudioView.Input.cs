@@ -288,7 +288,9 @@ public sealed partial class StudioView
         }
         var tool = Tool;
         var st = ToolState(tool);
-        var ok = _engine.Begin(ToInput(pt, type), tool, BrushFor(tool), CurrentColor, st.Size, st.Opacity, _settings.Symmetry, _view.Scale);
+        // el lápiz usa el afinado de presión; dedo y ratón, el táctil (BR-05)
+        var ok = _engine.Begin(ToInput(pt, type), tool, BrushFor(tool), CurrentColor, st.Size, st.Opacity, _settings.Symmetry, _view.Scale,
+            hasPressure: type == PointerDeviceType.Pen);
         if (!ok)
         {
             RestoreTool();

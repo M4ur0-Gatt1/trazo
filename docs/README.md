@@ -8,6 +8,7 @@ Esta carpeta es la base técnica verificable del proyecto. Rige una regla:
 | [reference.md](reference.md) | Paso 1: qué se estudia (versión de Procreate, dispositivos, alcance) |
 | [requirements.md](requirements.md) | Matriz de requisitos con el estado de las 5 puertas de cierre por módulo |
 | [research/brush-studio-inventory.md](research/brush-studio-inventory.md) | Inventario del Brush Studio de Procreate 5.4: 14 atributos y 140 subparámetros |
+| [specs/](specs/) | Especificaciones por módulo: [BR-03 grano](specs/BR-03-grain.md), [BR-05 afinado](specs/BR-05-taper.md) |
 | [protocols/](protocols/) | Protocolos de prueba BR-01, BR-02, LY-01 y FI-01, con la correspondencia a las pruebas automáticas |
 | [adr/](adr/) | Decisiones de arquitectura A–E: lienzo, motor de pinceles, historial, color y persistencia |
 | [results/](results/) | Resultados de ejecuciones conservados, con fecha y métricas |

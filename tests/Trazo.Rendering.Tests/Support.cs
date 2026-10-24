@@ -39,12 +39,18 @@ public static class Golden
         }
     }
 
+    /// <summary>
+    /// Compara dos imágenes BGRA. El porcentaje de píxeles distintos se calcula sobre los píxeles con tinta
+    /// (alfa &gt; 0 en cualquiera de las dos), no sobre toda la imagen: así un cambio limitado a los extremos
+    /// de un trazo no queda diluido por el fondo vacío.
+    /// </summary>
     public static ImageDiff Compare(byte[] a, byte[] b, int width, int height)
     {
         if (a.Length != b.Length) return new ImageDiff(width, height, 255, 255, 100);
         long sum = 0;
         var max = 0;
         var over = 0;
+        var ink = 0;
         for (var i = 0; i < a.Length; i += 4)
         {
             var pixelMax = 0;
@@ -54,10 +60,11 @@ public static class Golden
                 sum += d;
                 if (d > pixelMax) pixelMax = d;
             }
+            if (a[i + 3] > 0 || b[i + 3] > 0) ink++;
             if (pixelMax > max) max = pixelMax;
             if (pixelMax > 8) over++;
         }
-        return new ImageDiff(width, height, max, sum / (double)a.Length, over * 100.0 / (a.Length / 4));
+        return new ImageDiff(width, height, max, sum / (double)a.Length, over * 100.0 / Math.Max(1, ink));
     }
 
     /// <summary>Compara el bitmap con la referencia guardada; la crea si se pide actualizar.</summary>

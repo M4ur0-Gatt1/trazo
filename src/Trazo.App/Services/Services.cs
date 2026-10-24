@@ -120,17 +120,25 @@ public sealed class BrushOverride
     public float Scatter { get; set; }
     public float MinSizePressure { get; set; }
     public float FlowPressure { get; set; }
+    // null en preferencias guardadas por versiones anteriores: se conserva el valor del pincel
+    public GrainSettings? Grain { get; set; }
+    public TaperSettings? PressureTaper { get; set; }
+    public TaperSettings? TouchTaper { get; set; }
 
     public static BrushOverride From(BrushPreset b) => new()
     {
         StreamLine = b.StreamLine, Spacing = b.Spacing, Flow = b.Flow, Jitter = b.Jitter,
         Scatter = b.Scatter, MinSizePressure = b.MinSizePressure, FlowPressure = b.FlowPressure,
+        Grain = b.Grain, PressureTaper = b.PressureTaper, TouchTaper = b.TouchTaper,
     };
 
     public void ApplyTo(BrushPreset b)
     {
         b.StreamLine = StreamLine; b.Spacing = Spacing; b.Flow = Flow; b.Jitter = Jitter;
         b.Scatter = Scatter; b.MinSizePressure = MinSizePressure; b.FlowPressure = FlowPressure;
+        if (Grain is not null) b.Grain = Grain;
+        if (PressureTaper is not null) b.PressureTaper = PressureTaper;
+        if (TouchTaper is not null) b.TouchTaper = TouchTaper;
     }
 }
 

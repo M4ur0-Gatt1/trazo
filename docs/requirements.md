@@ -1,6 +1,6 @@
 # Matriz de requisitos
 
-Estado al **2026-10-24** (commit de esta revisión). Las prioridades son propuestas de ingeniería, no clasificaciones de Procreate.
+Estado al **2026-10-25** (commit de esta revisión). Las prioridades son propuestas de ingeniería, no clasificaciones de Procreate.
 
 Leyenda de las puertas: ✅ superada con evidencia · 🟡 parcial · ⬜ pendiente.
 Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **Pru**ebas · **Apr**obación.
@@ -10,10 +10,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | ID | Área | Prioridad | Inv | Esp | Impl | Pru | Apr | Evidencia o bloqueo |
 |---|---|---|---|---|---|---|---|---|
 | BR-01 | Entrada del lápiz y trayectoria | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/BR-01.md); 16 pruebas con entrada sintética. Falta validar con lápiz real y medir la latencia (PF-01) |
-| BR-02 | Reproducibilidad del motor de pinceles | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/BR-02.md); 21 referencias revisadas; prueba de mutación superada |
-| BR-03 | Texturas y grano | Alta | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | El grano va dentro de la punta; no hay modos Moving ni Texturized ([inventario](research/brush-studio-inventory.md)) |
+| BR-02 | Reproducibilidad del motor de pinceles | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/BR-02.md); 21 referencias revisadas; prueba de mutación superada; métrica endurecida el 2026-10-25 (% sobre píxeles con tinta) |
+| BR-03 | Texturas y grano | Alta | 🟡 | ✅ | 🟡 | ✅ | 🟡 | [Especificación](specs/BR-03-grain.md): Moving/Texturized, Movement, Scale, Zoom, Rotation, Depth, Offset Jitter, Brillo y Contraste; 13 pruebas y 5 referencias. Faltan Depth Min/Jitter, el modo de fusión del grano, el filtrado y la importación. Sin observación en iPad |
 | BR-04 | Mezcla húmeda | Crítica | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Sin implementar; el modelo de mezcla requiere observación |
-| BR-05 | Afinado (taper) | Alta | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Sin implementar; con el dedo el trazo no se afina |
+| BR-05 | Afinado (taper) | Alta | 🟡 | ✅ | 🟡 | ✅ | 🟡 | [Especificación](specs/BR-05-taper.md): Pressure y Touch Taper (inicio, final, punta, opacidad y forma) con cola provisional; 13 pruebas y 2 referencias. Faltan Pressure (reactivo), Link Tip Sizes y Classic. Sin observación en iPad |
 | BR-06 | Curvas de dinámica por parámetro | Alta | 🟡 | ⬜ | 🟡 | ⬜ | ⬜ | Solo hay gamma global y dos relaciones lineales |
 | LY-01 | Capas | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/LY-01.md); 16 operaciones con deshacer y rehacer exactos. Faltan los grupos |
 | LY-02 | Máscaras | Crítica | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | Solo existe la máscara de recorte; faltan las máscaras de capa |
@@ -72,3 +72,6 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | 2026-10-24 | "Ocultar" y "mostrar" seguidos se fusionaban en un solo paso de historial: deshacer saltaba dos pasos | `EveryOperationUndoesAndRedoesExactly` (HI-01.3) |
 | 2026-10-24 | La etiqueta "Opacidad por presión" modulaba en realidad el flujo (señalado por el inventario) | Corregida la etiqueta a "Flujo por presión"; falta separar opacidad y flujo (BR-06) |
 | 2026-10-24 | El método de guardado anterior podía dejar un `.tmp` y no verificaba lo escrito | Sustituido por `ProjectSaver` (FI-01.1 a FI-01.5) |
+| 2026-10-25 | La textura de grano «Lienzo» tenía discontinuidades cada 16 px | `GrainTilesSeamlessly` (BR-03.2) |
+| 2026-10-25 | BR-02 calculaba el % de píxeles distintos sobre toda la imagen: un cambio solo en los extremos del trazo (afinado) pasaba sin detectarse | Métrica sobre píxeles con tinta; la pluma y el rotulador de pincel fallaron como debían y se actualizaron |
+| 2026-10-25 | El script de publicación se bloqueaba al escribir el archivo de sumas SHA-256 | Corregido en `release.yml`; beta 0.2.0-beta.1 publicada y probada |

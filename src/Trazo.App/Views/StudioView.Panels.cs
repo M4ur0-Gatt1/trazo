@@ -46,7 +46,7 @@ public sealed partial class StudioView
         if (_previews.TryGetValue((b.Id, selected), out var src)) return src;
         src = new CanvasImageSource(_doc!.Device, 200, 44, Dpi);
         using (var ds = src.CreateDrawingSession(Colors.Transparent))
-            BrushEngine.DrawPreview(ds, _tips!, b, 200, 44, selected ? Colors.White : Color.FromArgb(255, 200, 200, 206));
+            BrushEngine.DrawPreview(ds, _tips!, _grains!, b, 200, 44, selected ? Colors.White : Color.FromArgb(255, 200, 200, 206));
         _previews[(b.Id, selected)] = src;
         return src;
     }
@@ -122,6 +122,43 @@ public sealed partial class StudioView
             Row("Flujo por presión", 0, 1, b.FlowPressure, v => b.FlowPressure = v);
             Row("Variación de tamaño", 0, 1, b.Jitter, v => b.Jitter = v);
             Row("Dispersión", 0, 2, b.Scatter, v => b.Scatter = v);
+
+            // ---- Grano (BR-03) ----
+            settingsPanel.Children.Add(new TextBlock { Text = "Grano", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            var mode = new ComboBox { Header = "Comportamiento", HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { "Sin grano", "En movimiento", "Texturizado" }, SelectedIndex = (int)b.Grain.Mode };
+            mode.SelectionChanged += (_, _) => { b.Grain = b.Grain with { Mode = (GrainMode)mode.SelectedIndex }; SaveBrush(); };
+            settingsPanel.Children.Add(mode);
+            var kinds = new[] { (GrainKind.Paper, "Papel"), (GrainKind.Canvas, "Lienzo"), (GrainKind.Charcoal, "Carboncillo"), (GrainKind.Noise, "Ruido"), (GrainKind.Sponge, "Esponja") };
+            var kind = new ComboBox { Header = "Textura", HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = kinds.Select(k => k.Item2).ToList(), SelectedIndex = Array.FindIndex(kinds, k => k.Item1 == b.Grain.Kind) };
+            kind.SelectionChanged += (_, _) => { b.Grain = b.Grain with { Kind = kinds[kind.SelectedIndex].Item1 }; SaveBrush(); };
+            settingsPanel.Children.Add(kind);
+            Row("Profundidad del grano", 0, 1, b.Grain.Depth, v => b.Grain = b.Grain with { Depth = v });
+            Row("Escala del grano", 0.1, 4, b.Grain.Scale, v => b.Grain = b.Grain with { Scale = v });
+            Row("Movimiento (en movimiento)", 0, 1, b.Grain.Movement, v => b.Grain = b.Grain with { Movement = v });
+            Row("Rotación (en movimiento)", -1, 1, b.Grain.Rotation, v => b.Grain = b.Grain with { Rotation = v });
+            Row("Brillo del grano", -1, 1, b.Grain.Brightness, v => b.Grain = b.Grain with { Brightness = v });
+            Row("Contraste del grano", 0, 2, b.Grain.Contrast, v => b.Grain = b.Grain with { Contrast = v });
+
+            // ---- Afinado (BR-05): longitudes en diámetros del pincel ----
+            settingsPanel.Children.Add(new TextBlock { Text = "Afinado con lápiz", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row("Inicio (diámetros)", 0, 10, b.PressureTaper.Start, v => b.PressureTaper = b.PressureTaper with { Start = v });
+            Row("Final (diámetros)", 0, 10, b.PressureTaper.End, v => b.PressureTaper = b.PressureTaper with { End = v });
+            Row("Tamaño en la punta", 0, 1, b.PressureTaper.TipSize, v => b.PressureTaper = b.PressureTaper with { TipSize = v });
+            Row("Opacidad en la punta", 0, 1, b.PressureTaper.TipOpacity, v => b.PressureTaper = b.PressureTaper with { TipOpacity = v });
+            Row("Forma (fina ↔ roma)", 0, 1, b.PressureTaper.Shape, v => b.PressureTaper = b.PressureTaper with { Shape = v });
+            settingsPanel.Children.Add(new TextBlock { Text = "Afinado con dedo o ratón", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row("Inicio (diámetros) ", 0, 10, b.TouchTaper.Start, v => b.TouchTaper = b.TouchTaper with { Start = v });
+            Row("Final (diámetros) ", 0, 10, b.TouchTaper.End, v => b.TouchTaper = b.TouchTaper with { End = v });
+            Row("Tamaño en la punta ", 0, 1, b.TouchTaper.TipSize, v => b.TouchTaper = b.TouchTaper with { TipSize = v });
+            Row("Opacidad en la punta ", 0, 1, b.TouchTaper.TipOpacity, v => b.TouchTaper = b.TouchTaper with { TipOpacity = v });
+
+            void SaveBrush()
+            {
+                _settings.BrushOverrides[b.Id] = Services.BrushOverride.From(b);
+                _settings.Save();
+                _previews.Remove((b.Id, true));
+                _previews.Remove((b.Id, false));
+            }
             var reset = new Button { Content = "Restablecer pincel", Margin = new Thickness(0, 6, 0, 0) };
             reset.Click += (_, _) =>
             {
