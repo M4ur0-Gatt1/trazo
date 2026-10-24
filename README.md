@@ -113,17 +113,24 @@ Para publicar una versión, crea una etiqueta `vX.Y.Z`: el flujo `release.yml` c
 ## Estructura
 
 ```
-src/Trazo.Core/        Lógica sin interfaz y con pruebas: pinceles, trazos,
-                       QuickShape, simetría, relleno, historial, formato .trazo, vista
-src/Trazo.App/         App WinUI 3
-  Painting/            Documento y capas en la GPU, motor de pincel, ajustes, transformar
-  Views/               Galería y estudio (lienzo, entrada, paneles, autoprueba)
-  Services/            Preferencias, registro de errores, carpeta de proyectos
-tests/Trazo.Core.Tests Pruebas unitarias (xUnit)
-installer/             Script de Inno Setup
-web/                   Versión web (PWA) publicada en GitHub Pages
-tools/                 Iconos y utilidades de captura
+src/Trazo.Core/             Lógica sin GPU ni interfaz: pipeline de trazo (StrokeBuilder),
+                            pinceles, QuickShape, simetría, relleno, historial,
+                            formato .trazo y guardado transaccional (ProjectSaver), vista
+src/Trazo.Rendering/        Motor de pintura en la GPU (Win2D/Direct2D), sin XAML:
+                            documento y capas, pinceles, composición, ajustes, transformar
+src/Trazo.App/              App WinUI 3: galería, estudio (lienzo, entrada, paneles), servicios
+tests/Trazo.Core.Tests      Pruebas unitarias (BR-01, FI-01, historial, formato…)
+tests/Trazo.Rendering.Tests Pruebas del motor real con Direct3D WARP e imágenes de referencia (BR-02, LY-01)
+docs/                       Base técnica: requisitos, protocolos, decisiones de arquitectura, investigación, resultados
+installer/                  Script de Inno Setup
+web/                        Versión web (PWA) publicada en GitHub Pages
+tools/                      Iconos, capturas y hoja de contacto de referencias
 ```
+
+## Calidad
+
+El desarrollo sigue una regla: **cada función tiene una especificación, cada especificación tiene pruebas y cada error corregido deja una prueba de regresión.**
+La [matriz de requisitos](docs/requirements.md) muestra el estado real de cada módulo con 5 puertas de cierre: investigación, especificación, implementación, pruebas y aprobación.
 
 ## Versión web
 

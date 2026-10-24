@@ -1,7 +1,7 @@
 using System.Text;
 using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
-using Trazo.App.Painting;
+using Trazo.Rendering;
 using Trazo.Core.IO;
 using Trazo.Core.Strokes;
 using Windows.UI;
@@ -129,7 +129,7 @@ public sealed partial class StudioView
             await SaveAsync();
             Check("archivo guardado", doc.FilePath is not null && File.Exists(doc.FilePath));
             ProjectData data;
-            await using (var fs = File.OpenRead(doc.FilePath!)) data = TrazoFile.Read(fs);
+            data = ProjectSaver.Load(doc.FilePath!).Project;
             using var reopened = await PaintDocument.FromProjectDataAsync(doc.Device, data, doc.FilePath);
             Check("se reabre con las mismas capas", reopened.Layers.Count == doc.Layers.Count && reopened.Width == doc.Width);
             using (var a = doc.Flatten())

@@ -10,9 +10,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\Trazo.ico</ApplicationIcon>
     <Platforms>x64;ARM64</Platforms>
-    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' Or '$(Platform)' == 'Any CPU'">x64</Platform>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$(Platform.ToLower())</RuntimeIdentifier>
+    <!-- Platform puede llegar como propiedad global "Any CPU" desde la solución: la arquitectura se deduce aparte -->
+    <TrazoArch Condition="'$(Platform)' == 'ARM64'">arm64</TrazoArch>
+    <TrazoArch Condition="'$(TrazoArch)' == ''">x64</TrazoArch>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$(TrazoArch)</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
@@ -34,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Trazo.Core\Trazo.Core.csproj" />
+    <ProjectReference Include="..\Trazo.Rendering\Trazo.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>

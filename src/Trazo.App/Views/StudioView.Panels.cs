@@ -9,7 +9,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Trazo.App.Painting;
+using Trazo.Rendering;
 using Trazo.Core.Brushes;
 using Trazo.Core.Colors;
 using Trazo.Core.Documents;
@@ -119,7 +119,7 @@ public sealed partial class StudioView
             Row("Espaciado", 0.01, 2, b.Spacing, v => b.Spacing = v);
             Row("Flujo", 0.02, 1, b.Flow, v => b.Flow = v);
             Row("Tamaño a presión mínima", 0, 1, b.MinSizePressure, v => b.MinSizePressure = v);
-            Row("Opacidad por presión", 0, 1, b.FlowPressure, v => b.FlowPressure = v);
+            Row("Flujo por presión", 0, 1, b.FlowPressure, v => b.FlowPressure = v);
             Row("Variación de tamaño", 0, 1, b.Jitter, v => b.Jitter = v);
             Row("Dispersión", 0, 2, b.Scatter, v => b.Scatter = v);
             var reset = new Button { Content = "Restablecer pincel", Margin = new Thickness(0, 6, 0, 0) };
@@ -830,7 +830,7 @@ public sealed partial class StudioView
         var file = await Window.SavePicker(doc.Name, "Proyecto de Trazo", TrazoFile.Extension).PickSaveFileAsync();
         if (file is null) return;
         var data = await doc.ToProjectDataAsync();
-        await TrazoFile.WriteAtomicAsync(file.Path, data);
+        await ProjectSaver.SaveAsync(file.Path, data);
         Window.ShowMessage("Exportado: " + file.Name);
     }
 

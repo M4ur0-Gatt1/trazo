@@ -1,7 +1,6 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
-using Microsoft.UI;
 using Trazo.Core.Brushes;
 using Trazo.Core.Imaging;
 using Trazo.Core.Strokes;
@@ -9,7 +8,7 @@ using Windows.Foundation;
 using Windows.Graphics.DirectX;
 using Windows.UI;
 
-namespace Trazo.App.Painting;
+namespace Trazo.Rendering;
 
 public enum ToolKind
 {
@@ -69,33 +68,33 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     private Color _color;
     private float _size, _opacity;
     private SymmetryMode _symmetry;
-    private StreamLineSmoother? _smoother;
-    private StrokeStamper? _stamper;
-    private readonly List<InputPoint> _raw = [];
+    private StrokeBuilder? _builder;
     private Rect _dirty = Rect.Empty;
     private int _patchSize;
+    private int _strokeCounter;
 
     public bool IsActive => _layer is not null;
-    public QuickShape? Shape { get; private set; }
+    public QuickShape? Shape => _builder?.Shape;
     public Layer? Layer => _layer;
+    /// <summary>Semilla del último trazo (para reproducirlo exactamente).</summary>
+    public int LastSeed { get; private set; }
 
     /// <summary>Empieza un trazo. Devuelve false si la capa activa está oculta.</summary>
-    public bool Begin(InputPoint p, ToolKind tool, BrushPreset brush, Color color, float size, float opacity, SymmetryMode symmetry, float viewScale)
+    /// <param name="seed">Semilla de la variación aleatoria; si es null se usa un contador determinista.</param>
+    public bool Begin(InputPoint p, ToolKind tool, BrushPreset brush, Color color, float size, float opacity, SymmetryMode symmetry, float viewScale, int? seed = null)
     {
         var layer = doc.ActiveLayer;
         if (!layer.Visible) return false;
         _layer = layer;
         _tool = tool;
         _brush = brush;
-        _color = tool == ToolKind.Eraser ? Colors.Black : color;
+        _color = tool == ToolKind.Eraser ? KnownColors.Black : color;
         _size = size;
         _opacity = opacity;
         _symmetry = tool == ToolKind.Smudge ? SymmetryMode.None : symmetry;
-        _smoother = new StreamLineSmoother(brush.StreamLine * 26 / viewScale);
-        _stamper = new StrokeStamper(brush, size, tool == ToolKind.Smudge ? Math.Max(brush.Spacing, 0.12f) : null);
-        _raw.Clear();
+        LastSeed = seed ?? ++_strokeCounter;
+        _builder = new StrokeBuilder(brush, size, viewScale, LastSeed, tool == ToolKind.Smudge ? Math.Max(brush.Spacing, 0.12f) : null);
         _dirty = Rect.Empty;
-        Shape = null;
         if (_patch is not null) { _patch.Dispose(); _mask!.Dispose(); _patch = _mask = null; }
 
         if (_buffer is null || _buffer.SizeInPixels.Width != doc.Width || _buffer.SizeInPixels.Height != doc.Height)
@@ -103,7 +102,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             _buffer?.Dispose();
             _buffer = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
         }
-        using (var ds = _buffer.CreateDrawingSession()) ds.Clear(Colors.Transparent);
+        using (var ds = _buffer.CreateDrawingSession()) ds.Clear(KnownColors.Transparent);
         ops.Snapshot(layer);
         Add(p);
         return true;
@@ -111,22 +110,11 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
 
     public void Add(InputPoint p)
     {
-        if (_layer is null) return;
-        _raw.Add(p);
-        if (Shape is not null)
-        {
-            Shape.Adjust(new Vector2(p.X, p.Y));
-            RedrawShape();
-            return;
-        }
-        if (_smoother!.Push(p) is { } s) StampTo(s);
-    }
-
-    private void StampTo(InputPoint p)
-    {
+        if (_layer is null || _builder is null) return;
         _dabs.Clear();
-        _stamper!.LineTo(p, _dabs);
-        if (_dabs.Count > 0) Render(_dabs);
+        if (!_builder.Add(p, _dabs)) return;
+        if (_builder.Shape is not null) RedrawShape();
+        else if (_dabs.Count > 0) Render(_dabs);
     }
 
     private void Render(List<Dab> dabs)
@@ -166,7 +154,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             _patch = new CanvasRenderTarget(doc.Device, _patchSize, _patchSize, 96);
             _mask = new CanvasRenderTarget(doc.Device, _patchSize, _patchSize, 96);
             using var pds = _patch.CreateDrawingSession();
-            pds.Clear(Colors.Transparent);
+            pds.Clear(KnownColors.Transparent);
             pds.DrawImage(src, new Rect(0, 0, _patchSize, _patchSize), Around(d.X, d.Y, _patchSize));
             Grow(d.X, d.Y, _patchSize);
             return;
@@ -174,9 +162,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         var S = _patchSize;
         using (var mds = _mask!.CreateDrawingSession())
         {
-            mds.Clear(Colors.Transparent);
+            mds.Clear(KnownColors.Transparent);
             mds.DrawImage(_patch);
-            var tip = tips.Get(_brush!.Tip, Colors.White);
+            var tip = tips.Get(_brush!.Tip, KnownColors.White);
             mds.Transform = Matrix3x2.CreateScale(S / (float)TipGenerator.DefaultSize);
             mds.DrawImage(tip, Vector2.Zero, TipCache.TipRect, 1, CanvasImageInterpolation.Linear, CanvasComposite.DestinationIn);
         }
@@ -212,11 +200,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     {
         if (_layer is null) return;
         // StreamLine: alcanzar el último punto real
-        if (Shape is null && _raw.Count > 1 && _smoother!.Radius > 0)
-        {
-            var last = _raw[^1];
-            StampTo(last with { Pressure = _smoother.Current?.Pressure ?? last.Pressure });
-        }
+        _dabs.Clear();
+        _builder!.End(_dabs);
+        if (_dabs.Count > 0) Render(_dabs);
         var layer = _layer;
         if (_tool != ToolKind.Smudge && !_dirty.IsEmpty)
         {
@@ -230,7 +216,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         if (!_dirty.IsEmpty)
             ops.CommitPixels(layer, _dirty, _tool switch { ToolKind.Eraser => "Borrar", ToolKind.Smudge => "Difuminar", _ => "Pintar" });
         _layer = null;
-        Shape = null;
+        _builder = null;
     }
 
     public void Cancel()
@@ -243,31 +229,26 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             _layer.Touch();
         }
         _layer = null;
-        Shape = null;
+        _builder = null;
     }
 
     // ---------- QuickShape ----------
 
     public bool TrySnapShape(float viewScale)
     {
-        if (_layer is null || _tool == ToolKind.Smudge || Shape is not null) return false;
-        Shape = QuickShape.Detect(_raw, viewScale);
-        if (Shape is null) return false;
+        if (_layer is null || _builder is null || _tool == ToolKind.Smudge) return false;
+        if (!_builder.TrySnapShape(viewScale)) return false;
         RedrawShape();
         return true;
     }
 
     private void RedrawShape()
     {
-        using (var ds = _buffer!.CreateDrawingSession()) ds.Clear(Colors.Transparent);
+        using (var ds = _buffer!.CreateDrawingSession()) ds.Clear(KnownColors.Transparent);
         _dirty = Rect.Empty;
-        _stamper!.Reset();
-        foreach (var v in Shape!.Path())
-        {
-            _dabs.Clear();
-            _stamper.LineTo(new InputPoint(v.X, v.Y, Shape.Pressure), _dabs);
-            if (_dabs.Count > 0) Render(_dabs);
-        }
+        _dabs.Clear();
+        _builder!.ShapeDabs(_dabs);
+        if (_dabs.Count > 0) Render(_dabs);
     }
 
     // ---------- Relleno ----------

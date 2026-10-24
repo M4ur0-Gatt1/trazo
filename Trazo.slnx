@@ -2,8 +2,14 @@
   <Folder Name="/src/">
     <Project Path="src/Trazo.App/Trazo.App.csproj" />
     <Project Path="src/Trazo.Core/Trazo.Core.csproj" />
+    <Project Path="src/Trazo.Rendering/Trazo.Rendering.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Trazo.Core.Tests/Trazo.Core.Tests.csproj" />
+    <Project Path="tests/Trazo.Rendering.Tests/Trazo.Rendering.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
 </Solution>

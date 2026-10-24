@@ -2,7 +2,7 @@ using Microsoft.Graphics.Canvas;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Trazo.App.Painting;
+using Trazo.Rendering;
 using Trazo.App.Services;
 using Trazo.Core.IO;
 using Windows.Storage.Pickers;
@@ -80,9 +80,16 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            ProjectData data;
-            await using (var fs = File.OpenRead(path)) data = await Task.Run(() => TrazoFile.Read(fs));
-            var doc = await PaintDocument.FromProjectDataAsync(Device, data, path);
+            var result = await Task.Run(() => ProjectSaver.Load(path));
+            var doc = await PaintDocument.FromProjectDataAsync(Device, result.Project, path);
+            if (result.Recovered)
+            {
+                Log.Error($"Recuperado {path} desde {result.Source}: {result.Problem}");
+                ShowMessage(result.Source == LoadSource.Backup
+                    ? "El archivo estaba dañado y se recuperó la copia anterior. Puede faltar el último trabajo."
+                    : "Se recuperó un guardado interrumpido.", InfoBarSeverity.Warning);
+                doc.IsDirty = true; // se vuelve a guardar sano en el archivo principal
+            }
             // los archivos del formato web antiguo se guardan como .trazo v2 en la carpeta de proyectos
             if (!path.StartsWith(ProjectStore.Folder, StringComparison.OrdinalIgnoreCase)) doc.FilePath = ProjectStore.NewPath(doc.Name);
             ShowStudio(doc);

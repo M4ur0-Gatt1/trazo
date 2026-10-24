@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using Trazo.App.Painting;
+using Trazo.Rendering;
 using Trazo.App.Services;
 using Trazo.Core.Brushes;
 using Trazo.Core.Colors;
@@ -224,13 +224,20 @@ public sealed partial class StudioView : UserControl
         {
             doc.IsDirty = false;
             var data = await doc.ToProjectDataAsync();
-            await Task.Run(() => TrazoFile.WriteAtomicAsync(doc.FilePath, data));
+            await ProjectSaver.SaveAsync(doc.FilePath, data);
+        }
+        catch (SaveFailedException e)
+        {
+            // el archivo anterior sigue intacto: se reintentará en el próximo autoguardado
+            doc.IsDirty = true;
+            Log.Error($"Guardado fallido en la etapa {e.Stage}", e);
+            Window.ShowMessage(e.Message, InfoBarSeverity.Error);
         }
         catch (Exception e)
         {
             doc.IsDirty = true;
-            Log.Error("Error al guardar", e);
-            Window.ShowMessage("Error al guardar: " + e.Message, InfoBarSeverity.Error);
+            Log.Error("Error al preparar el guardado", e);
+            Window.ShowMessage("No se pudo guardar: " + e.Message + " El archivo anterior sigue intacto.", InfoBarSeverity.Error);
         }
         finally
         {

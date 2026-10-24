@@ -65,19 +65,6 @@ public static class TrazoFile
         WriteEntry(zip, "manifest.json", JsonSerializer.SerializeToUtf8Bytes(manifest, TrazoJson.Default.ManifestV2), CompressionLevel.Optimal);
     }
 
-    public static async Task WriteAtomicAsync(string path, ProjectData project)
-    {
-        var tmp = path + ".tmp";
-        await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
-        {
-            using var ms = new MemoryStream();
-            Write(ms, project);
-            ms.Position = 0;
-            await ms.CopyToAsync(fs);
-        }
-        File.Move(tmp, path, overwrite: true);
-    }
-
     public static ProjectData Read(Stream input)
     {
         using var buffer = new MemoryStream();

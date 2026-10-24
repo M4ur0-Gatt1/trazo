@@ -2,8 +2,8 @@ using Trazo.Core.Brushes;
 
 namespace Trazo.Core.Strokes;
 
-/// <summary>Muestra de entrada en coordenadas del documento.</summary>
-public readonly record struct InputPoint(float X, float Y, float Pressure = 1, float Tilt = 0);
+/// <summary>Muestra de entrada en coordenadas del documento. <see cref="Time"/> en milisegundos (0 = sin marca de tiempo).</summary>
+public readonly record struct InputPoint(float X, float Y, float Pressure = 1, float Tilt = 0, double Time = 0);
 
 /// <summary>Un sello del pincel: posición, diámetro, opacidad y giro (radianes).</summary>
 public readonly record struct Dab(float X, float Y, float Size, float Alpha, float Rotation);

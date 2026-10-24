@@ -1,11 +1,10 @@
 using Microsoft.Graphics.Canvas;
-using Microsoft.UI;
 using Trazo.Core.Documents;
 using Trazo.Core.History;
 using Windows.Foundation;
 using Windows.UI;
 
-namespace Trazo.App.Painting;
+namespace Trazo.Rendering;
 
 /// <summary>Cambio de píxeles en un rectángulo de una capa, guardado como dos parches en la GPU.</summary>
 public sealed class PixelPatchAction : IUndoableAction, IDisposable
@@ -69,7 +68,7 @@ public sealed class PixelPatchAction : IUndoableAction, IDisposable
 }
 
 /// <summary>Cambio de una propiedad de capa; los cambios seguidos de la misma propiedad se fusionan.</summary>
-public sealed class LayerPropertyAction<T>(string label, Layer layer, string key, T oldValue, T newValue, Action<Layer, T> setter) : IMergeableAction
+public sealed class LayerPropertyAction<T>(string label, Layer layer, string key, T oldValue, T newValue, Action<Layer, T> setter, bool mergeable) : IMergeableAction
 {
     private T _new = newValue;
     private readonly DateTime _time = DateTime.UtcNow;
@@ -79,13 +78,16 @@ public sealed class LayerPropertyAction<T>(string label, Layer layer, string key
     public void Undo() => setter(layer, oldValue);
     public void Redo() => setter(layer, _new);
 
+    // Solo las propiedades continuas (arrastrar un deslizador) se fusionan en un paso;
+    // los interruptores (visible, recorte...) registran cada cambio por separado.
     public bool TryMerge(IUndoableAction next)
     {
-        if (next is not LayerPropertyAction<T> n || n.LayerRef != layer || n.Key != key || (n._time - _time).TotalMilliseconds > 1200) return false;
+        if (!mergeable || next is not LayerPropertyAction<T> n || !n.Mergeable || n.LayerRef != layer || n.Key != key || (n._time - _time).TotalMilliseconds > 1200) return false;
         _new = n._new;
         return true;
     }
 
+    private bool Mergeable => mergeable;
     private Layer LayerRef => layer;
     private string Key => key;
 }
@@ -137,7 +139,7 @@ public sealed class LayerOperations(PaintDocument doc)
         using var temp = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
         using (var ds = temp.CreateDrawingSession())
         {
-            ds.Clear(Colors.Transparent);
+            ds.Clear(KnownColors.Transparent);
             ds.DrawImage(image);
         }
         Snapshot(layer);
@@ -197,7 +199,7 @@ public sealed class LayerOperations(PaintDocument doc)
         var old = getter(layer);
         if (EqualityComparer<T>.Default.Equals(old, value)) return;
         setter(layer, value);
-        doc.History.Push(new LayerPropertyAction<T>(label, layer, key, old, value, setter));
+        doc.History.Push(new LayerPropertyAction<T>(label, layer, key, old, value, setter, mergeable: value is float));
         doc.IsDirty = true;
     }
 
@@ -212,7 +214,7 @@ public sealed class LayerOperations(PaintDocument doc)
     }
 
     public void Clear(int index) =>
-        PixelOp(doc.Layers[index], "Borrar capa", ds => ds.Clear(Colors.Transparent));
+        PixelOp(doc.Layers[index], "Borrar capa", ds => ds.Clear(KnownColors.Transparent));
 
     public void Fill(int index, Color color)
     {
@@ -260,7 +262,7 @@ public sealed class LayerOperations(PaintDocument doc)
                     var owned = new List<IDisposable>();
                     using (var ds = tmp.CreateDrawingSession())
                     {
-                        ds.Clear(Colors.Transparent);
+                        ds.Clear(KnownColors.Transparent);
                         ICanvasImage top = up.Opacity < 1
                             ? Own(owned, new Microsoft.Graphics.Canvas.Effects.OpacityEffect { Source = up.Surface, Opacity = up.Opacity })
                             : up.Surface;
@@ -291,7 +293,7 @@ public sealed class LayerOperations(PaintDocument doc)
             {
                 using var copy = Clone(l.Surface);
                 using var ds = l.Surface.CreateDrawingSession();
-                ds.Clear(Colors.Transparent);
+                ds.Clear(KnownColors.Transparent);
                 ds.Transform = horizontal
                     ? new System.Numerics.Matrix3x2(-1, 0, 0, 1, doc.Width, 0)
                     : new System.Numerics.Matrix3x2(1, 0, 0, -1, 0, doc.Height);

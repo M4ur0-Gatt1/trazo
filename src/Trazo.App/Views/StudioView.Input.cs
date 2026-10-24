@@ -6,7 +6,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Trazo.App.Painting;
+using Trazo.Rendering;
 using Trazo.Core.Strokes;
 using Windows.System;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
@@ -199,7 +199,11 @@ public sealed partial class StudioView
             case InputMode.Draw when c.Id == _strokeId && _engine?.IsActive == true:
                 // puntos intermedios: el lápiz informa a más frecuencia que la pantalla
                 var pts = e.GetIntermediatePoints(Canvas);
-                for (var i = pts.Count - 1; i >= 0; i--) _engine.Add(ToInput(pts[i], c.Type));
+                for (var i = pts.Count - 1; i >= 0; i--)
+                {
+                    _engine.Add(ToInput(pts[i], c.Type));
+                    _recording?.Add(RecordSample(pts[i], c.Type));
+                }
                 if (Vector2.Distance(c.Position, _shapeAnchor) > 4)
                 {
                     _shapeAnchor = c.Position;
@@ -295,6 +299,7 @@ public sealed partial class StudioView
         _strokeId = pt.PointerId;
         _strokeType = type;
         _strokeT0 = Now;
+        if (_recordStrokes) _recording = [RecordSample(pt, type)];
         _shapeAnchor = Pos(pt);
         ArmShapeTimer();
         if (type == PointerDeviceType.Touch)
@@ -344,8 +349,57 @@ public sealed partial class StudioView
         return t;
     }
 
+    // ================= Grabación de trazos (BR-01) =================
+
+    private bool _recordStrokes;
+    private List<RecordedSample>? _recording;
+    private static readonly string RecordingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Trazo", "recordings");
+
+    /// <summary>Muestra tal como la recibe el motor (presión ya con la curva aplicada), en coordenadas de pantalla.</summary>
+    private RecordedSample RecordSample(Microsoft.UI.Input.PointerPoint p, PointerDeviceType type)
+    {
+        var input = ToInput(p, type);
+        return new RecordedSample(p.Timestamp / 1000.0, (float)p.Position.X, (float)p.Position.Y, input.Pressure, input.Tilt);
+    }
+
+    private void ToggleStrokeRecording()
+    {
+        _recordStrokes = !_recordStrokes;
+        Window.ShowMessage(_recordStrokes
+            ? "Grabando trazos para pruebas (Ctrl+Shift+R para parar)"
+            : $"Grabación detenida. Archivos en {RecordingsFolder}");
+    }
+
+    private void SaveRecording()
+    {
+        var samples = _recording;
+        _recording = null;
+        if (samples is null || samples.Count < 2) return;
+        var rec = new InputRecording
+        {
+            Device = $"{_strokeType}; curva de presión {_settings.PressureGamma:0.00}",
+            Note = $"{Tool} · {BrushFor(Tool).Id} · {ToolState(Tool).Size:0.#} px",
+            ViewScale = _view.Scale,
+            ViewRotation = _view.Rotation,
+            ViewOffsetX = _view.Offset.X,
+            ViewOffsetY = _view.Offset.Y,
+            Samples = samples,
+        };
+        try
+        {
+            Directory.CreateDirectory(RecordingsFolder);
+            File.WriteAllText(Path.Combine(RecordingsFolder, $"trazo-{DateTime.Now:yyyyMMdd-HHmmss-fff}.json"), rec.ToJson());
+        }
+        catch (IOException e)
+        {
+            Services.Log.Error("No se pudo guardar la grabación", e);
+        }
+    }
+
     private void EndDraw(bool cancel)
     {
+        if (!cancel) SaveRecording();
+        _recording = null;
         _holdTimer?.Stop();
         _shapeTimer?.Stop();
         if (_engine?.IsActive == true)
@@ -546,6 +600,7 @@ public sealed partial class StudioView
             switch (e.Key)
             {
                 case VirtualKey.Z when shift: Redo(); break;
+                case VirtualKey.R when shift: ToggleStrokeRecording(); break;
                 case VirtualKey.Z: Undo(); break;
                 case VirtualKey.Y: Redo(); break;
                 case VirtualKey.S: _doc.IsDirty = true; _ = SaveAndNotifyAsync(); break;

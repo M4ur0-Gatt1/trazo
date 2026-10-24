@@ -9,7 +9,30 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Pruebas (núcleo + renderizado WARP)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Núcleo (BR-01, FI-01, historial, formato)
+        run: dotnet test tests/Trazo.Core.Tests -c Release --logger "trx;LogFileName=core.trx" --results-directory test-results
+      - name: Renderizado (BR-02, LY-01) con Direct3D WARP
+        run: dotnet test tests/Trazo.Rendering.Tests -c Release --logger "trx;LogFileName=rendering.trx" --results-directory test-results
+      - name: Conservar métricas e imágenes resultantes
+        if: always()
+        shell: pwsh
+        run: Copy-Item tests/Trazo.Rendering.Tests/bin/*/Release/*/*/results -Destination test-results/rendering -Recurse -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results
+
   build:
+    name: Compilar app (${{ matrix.platform }})
     runs-on: windows-latest
     strategy:
       matrix:
@@ -19,8 +42,4 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Pruebas del núcleo
-        if: matrix.platform == 'x64'
-        run: dotnet test tests/Trazo.Core.Tests -c Release
-      - name: Compilar la app
-        run: dotnet build src/Trazo.App -c Release -p:Platform=${{ matrix.platform }}
+      - run: dotnet build src/Trazo.App -c Release -p:Platform=${{ matrix.platform }}

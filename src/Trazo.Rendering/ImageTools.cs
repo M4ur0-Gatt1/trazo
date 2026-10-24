@@ -4,7 +4,7 @@ using Microsoft.Graphics.Canvas.Effects;
 using Trazo.Core.Imaging;
 using Windows.Foundation;
 
-namespace Trazo.App.Painting;
+namespace Trazo.Rendering;
 
 public sealed record AdjustParam(string Key, string Label, double Min, double Max, double Default, string Unit = "");
 

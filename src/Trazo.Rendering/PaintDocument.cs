@@ -3,7 +3,6 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
-using Microsoft.UI;
 using Trazo.Core.Colors;
 using Trazo.Core.Documents;
 using Trazo.Core.History;
@@ -12,7 +11,7 @@ using Windows.Foundation;
 using Windows.Storage.Streams;
 using Windows.UI;
 
-namespace Trazo.App.Painting;
+namespace Trazo.Rendering;
 
 /// <summary>Capa con sus píxeles en una textura de la GPU.</summary>
 public sealed partial class Layer : ObservableObject, IDisposable
@@ -28,7 +27,7 @@ public sealed partial class Layer : ObservableObject, IDisposable
     public Layer(CanvasDevice device, int width, int height, string name)
     {
         Surface = new CanvasRenderTarget(device, width, height, 96);
-        using (var ds = Surface.CreateDrawingSession()) ds.Clear(Colors.Transparent);
+        using (var ds = Surface.CreateDrawingSession()) ds.Clear(KnownColors.Transparent);
         _name = name;
     }
 
@@ -73,7 +72,7 @@ public sealed partial class Layer : ObservableObject, IDisposable
 public sealed partial class PaintDocument : ObservableObject, IDisposable
 {
     private int _activeIndex;
-    private Color _background = Colors.White;
+    private Color _background = KnownColors.White;
     private bool _backgroundVisible = true;
     private string _name;
 
@@ -134,7 +133,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
     {
         ICanvasImage acc = Track(owned, new CropEffect
         {
-            Source = Track(owned, new ColorSourceEffect { Color = includeBackground && BackgroundVisible ? Background : Colors.Transparent }),
+            Source = Track(owned, new ColorSourceEffect { Color = includeBackground && BackgroundVisible ? Background : KnownColors.Transparent }),
             SourceRectangle = Bounds,
         });
         ICanvasImage Src(Layer l) => overrides is not null && overrides.TryGetValue(l, out var o) ? o : l.Surface;
@@ -198,7 +197,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         var owned = new List<IDisposable>();
         using (var ds = rt.CreateDrawingSession())
         {
-            ds.Clear(Colors.Transparent);
+            ds.Clear(KnownColors.Transparent);
             ds.DrawImage(Compose(overrides, owned, includeBackground));
         }
         owned.ForEach(o => o.Dispose());
@@ -213,7 +212,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         var owned = new List<IDisposable>();
         using (var ds = rt.CreateDrawingSession())
         {
-            ds.Clear(Colors.Transparent);
+            ds.Clear(KnownColors.Transparent);
             ds.Transform = System.Numerics.Matrix3x2.CreateTranslation(-MathF.Floor(x), -MathF.Floor(y));
             ds.DrawImage(Compose(overrides, owned));
         }
@@ -278,7 +277,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         var k = Math.Min(1, maxSide / Math.Max(s.Width, s.Height));
         var rt = new CanvasRenderTarget(source.Device, Math.Max(1, s.Width * k), Math.Max(1, s.Height * k), 96);
         using var ds = rt.CreateDrawingSession();
-        ds.Clear(Colors.Transparent);
+        ds.Clear(KnownColors.Transparent);
         ds.DrawImage(source, new Rect(0, 0, rt.Size.Width, rt.Size.Height), new Rect(0, 0, s.Width, s.Height), 1, CanvasImageInterpolation.HighQualityCubic);
         return rt;
     }
