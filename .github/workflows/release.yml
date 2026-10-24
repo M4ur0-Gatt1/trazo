@@ -1,0 +1,37 @@
+name: Release
+
+# Publica los instaladores al crear una etiqueta vX.Y.Z
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Versión
+        id: v
+        shell: pwsh
+        run: '"version=$($env:GITHUB_REF_NAME.TrimStart(''v''))" >> $env:GITHUB_OUTPUT'
+      - name: Publicar
+        run: dotnet publish src/Trazo.App -c Release -r win-${{ matrix.arch }} -p:Platform=${{ matrix.arch }} -p:Version=${{ steps.v.outputs.version }} -o artifacts/publish/win-${{ matrix.arch }}
+      - name: Instalador
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q /DAppVersion=${{ steps.v.outputs.version }} /DArch=${{ matrix.arch }} /DSourceDir=..\artifacts\publish\win-${{ matrix.arch }} installer\Trazo.iss
+          Compress-Archive -Path artifacts/publish/win-${{ matrix.arch }}/* -DestinationPath artifacts/installer/Trazo-${{ steps.v.outputs.version }}-${{ matrix.arch }}-portable.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/installer/*
+          generate_release_notes: true

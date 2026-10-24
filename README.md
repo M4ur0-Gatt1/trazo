@@ -1,38 +1,49 @@
 # Trazo
 
-**Estudio de pintura digital para tabletas y portátiles táctiles con Windows**, inspirado en el flujo de trabajo de Procreate: pinceles sensibles a la presión, capas, gestos multitáctiles y una interfaz pensada para el dedo y el lápiz.
+**Estudio de pintura digital nativo para Windows**, pensado para tabletas, portátiles 2 en 1 y pantallas con lápiz (Surface Pen, Wacom, Windows Ink). Se inspira en el flujo de trabajo de Procreate: pinceles con presión, capas, gestos multitáctiles y una interfaz que se usa con el dedo y el lápiz.
 
-Es una PWA sin dependencias ni compilación: HTML, CSS y JavaScript con Canvas 2D. Se instala desde Microsoft Edge como una app más de Windows y funciona sin conexión.
+Está hecho con **C# / .NET 10**, **WinUI 3** (Windows App SDK 1.8) y **Win2D**: las capas, los pinceles, los modos de fusión y los ajustes se procesan en la **tarjeta gráfica** mediante Direct2D.
 
-> Trazo es un proyecto independiente. No está afiliado a Savage Interactive ni a Procreate®.
+> Trazo es un proyecto independiente y no está afiliado a Savage Interactive ni a Procreate®.
+
+## Descargar
+
+En [Releases](https://github.com/M4ur0-Gatt1/trazo/releases):
+
+- `Trazo-x.y.z-x64-setup.exe`: instalador para PC Intel/AMD. Instala solo para tu usuario, sin pedir permisos de administrador, y asocia los archivos `.trazo`.
+- `Trazo-x.y.z-arm64-setup.exe`: instalador para equipos ARM (Surface Pro X, Snapdragon).
+- `*-portable.zip`: la app sin instalar.
+
+Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET aparte: va incluido.
 
 ## Funciones
 
-**Pintura**
-- 21 pinceles en 6 categorías: Bocetos, Entintado, Pintura, Aerógrafos, Caligrafía y Texturas. Las puntas se generan por código: redonda, suave, aerógrafo, grafito, tiza, plana, spray y cerdas.
-- Presión e inclinación del lápiz (Windows Ink, Surface Pen, Wacom, etc.), con curva de presión ajustable.
-- **StreamLine** (suavizado tipo "cuerda"), espaciado, flujo, dispersión y variación de tamaño, editables por pincel.
+**Pintura en la GPU**
+- 21 pinceles en 6 categorías (Bocetos, Entintado, Pintura, Aerógrafos, Caligrafía, Texturas) con puntas generadas por código.
+- Presión e inclinación del lápiz, con curva de presión ajustable y lectura de los puntos intermedios del lápiz para trazos fluidos a alta frecuencia.
+- **StreamLine**, espaciado, flujo, dispersión y variación de tamaño, editables por pincel y guardados.
 - Herramientas **Pintar, Difuminar y Borrar**, cada una con su pincel, tamaño y opacidad.
 - **QuickShape**: mantén el lápiz quieto al final del trazo y se convierte en línea, círculo, elipse o polilínea, que puedes seguir ajustando.
-- **Guías de simetría**: vertical, horizontal, cuadrante y radial (8 ejes).
-- **ColorDrop**: arrastra el círculo de color al lienzo para rellenar, con umbral ajustable.
-- Cuentagotas: tocar y mantener, botón lateral del lápiz, Alt+clic o la tecla I.
+- **Simetría** vertical, horizontal, en cuadrante o radial (8 ejes).
+- **Relleno** arrastrando el círculo de color al lienzo, con umbral ajustable.
+- Cuentagotas al tocar y mantener, con el botón lateral del lápiz, con clic derecho, con Alt+clic o con la tecla I.
 
 **Capas**
-- Hasta 200 capas (según el tamaño del lienzo), con 16 modos de fusión y opacidad.
-- Bloqueo alfa, máscara de recorte, duplicar, combinar hacia abajo, invertir, rellenar, renombrar y reordenar arrastrando.
-- Color de fondo, que también puede ocultarse para exportar con transparencia.
+- 16 modos de fusión nativos de Direct2D, opacidad, bloqueo alfa y máscara de recorte.
+- Duplicar, combinar hacia abajo, invertir, rellenar, renombrar y reordenar.
+- Hasta 250 capas, según el tamaño del lienzo y un presupuesto de 2 GB de memoria de vídeo.
+- Color de fondo, que se puede ocultar para exportar con transparencia.
 
 **Ajustes y transformación**
-- Tono/saturación/brillo, contraste, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
-- Transformar capa: mover, escalar y girar con los dedos, voltear, rotar 90°, ajustar al lienzo e interpolación suave o nítida.
+- Tono/saturación/brillo, contraste, exposición, temperatura y matiz, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
+- Transformar capa: mover, escalar y girar con los dedos o la rueda, voltear, rotar 90°, ajustar al lienzo, con interpolación suave o nítida.
 
-**Lienzo y archivos**
-- Galería con autoguardado en el dispositivo (IndexedDB).
-- Presets de lienzo (pantalla, 4K, A4/Carta a 300 ppp, formatos de redes) o tamaño personalizado, hasta 8192 px por lado.
-- Exportación a PNG, PNG transparente, JPEG, capas sueltas en PNG y proyecto `.trazo` con todas las capas.
-- Importación de imágenes y archivos `.trazo`; pegar desde el portapapeles; texto.
-- Historial de deshacer de hasta 120 pasos.
+**Archivos**
+- Galería con autoguardado en `Documentos\Trazo`.
+- Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa y una miniatura. Abre también los proyectos de la versión web.
+- Exportación a PNG, PNG transparente, JPEG, capas sueltas y `.trazo`.
+- Importar imágenes, pegar desde el portapapeles y añadir texto.
+- Lienzos de hasta 16 384 px por lado (64 megapíxeles) y 150 pasos de deshacer, con un límite de memoria.
 
 ## Gestos
 
@@ -42,80 +53,91 @@ Es una PWA sin dependencias ni compilación: HTML, CSS y JavaScript con Canvas 2
 | Tocar con tres dedos | Rehacer |
 | Tocar con cuatro dedos | Ocultar o mostrar la interfaz |
 | Pellizcar y girar con dos dedos | Zoom, desplazar y rotar (se ajusta a 0°/90°) |
-| Pellizco rápido | Ajustar el lienzo a la pantalla |
+| Pellizco rápido | Ajustar a la pantalla |
 | Tocar y mantener con el dedo | Cuentagotas |
 | Mantener al final del trazo | QuickShape |
 | Extremo borrador del lápiz | Borrador temporal |
 | Botón lateral del lápiz | Cuentagotas |
 
-**Rechazo de palma:** la primera vez que usas un lápiz, Trazo activa el modo *Solo lápiz*: el lápiz dibuja y el dedo navega. Los toques que llegan mientras el lápiz está dibujando se ignoran. Puedes cambiarlo en *Acciones › Preferencias*.
+**Rechazo de palma:** la primera vez que usas un lápiz se activa el modo *Solo lápiz*: el lápiz dibuja y el dedo navega. Los toques que llegan mientras el lápiz dibuja se ignoran. Se cambia en *Acciones › Preferencias*.
 
 ## Atajos de teclado
 
 | Tecla | Acción |
 |---|---|
-| `B` / `E` / `S` | Pintar / Borrar / Difuminar |
-| `[` / `]` | Achicar / agrandar el pincel |
+| `B` · `E` · `S` | Pintar · Borrar · Difuminar |
+| `[` · `]` | Tamaño del pincel |
 | `1`…`9` | Opacidad 10…90 % |
 | `I` · `G` · `V` · `X` | Cuentagotas · Relleno · Transformar · Color anterior |
 | `L` · `C` | Capas · Color |
-| `Ctrl+Z` · `Ctrl+Y` / `Ctrl+Shift+Z` | Deshacer · Rehacer |
+| `Ctrl+Z` · `Ctrl+Y` | Deshacer · Rehacer |
 | `Ctrl+J` · `Ctrl+E` | Duplicar capa · Combinar hacia abajo |
 | `Espacio` + arrastrar · rueda | Desplazar · Zoom |
 | `Alt` + rueda · `R` | Rotar · Quitar rotación |
-| `Ctrl+0` · `Ctrl+1` | Ajustar a la pantalla · 100 % |
+| `Ctrl+0` · `Ctrl+1` | Ajustar · 100 % |
 | `Tab` | Pantalla completa |
-| `Ctrl+S` | Guardar ahora |
+| `Ctrl+S` | Guardar |
 
-## Usarlo
+## Compilar
 
-### Instalarlo como app (recomendado)
-1. Abre la URL de GitHub Pages del proyecto en **Microsoft Edge** o Chrome.
-2. Menú `…` › **Aplicaciones › Instalar Trazo**.
-3. Se abre en su propia ventana, aparece en el menú Inicio y funciona sin conexión.
-
-### Ejecutarlo en local
-Requiere [Node.js](https://nodejs.org) 18 o superior; no hay dependencias que instalar.
+Requisitos: Windows 10/11 y el [SDK de .NET 10](https://dotnet.microsoft.com/download). No hace falta Visual Studio.
 
 ```bash
-npm start
+dotnet test tests/Trazo.Core.Tests
 ```
 
-Después abre <http://localhost:5173>.
+```bash
+dotnet run --project src/Trazo.App
+```
 
-### Publicarlo en la Microsoft Store (opcional)
-Con [PWABuilder](https://www.pwabuilder.com) se genera un paquete MSIX a partir de la URL publicada.
+Para la autoprueba de extremo a extremo, que pinta con el motor real en la GPU y escribe un informe y una imagen en la carpeta indicada:
+
+```bash
+dotnet run --project src/Trazo.App -- --selftest ./selftest
+```
+
+Para generar el instalador (requiere [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
+
+```bash
+dotnet publish src/Trazo.App -c Release -r win-x64 -o artifacts/publish/win-x64
+```
+
+```bash
+ISCC.exe /DArch=x64 installer/Trazo.iss
+```
+
+Para publicar una versión, crea una etiqueta `vX.Y.Z`: el flujo `release.yml` compila los instaladores x64 y ARM64 y los adjunta a la release.
+
+> Si clonas el repositorio en una ruta muy larga, Windows puede superar el límite de 260 caracteres al compilar WinUI. Clónalo en una ruta corta, como `C:\src\trazo`.
 
 ## Estructura
 
 ```
-index.html            interfaz
-css/app.css           estilos
-js/core.js            utilidades, eventos, color, ajustes, iconos
-js/storage.js         IndexedDB (galería)
-js/brushes.js         puntas generadas y biblioteca de pinceles
-js/document.js        documento, capas y composición (fusión, recorte)
-js/history.js         deshacer/rehacer con parches de píxeles
-js/layers.js          operaciones de capa
-js/view.js            vista: zoom, rotación, renderizado
-js/engine.js          motor de trazo, difuminar, QuickShape, simetría, relleno
-js/adjust.js          ajustes de imagen y transformar
-js/input.js           lápiz, gestos, ratón y teclado
-js/ui.js, panels.js   barra superior, barra lateral y paneles
-js/app.js             galería, guardado y arranque
-sw.js                 funcionamiento sin conexión
-tools/                servidor local y generador de iconos
+src/Trazo.Core/        Lógica sin interfaz y con pruebas: pinceles, trazos,
+                       QuickShape, simetría, relleno, historial, formato .trazo, vista
+src/Trazo.App/         App WinUI 3
+  Painting/            Documento y capas en la GPU, motor de pincel, ajustes, transformar
+  Views/               Galería y estudio (lienzo, entrada, paneles, autoprueba)
+  Services/            Preferencias, registro de errores, carpeta de proyectos
+tests/Trazo.Core.Tests Pruebas unitarias (xUnit)
+installer/             Script de Inno Setup
+web/                   Versión web (PWA) publicada en GitHub Pages
+tools/                 Iconos y utilidades de captura
 ```
+
+## Versión web
+
+La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-gatt1.github.io/trazo/> para probar Trazo desde el navegador.
 
 ## Hoja de ruta
 
 - Selección (lazo, rectángulo, varita) y máscaras de capa
-- Grupos de capas y modos de fusión dentro de las máscaras de recorte
+- Grupos de capas
 - Licuar, curvas, mapa de degradado
 - Grabación en time-lapse
 - Importar y exportar PSD
-- Motor de pintura acelerado por WebGL para lienzos muy grandes
-- Empaquetado MSIX para la Microsoft Store
+- Paquete MSIX firmado para la Microsoft Store
+- Recuperación ante pérdida del dispositivo gráfico (por ejemplo, al cambiar de GPU)
 
 ## Licencia
 

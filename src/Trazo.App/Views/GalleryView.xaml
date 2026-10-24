@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Trazo.App.Views.GalleryView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Trazo.App.Views">
+
+    <Grid Padding="28,8,28,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Margin="0,0,0,18">
+            <TextBlock Text="Galería" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Abrir carpeta" Click="OpenFolder_Click" />
+                <Button Content="Importar…" Click="Import_Click" />
+                <Button x:Name="NewButton" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;" FontSize="14" />
+                        <TextBlock Text="Nuevo lienzo" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="NewMenu" Placement="BottomEdgeAlignedRight" />
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <GridView x:Name="Grid" Grid.Row="1" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Grid_ItemClick"
+                  Padding="0,0,0,28">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="local:GalleryItem">
+                    <Grid Width="240" Margin="6" RightTapped="Item_RightTapped">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="180" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border CornerRadius="10" Background="#FF1B1C1F">
+                            <Image Source="{x:Bind Thumbnail}" Stretch="Uniform" />
+                        </Border>
+                        <StackPanel Grid.Row="1" Margin="2,8,0,0">
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind Subtitle}" Opacity="0.6" FontSize="12" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+
+        <StackPanel x:Name="Empty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
+            <TextBlock Text="Todavía no tienes obras." Opacity="0.7" HorizontalAlignment="Center" />
+            <TextBlock Text="Crea un lienzo nuevo o importa una imagen." Opacity="0.5" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

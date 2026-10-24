@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Trazo.App/Trazo.App.csproj" />
+    <Project Path="src/Trazo.Core/Trazo.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Trazo.Core.Tests/Trazo.Core.Tests.csproj" />
+  </Folder>
+</Solution>
