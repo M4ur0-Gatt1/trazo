@@ -18,7 +18,13 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 
 ### Qué incluye
 
-Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, grupos de capas, máscaras de capa y de recorte, bloqueo alfa, selección, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, transformar y exportación a PNG/JPEG.
+Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, grupos de capas, máscaras de capa y de recorte, bloqueo alfa, selección, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, licuar, transformar con perspectiva y deformación, guías de dibujo con asistente y exportación a PNG/JPEG.
+
+**Novedades de la beta 5**
+
+- **Transformar en cuatro modos** (botón de la barra superior o tecla V): *Libre* y *Uniforme* con asas para escalar y girar, *Distorsionar* (arrastra cada esquina para dar perspectiva) y *Deformar* (una malla que dobla la imagen). *Magnético* ajusta el giro a múltiplos de 15° y alinea el movimiento.
+- **Licuar** (Ajustes › Licuar): empujar, girar a la derecha o a la izquierda, pellizcar, expandir y reconstruir, con tamaño, presión, *Ajustar* y *Restablecer*. Respeta la selección.
+- **Guías de dibujo** (Acciones › Lienzo › Guía de dibujo): cuadrícula 2D, isométrica y perspectiva de 1 a 3 puntos de fuga. Con el **Asistente de dibujo**, los trazos se pegan a la guía. La guía se guarda con el lienzo; la beta 4 abre estos archivos e ignora la guía.
 
 **Novedades de la beta 4**
 
@@ -44,5 +50,6 @@ Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, 
 - No se ha probado todavía con todos los modelos de lápiz: cuéntanos cómo funciona el tuyo.
 - El grano en movimiento solo se aprecia con flujo bajo.
 - Todavía no hay selecciones guardadas, pluma de selección ni grupos anidados.
+- Licuar aún no tiene los modos Cristales y Borde.
 
 Reporta errores en [Issues](https://github.com/M4ur0-Gatt1/trazo/issues).
