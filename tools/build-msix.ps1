@@ -21,7 +21,6 @@ $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 if (-not $Out) { $Out = Join-Path $root "artifacts\msix" }
 $manifest = Join-Path $root "src\Trazo.App\Package.appxmanifest"
 $originalBytes = [System.IO.File]::ReadAllBytes($manifest)
-$original = [System.Text.Encoding]::UTF8.GetString($originalBytes)
 
 # La Store exige versión de 4 números con el último a 0; los sufijos (-beta.N) no caben
 $numeric = ($Version -split "-")[0]
@@ -29,7 +28,10 @@ $parts = @($numeric -split "\.")
 while ($parts.Count -lt 3) { $parts += "0" }
 $pkgVersion = "$($parts[0]).$($parts[1]).$($parts[2]).0"
 
-$xml = [xml]$original
+# XmlDocument.Load entiende el BOM; convertir el texto con [xml] fallaría si lo lleva
+$xml = New-Object System.Xml.XmlDocument
+$xml.PreserveWhitespace = $true
+$xml.Load($manifest)
 $id = $xml.Package.Identity
 $id.Version = $pkgVersion
 if ($IdentityName) { $id.Name = $IdentityName }
