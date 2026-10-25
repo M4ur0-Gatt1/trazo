@@ -1,13 +1,13 @@
-## Trazo 1.0 — estudio de pintura para Windows
+## Trazo 1.1 — estudio de pintura para Windows
 
-Primera versión estable de Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
+Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
 ### Descarga
 
 | Archivo | Para |
 |---|---|
-| `Trazo-1.0.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) |
-| `Trazo-1.0.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) |
+| `Trazo-1.1.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) |
+| `Trazo-1.1.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) |
 | `…-portable.zip` | Usar sin instalar: descomprimir y abrir `Trazo.exe` |
 
 Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador.
@@ -27,7 +27,14 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 - **Guías de dibujo:** cuadrícula 2D, isométrica y perspectiva con **Asistente de dibujo**.
 - **Archivos:** formato `.trazo` abierto con guardado verificado y copia de seguridad; exportación a PNG, PNG transparente, JPEG y capas sueltas.
 
-**Novedades desde la beta 5**
+**Novedades de la 1.1**
+
+- **Corrección importante:** en la versión 1.0 instalada con el `.exe`, **«Añadir texto» fallaba** y la etiqueta de QuickShape no se mostraba. Ya funcionan.
+- **No pierdas tu obra:** si Trazo se cierra de forma inesperada, al volver a abrirlo te avisa de qué se conservó y te ofrece abrirlo. Si la tarjeta gráfica se reinicia (por ejemplo, al actualizar su controlador), la obra se recupera sola desde el último guardado. Ante un error inesperado se guarda una copia «(recuperado)» sin tocar tu archivo.
+- **Más rápido con lienzos grandes:** el autoguardado solo guarda las capas que cambiaron (con 20 capas de 4K, de 9 s a medio segundo), la vista no vuelve a componer las capas que no cambian, y Deformar va mucho más fluido.
+- **Acerca de Trazo** (Acciones): versión, licencias y avisos de terceros, y acceso a los registros para informar de un problema.
+
+**Novedades de la 1.0**
 
 - **Curvas de presión:** en Ajustes del pincel, una curva editable para el tamaño, otra para el flujo y otra para la opacidad.
 - **Opacidad separada del flujo:** con *Opacidad por presión*, apretar menos limita lo oscuro que llega a ser el trazo aunque pases varias veces; el flujo, en cambio, se acumula.

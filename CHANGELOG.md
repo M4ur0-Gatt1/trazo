@@ -2,7 +2,7 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.1.0 — 2026-10-25
 
 - **Corrección:** «Añadir texto» y la etiqueta de QuickShape fallaban en la versión instalada con el `.exe` (Win2D no resuelve `ms-appx:///` sin paquete).
 - **Recuperación tras fallos (RC-01):** aviso al volver a abrir tras un cierre inesperado, recuperación de la obra si se reinicia la tarjeta gráfica y copia de emergencia «(recuperado)» ante un error inesperado.

@@ -8,7 +8,7 @@ Está hecho con **C# / .NET 10**, **WinUI 3** (Windows App SDK 1.8) y **Win2D**:
 
 ## Descargar
 
-**Versión actual: 1.0.0** ([historial](CHANGELOG.md)).
+**Versión actual: 1.1.0** ([historial](CHANGELOG.md)).
 
 Trazo es **gratis** aquí, con el código abierto. Pronto estará también en la **Microsoft Store**, de pago: es la misma app, con instalación sin avisos de SmartScreen y actualizaciones automáticas, y comprarla financia el desarrollo.
 
