@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:win2d="using:Microsoft.Graphics.Canvas.UI.Xaml"
     IsTabStop="True"
+    FontFamily="{StaticResource TrazoUiFont}"
     PreviewKeyDown="OnPreviewKeyDown"
     KeyUp="OnKeyUp">
 

@@ -8,9 +8,27 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- Tipografías incluidas con la app (SIL Open Font License, ver Assets/Fonts/OFL-*.txt) -->
+            <FontFamily x:Key="TrazoUiFont">ms-appx:///Assets/Fonts/Inter.ttf#Inter</FontFamily>
+            <FontFamily x:Key="TrazoDisplayFont">ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk</FontFamily>
+            <!-- Fuente por defecto de todos los controles de WinUI (menús, diálogos, paneles flotantes) -->
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter</FontFamily>
+            <Style x:Key="WordmarkText" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource TrazoDisplayFont}" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="CharacterSpacing" Value="-20" />
+            </Style>
+            <!-- Acento propio (cian del icono) en lugar del color de acento del sistema -->
+            <Color x:Key="SystemAccentColor">#FF00B4D2</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF1FC6E2</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF00E5FF</Color>
+            <Color x:Key="SystemAccentColorLight3">#FF7FF2FF</Color>
+            <Color x:Key="SystemAccentColorDark1">#FF0095AF</Color>
+            <Color x:Key="SystemAccentColorDark2">#FF00768B</Color>
+            <Color x:Key="SystemAccentColorDark3">#FF005868</Color>
             <SolidColorBrush x:Key="StageBrush" Color="#FF2A2B2F" />
             <SolidColorBrush x:Key="BarBrush" Color="#F0161719" />
-            <SolidColorBrush x:Key="AccentBrushTrazo" Color="#FF3D8BFF" />
+            <SolidColorBrush x:Key="AccentBrushTrazo" Color="#FF00768B" />
             <Style x:Key="BarButton" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="Width" Value="44" />
                 <Setter Property="Height" Value="44" />

@@ -1,6 +1,6 @@
 # Captura la ventana principal de un proceso a PNG (para pruebas visuales).
 # Uso: powershell -ExecutionPolicy Bypass -File tools/capture-window.ps1 -ProcessName Trazo -Out captura.png
-param([string]$ProcessName = 'Trazo', [string]$Out = 'captura.png')
+param([string]$ProcessName = 'Trazo', [string]$Out = 'captura.png', [int]$Id = 0)
 Add-Type -AssemblyName System.Drawing
 Add-Type @'
 using System;
@@ -14,7 +14,7 @@ public static class Win32Capture {
 }
 '@
 [Win32Capture]::SetProcessDPIAware() | Out-Null
-$p = Get-Process -Name $ProcessName -ErrorAction Stop | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+$p = if ($Id) { Get-Process -Id $Id -ErrorAction Stop } else { Get-Process -Name $ProcessName -ErrorAction Stop | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1 }
 if (-not $p) { throw "Sin ventana para $ProcessName" }
 $h = $p.MainWindowHandle
 $r = New-Object Win32Capture+RECT

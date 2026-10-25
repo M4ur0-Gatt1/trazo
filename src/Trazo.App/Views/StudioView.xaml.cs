@@ -330,7 +330,7 @@ public sealed partial class StudioView : UserControl
             using (var shadowSrc = new CanvasCommandList(sender))
             {
                 using (var cds = shadowSrc.CreateDrawingSession()) cds.FillRectangle(doc.Bounds, Colors.Black);
-                using var shadow = new ShadowEffect { Source = shadowSrc, BlurAmount = 12 / _view.Scale, ShadowColor = Color.FromArgb(120, 0, 0, 0) };
+                using var shadow = new ShadowEffect { Source = shadowSrc, BlurAmount = ViewEffects.ShadowBlur(_view.Scale), ShadowColor = Color.FromArgb(120, 0, 0, 0) };
                 ds.DrawImage(shadow);
             }
             if (!doc.BackgroundVisible) DrawChecker(ds, doc, owned);
@@ -352,11 +352,19 @@ public sealed partial class StudioView : UserControl
             Log.Error("Se perdió el dispositivo gráfico", e);
             sender.Device.RaiseDeviceLost();
         }
+        catch (Exception e)
+        {
+            // Una excepción que sale de Draw deja abierta la sesión de dibujo del control y el lienzo
+            // ya no vuelve a redibujarse. Se registra (una vez por tipo de error) y se pierde solo este fotograma.
+            if (_drawErrors.Add(e.GetType().FullName + e.Message)) Log.Error("Error al dibujar un fotograma", e);
+        }
         finally
         {
             foreach (var o in owned) o.Dispose();
         }
     }
+
+    private readonly HashSet<string> _drawErrors = [];
 
     private void DrawChecker(CanvasDrawingSession ds, PaintDocument doc, List<IDisposable> owned)
     {
@@ -380,7 +388,7 @@ public sealed partial class StudioView : UserControl
         var mode = _settings.Symmetry;
         if (mode == SymmetryMode.None) return;
         var style = new Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle { DashStyle = Microsoft.Graphics.Canvas.Geometry.CanvasDashStyle.Dash };
-        var color = Color.FromArgb(190, 61, 139, 255);
+        var color = Color.FromArgb(200, 0, 229, 255);
         void Line(float ax, float ay, float bx, float by) =>
             ds.DrawLine(_view.ToScreen(new Vector2(ax, ay)), _view.ToScreen(new Vector2(bx, by)), color, 1.2f, style);
         float cx = doc.Width / 2f, cy = doc.Height / 2f;
@@ -401,7 +409,7 @@ public sealed partial class StudioView : UserControl
     {
         if (_transform is null) return;
         var pts = _transform.Corners().Select(_view.ToScreen).ToArray();
-        var accent = Color.FromArgb(255, 61, 139, 255);
+        var accent = Color.FromArgb(255, 0, 229, 255);
         var dash = new Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle { DashStyle = Microsoft.Graphics.Canvas.Geometry.CanvasDashStyle.Dash };
         for (var i = 0; i < 4; i++) ds.DrawLine(pts[i], pts[(i + 1) % 4], accent, 1.5f, dash);
         foreach (var p in pts)
@@ -415,7 +423,7 @@ public sealed partial class StudioView : UserControl
     {
         if (_engine?.Shape is not { } shape) return;
         var text = shape.DisplayName + " creada";
-        using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = "Segoe UI" };
+        using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = "ms-appx:///Assets/Fonts/Inter.ttf#Inter" };
         using var layout = new Microsoft.Graphics.Canvas.Text.CanvasTextLayout(ds, text, fmt, 400, 30);
         var w = (float)layout.LayoutBounds.Width + 28;
         var x = (ViewSize.X - w) / 2;

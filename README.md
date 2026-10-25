@@ -146,6 +146,11 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Paquete MSIX firmado para la Microsoft Store
 - Recuperación ante pérdida del dispositivo gráfico (por ejemplo, al cambiar de GPU)
 
+## Créditos
+
+- Tipografías [Inter](https://github.com/rsms/inter) (interfaz) y [Space Grotesk](https://github.com/floriankarsten/space-grotesk) (marca y títulos), bajo la SIL Open Font License 1.1. Las licencias se incluyen en `src/Trazo.App/Assets/Fonts/` y `web/fonts/`.
+- Iconos generados con `tools/make-icon.ps1`.
+
 ## Licencia
 
-[MIT](LICENSE)
+El código de Trazo está bajo licencia [MIT](LICENSE). Las tipografías conservan su propia licencia (OFL).

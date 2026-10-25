@@ -1,7 +1,7 @@
 /* Trazo — service worker: funciona sin conexión (red primero, caché de respaldo). */
-const CACHE = 'trazo-v1';
+const CACHE = 'trazo-v2';
 const FILES = [
-  './', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
+  './', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'fonts/Inter.ttf', 'fonts/SpaceGrotesk.ttf',
   'js/core.js', 'js/storage.js', 'js/brushes.js', 'js/document.js', 'js/history.js', 'js/layers.js', 'js/view.js',
   'js/engine.js', 'js/adjust.js', 'js/input.js', 'js/ui.js', 'js/panels.js', 'js/app.js',
 ];

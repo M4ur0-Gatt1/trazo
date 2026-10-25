@@ -793,7 +793,7 @@ public sealed partial class StudioView
         var doc = _doc!;
         var layer = doc.CreateLayer(box.Text.Trim().Split('\r', '\n')[0] is var first && first.Length > 24 ? first[..24] : first);
         using (var ds = layer.Surface.CreateDrawingSession())
-        using (var fmt = new CanvasTextFormat { FontFamily = "Segoe UI Variable Display", FontSize = Math.Min(doc.Width, doc.Height) / 10f, FontWeight = FontWeights.SemiBold, HorizontalAlignment = CanvasHorizontalAlignment.Center, VerticalAlignment = CanvasVerticalAlignment.Center })
+        using (var fmt = new CanvasTextFormat { FontFamily = "ms-appx:///Assets/Fonts/SpaceGrotesk.ttf#Space Grotesk", FontSize = Math.Min(doc.Width, doc.Height) / 10f, FontWeight = FontWeights.SemiBold, HorizontalAlignment = CanvasHorizontalAlignment.Center, VerticalAlignment = CanvasVerticalAlignment.Center })
             ds.DrawText(box.Text.Replace("\r", "\n"), new Windows.Foundation.Rect(0, 0, doc.Width, doc.Height), CurrentColor, fmt);
         if (_ops!.Add(layer) is not null) StartTransform();
     }

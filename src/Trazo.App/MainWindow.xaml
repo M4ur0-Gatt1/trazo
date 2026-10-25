@@ -19,7 +19,7 @@
         <Grid x:Name="TitleBar" Height="36" Background="Transparent">
             <StackPanel Orientation="Horizontal" Spacing="10" Margin="14,0,0,0" VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/Logo.png" Width="18" Height="18" />
-                <TextBlock x:Name="TitleText" Text="Trazo" FontSize="12" VerticalAlignment="Center" Opacity="0.85" />
+                <TextBlock x:Name="TitleText" Text="Trazo" FontSize="12" FontFamily="{StaticResource TrazoDisplayFont}" FontWeight="Medium" VerticalAlignment="Center" Opacity="0.85" />
             </StackPanel>
         </Grid>
 

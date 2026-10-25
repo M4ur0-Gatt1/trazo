@@ -1,3 +1,6 @@
+/* Tipografías incluidas (SIL Open Font License, ver fonts/OFL-*.txt) */
+@font-face { font-family: "Inter"; src: url("../fonts/Inter.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("../fonts/SpaceGrotesk.ttf") format("truetype"); font-weight: 300 700; font-display: swap; }
 /* Trazo — estilos. Pensado para dedos (objetivos ≥ 40 px) y alta densidad. */
 :root {
   --bg: #111214;
@@ -7,7 +10,10 @@
   --line: rgba(255, 255, 255, 0.08);
   --text: #f2f2f4;
   --muted: #9a9ba1;
-  --accent: #3d8bff;
+  --accent: #00b4d2;
+  --on-accent: #00161a;
+  --accent-strong: #00768b; /* fondos con texto blanco */
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --danger: #ff5a52;
   --top: 52px;
   --radius: 14px;
@@ -17,7 +23,7 @@
 html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: var(--bg); color: var(--text);
-  font: 15px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font: 15px/1.4 "Inter", system-ui, sans-serif;
   user-select: none; -webkit-user-select: none;
   touch-action: none; overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
@@ -36,7 +42,7 @@ svg { display: block; }
   background: var(--panel-2); font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
 }
 .pill.small { height: 34px; padding: 0 14px; font-size: 13px; margin-top: 8px; }
-.pill.primary { background: var(--accent); color: #fff; }
+.pill.primary { background: var(--accent); color: var(--on-accent); }
 .pill.danger { background: var(--danger); color: #fff; }
 .pill:active { filter: brightness(1.2); }
 .pill.icon-left svg { width: 18px; height: 18px; }
@@ -49,7 +55,7 @@ svg { display: block; }
 .g-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; gap: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand img { width: 40px; height: 40px; }
-.brand h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.brand h1 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; }
 .g-actions { display: flex; gap: 10px; }
 .g-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 6px 24px 40px; align-content: start; }
 .card { display: flex; flex-direction: column; gap: 8px; }
@@ -102,7 +108,7 @@ svg { display: block; }
 .vslider.drag .vs-bubble { display: flex; }
 .side-btn { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; color: #d7d7db; }
 .side-btn svg { width: 22px; height: 22px; }
-.side-btn.active { color: #fff; background: var(--accent); }
+.side-btn.active { color: #fff; background: var(--accent-strong); }
 .side-btn:active { background: rgba(255, 255, 255, 0.1); }
 
 body.ui-hidden #topbar, body.ui-hidden #sidebar { display: none; }
@@ -164,7 +170,7 @@ input[type=range].grad::-webkit-slider-thumb { margin-top: 1px; border: 3px soli
 .switch input:checked + i::after { transform: translateX(20px); }
 .segmented { display: flex; margin: 0 8px 8px; padding: 3px; border-radius: 10px; background: var(--panel-2); }
 .segmented button { flex: 1; height: 36px; border-radius: 8px; font-size: 13px; color: var(--muted); }
-.segmented button.on { background: var(--accent); color: #fff; }
+.segmented button.on { background: var(--accent-strong); color: #fff; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 12px 8px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 20px; background: var(--panel-2); font-size: 14px; }
 .chip svg { width: 18px; height: 18px; }
@@ -178,7 +184,7 @@ input[type=range].grad::-webkit-slider-thumb { margin-top: 1px; border: 3px soli
 .bl-cats button.on { background: rgba(61, 139, 255, 0.16); color: var(--text); }
 .bl-list { flex: 1; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 .bl-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border-radius: 10px; }
-.bl-item.on { background: var(--accent); }
+.bl-item.on { background: var(--accent-strong); }
 .bl-item .bl-name { font-size: 13px; font-weight: 600; }
 .bl-settings { display: none; border-top: 1px solid var(--line); max-height: 40vh; overflow: auto; touch-action: pan-y; padding-bottom: 10px; }
 .brush-lib.with-settings .bl-settings { display: block; }
@@ -188,7 +194,7 @@ input[type=range].grad::-webkit-slider-thumb { margin-top: 1px; border: 3px soli
 /* ---------- Capas ---------- */
 .layer-list { padding: 6px; display: flex; flex-direction: column; gap: 4px; max-height: 70vh; }
 .layer-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; min-height: 62px; border-radius: 10px; background: var(--panel-2); position: relative; cursor: pointer; }
-.layer-row.active { background: var(--accent); }
+.layer-row.active { background: var(--accent-strong); }
 .layer-row.hidden-layer .lr-thumb, .layer-row.hidden-layer .lr-name { opacity: 0.45; }
 .layer-row.dragging { z-index: 2; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5); opacity: 0.95; }
 .lr-thumb { width: 64px; height: 48px; flex: none; border-radius: 6px; overflow: hidden; display: grid; place-items: center; touch-action: none; cursor: grab;
