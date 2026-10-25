@@ -128,9 +128,15 @@ public sealed class BrushOverride
     public GrainSettings? Grain { get; set; }
     public TaperSettings? PressureTaper { get; set; }
     public TaperSettings? TouchTaper { get; set; }
+    public DynamicsCurve? SizeCurve { get; set; }
+    public DynamicsCurve? FlowCurve { get; set; }
+    public float? OpacityPressure { get; set; }
+    public DynamicsCurve? OpacityCurve { get; set; }
+    public WetMixSettings? Wet { get; set; }
 
     public static BrushOverride From(BrushPreset b) => new()
     {
+        SizeCurve = b.SizeCurve, FlowCurve = b.FlowCurve, OpacityPressure = b.OpacityPressure, OpacityCurve = b.OpacityCurve, Wet = b.Wet,
         StreamLine = b.StreamLine, Spacing = b.Spacing, Flow = b.Flow, Jitter = b.Jitter,
         Scatter = b.Scatter, MinSizePressure = b.MinSizePressure, FlowPressure = b.FlowPressure,
         Grain = b.Grain, PressureTaper = b.PressureTaper, TouchTaper = b.TouchTaper,
@@ -143,6 +149,11 @@ public sealed class BrushOverride
         if (Grain is not null) b.Grain = Grain;
         if (PressureTaper is not null) b.PressureTaper = PressureTaper;
         if (TouchTaper is not null) b.TouchTaper = TouchTaper;
+        if (SizeCurve is not null && DynamicsCurve.IsValid(SizeCurve.Points)) b.SizeCurve = SizeCurve;
+        if (FlowCurve is not null && DynamicsCurve.IsValid(FlowCurve.Points)) b.FlowCurve = FlowCurve;
+        if (OpacityPressure is { } op) b.OpacityPressure = Math.Clamp(op, 0, 1);
+        if (OpacityCurve is not null && DynamicsCurve.IsValid(OpacityCurve.Points)) b.OpacityCurve = OpacityCurve;
+        if (Wet is not null) b.Wet = Wet;
     }
 }
 

@@ -52,8 +52,10 @@ public sealed partial class StudioView
         return src;
     }
 
-    private void ShowBrushLibrary(FrameworkElement anchor, ToolKind tool)
+    /// <param name="showCurves">Abre los ajustes del pincel por las curvas de presión.</param>
+    private void ShowBrushLibrary(FrameworkElement anchor, ToolKind tool, bool showCurves = false)
     {
+        FrameworkElement? curveAnchor = null;
         if (_doc is null) return;
         var flyout = new Flyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
         var current = BrushFor(tool);
@@ -121,6 +123,33 @@ public sealed partial class StudioView
             Row("Flujo", 0.02, 1, b.Flow, v => b.Flow = v);
             Row("Tamaño a presión mínima", 0, 1, b.MinSizePressure, v => b.MinSizePressure = v);
             Row("Flujo por presión", 0, 1, b.FlowPressure, v => b.FlowPressure = v);
+            Row("Opacidad por presión", 0, 1, b.OpacityPressure, v => b.OpacityPressure = v);
+
+            // ---- Curvas de presión (BR-06) ----
+            settingsPanel.Children.Add(new TextBlock { Text = "Curvas de presión", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            var curveHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Left };
+            var curveKind = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { "Tamaño", "Flujo", "Opacidad" }, SelectedIndex = 0 };
+            void ShowCurve()
+            {
+                curveHost.Content = curveKind.SelectedIndex switch
+                {
+                    1 => CurveEditor(() => b.FlowCurve, c => { b.FlowCurve = c; SaveBrush(); }),
+                    2 => CurveEditor(() => b.OpacityCurve, c => { b.OpacityCurve = c; SaveBrush(); }),
+                    _ => CurveEditor(() => b.SizeCurve, c => { b.SizeCurve = c; SaveBrush(); }),
+                };
+            }
+            curveKind.SelectionChanged += (_, _) => ShowCurve();
+            settingsPanel.Children.Add(curveKind);
+            settingsPanel.Children.Add(curveHost);
+            curveAnchor = curveKind;
+            ShowCurve();
+
+            // ---- Mezcla húmeda (BR-04) ----
+            settingsPanel.Children.Add(new TextBlock { Text = "Mezcla húmeda", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row("Dilución", 0, 1, b.Wet.Dilution, v => b.Wet = b.Wet with { Dilution = v });
+            Row("Carga", 0, 1, b.Wet.Charge, v => b.Wet = b.Wet with { Charge = v });
+            Row("Ataque", 0, 1, b.Wet.Attack, v => b.Wet = b.Wet with { Attack = v });
+            Row("Arrastre", 0, 1, b.Wet.Pull, v => b.Wet = b.Wet with { Pull = v });
             Row("Variación de tamaño", 0, 1, b.Jitter, v => b.Jitter = v);
             Row("Dispersión", 0, 2, b.Scatter, v => b.Scatter = v);
 
@@ -200,10 +229,12 @@ public sealed partial class StudioView
                 new TextBlock { Text = "Biblioteca de pinceles · " + titles[tool], FontWeight = FontWeights.SemiBold, FontSize = 15 },
                 body,
                 new Expander { Header = "Ajustes del pincel", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    Content = new ScrollViewer { MaxHeight = 320, Content = settingsPanel } },
+                    IsExpanded = showCurves, Content = new ScrollViewer { MaxHeight = 320, Content = settingsPanel } },
             },
         };
         flyout.ShowAt(anchor);
+        if (showCurves)
+            flyout.Opened += (_, _) => DispatcherQueue.TryEnqueue(() => curveAnchor?.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 }));
     }
 
     // ================= Capas =================

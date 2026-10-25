@@ -3,6 +3,7 @@ using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
 using Trazo.Rendering;
 using System.Numerics;
+using Trazo.Core.Brushes;
 using Trazo.Core.Geometry;
 using Trazo.Core.Imaging;
 using Trazo.Core.IO;
@@ -255,6 +256,36 @@ public sealed partial class StudioView
             Check("el asistente endereza el trazo", assistedRows.Count > 0 && assistedRows.Max() - assistedRows.Min() <= 8);
             doc.Guide = new DrawingGuide { Kind = GuideKind.Perspective, Assist = true, VanishingPoints = [new(300, 180), new(1350, 200)] };
 
+            // 9e. Mezcla húmeda y opacidad por presión (BR-04, BR-06)
+            var wetLayer = ops.Add()!;
+            ops.Select(SelectionMask.Rectangle(doc.Width, doc.Height, 700, 440, 780, 540), SelectionCombine.Replace, "Selección rectangular");
+            ops.Fill(doc.Layers.IndexOf(wetLayer), Color.FromArgb(255, 20, 60, 220));
+            ops.Deselect();
+            var wetBrush = _brushes["roundbrush"].Clone();
+            wetBrush.Flow = 1;
+            wetBrush.FlowPressure = 0;
+            wetBrush.StreamLine = 0;
+            wetBrush.Wet = new WetMixSettings { Pull = 0.4f, Charge = 1, Attack = 1 };
+            engine.Begin(new InputPoint(560, 490), ToolKind.Brush, wetBrush, red, 24, 1, SymmetryMode.None, 1, seed: 1);
+            for (var k = 1; k <= 80; k++) engine.Add(new InputPoint(560 + k * 5, 490));
+            engine.End();
+            var afterBand = Pixel(wetLayer, 860, 490);
+            Check("la mezcla húmeda arrastra el color del lienzo", afterBand.A == 255 && afterBand.B > 90);
+
+            var capLayer = ops.Add()!;
+            var capBrush = _brushes["roundbrush"].Clone();
+            capBrush.Flow = 1;
+            capBrush.FlowPressure = 0;
+            capBrush.OpacityPressure = 1;
+            capBrush.StreamLine = 0;
+            engine.Begin(new InputPoint(560, 600, 0.3f), ToolKind.Brush, capBrush, Colors.Black, 30, 1, SymmetryMode.None, 1, seed: 1);
+            for (var pass = 0; pass < 6; pass++)
+                for (var k = 0; k <= 40; k++)
+                    engine.Add(new InputPoint(560 + (pass % 2 == 0 ? k : 40 - k) * 6, 600, 0.3f));
+            engine.End();
+            var capMax = Enumerable.Range(580, 40).Max(y => capLayer.Surface.GetPixelBytes(560, y, 240, 1).Where((_, i) => i % 4 == 3).Max());
+            Check("la opacidad por presión limita la acumulación", capMax >= 0.28 * 255 && capMax <= 0.32 * 255);
+
             // 10. Guardar y volver a abrir
             Canvas.Invalidate();
             doc.IsDirty = true;
@@ -294,6 +325,10 @@ public sealed partial class StudioView
                     break;
                 case "guide":
                     ShowGuideSheet();
+                    break;
+                case "brush":
+                    ToolState(ToolKind.Brush).Brush = "oil";
+                    ShowBrushLibrary(BrushButton, ToolKind.Brush, showCurves: true);
                     break;
                 default:
                     doc.ActiveIndex = doc.Layers.IndexOf(trLayer);

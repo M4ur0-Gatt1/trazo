@@ -42,6 +42,13 @@ public sealed class TipCache(CanvasDevice device)
         return bmp;
     }
 
+    /// <summary>Máscara de cobertura de la punta (tamaño × tamaño, 0–255).</summary>
+    public byte[] Mask(TipShape shape)
+    {
+        if (!_masks.TryGetValue(shape, out var mask)) _masks[shape] = mask = TipGenerator.Generate(shape);
+        return mask;
+    }
+
     /// <summary>Dibuja un sello centrado en (x, y).</summary>
     public static void DrawDab(CanvasDrawingSession ds, CanvasBitmap tip, in Dab d)
     {
@@ -61,6 +68,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     private readonly GrainCache _grains = grainCache ?? new GrainCache(doc.Device);
     private CanvasRenderTarget? _buffer;
     private CanvasRenderTarget? _tailBuffer; // cola provisional del afinado final
+    private CanvasRenderTarget? _capBuffer;  // tope de opacidad por presión (BR-06), en la GPU
+    private OpacityCap? _cap;                // el mismo tope, calculado en la CPU
+    private WetMixer? _wet;                  // mezcla húmeda (BR-04)
     private StrokeRasterizer? _raster;
     private readonly List<Dab> _tailDabs = [];
     private CanvasRenderTarget? _patch, _mask;
@@ -111,7 +121,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         LastSeed = seed ?? ++_strokeCounter;
         _builder = new StrokeBuilder(brush, size, viewScale, LastSeed, tool == ToolKind.Smudge ? Math.Max(brush.Spacing, 0.12f) : null, hasPressure);
         _raster?.Dispose();
-        _raster = new StrokeRasterizer(tips, _grains, brush, _color, size, LastSeed, allowGrain: tool != ToolKind.Smudge);
+        var wet = tool == ToolKind.Brush && brush.Wet.IsActive;
+        _raster = new StrokeRasterizer(tips, _grains, brush, _color, size, LastSeed, allowGrain: tool != ToolKind.Smudge, tinted: wet);
+        _wet = null;
         _dirty = Rect.Empty;
         if (_patch is not null) { _patch.Dispose(); _mask!.Dispose(); _patch = _mask = null; }
 
@@ -131,7 +143,24 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             using var ts = _tailBuffer.CreateDrawingSession();
             ts.Clear(KnownColors.Transparent);
         }
-        ops.Snapshot(layer);
+        if (brush.HasOpacityCap && tool != ToolKind.Smudge)
+        {
+            if (_capBuffer is null || _capBuffer.SizeInPixels != _buffer.SizeInPixels)
+            {
+                _capBuffer?.Dispose();
+                _capBuffer = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
+            }
+            using (var cs = _capBuffer.CreateDrawingSession()) cs.Clear(KnownColors.Transparent);
+            if (_cap is null || _cap.Width != doc.Width || _cap.Height != doc.Height) _cap = new OpacityCap(doc.Width, doc.Height);
+            else _cap.Clear();
+        }
+        var snapshot = ops.Snapshot(layer);
+        if (wet)
+        {
+            // el depósito mezcla con la capa tal como estaba al empezar el trazo
+            var sampler = new LayerSampler(snapshot, doc.Width, doc.Height);
+            _wet = new WetMixer(brush.Wet, new Vector3(_color.R, _color.G, _color.B) / 255f, size, sampler.Sample);
+        }
         Add(p);
         return true;
     }
@@ -164,7 +193,31 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         _builder!.TailPreview(_tailDabs);
         using var ds = _tailBuffer!.CreateDrawingSession();
         ds.Clear(KnownColors.Transparent);
-        _raster!.Draw(ds, Expand(_tailDabs));
+        if (_wet is not null) for (var i = 0; i < _tailDabs.Count; i++) _tailDabs[i] = _wet.Peek(_tailDabs[i]);
+        var expanded = Expand(_tailDabs);
+        _raster!.Draw(ds, expanded);
+        DrawCap(expanded);
+    }
+
+    private bool CapActive => _capBuffer is not null && _brush?.HasOpacityCap == true && _tool != ToolKind.Smudge;
+
+    private void DrawCap(List<Dab> dabs)
+    {
+        if (!CapActive || _cap is null) return;
+        var mask = tips.Mask(_brush!.Tip);
+        int x0 = int.MaxValue, y0 = int.MaxValue, x1 = 0, y1 = 0;
+        foreach (var d in dabs)
+        {
+            var r = _cap.Stamp(d, mask, TipGenerator.DefaultSize);
+            if (r.IsEmpty) continue;
+            x0 = Math.Min(x0, r.X);
+            y0 = Math.Min(y0, r.Y);
+            x1 = Math.Max(x1, r.Right);
+            y1 = Math.Max(y1, r.Bottom);
+        }
+        if (x1 <= x0 || y1 <= y0) return;
+        var rect = new PixelRect(x0, y0, x1 - x0, y1 - y0);
+        _capBuffer!.SetPixelBytes(_cap.ToBgra(rect), rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     private List<Dab> Expand(List<Dab> dabs)
@@ -182,9 +235,10 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             foreach (var d in dabs) Smudge(d);
             return;
         }
+        if (_wet is not null) for (var i = 0; i < dabs.Count; i++) dabs[i] = _wet.Process(dabs[i]);
         var expanded = Expand(dabs);
-        using var ds = _buffer!.CreateDrawingSession();
-        _raster!.Draw(ds, expanded);
+        using (var ds = _buffer!.CreateDrawingSession()) _raster!.Draw(ds, expanded);
+        DrawCap(expanded);
         foreach (var d in expanded) Grow(d.X, d.Y, d.Size * 1.5f);
     }
 
@@ -248,7 +302,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             owned.Add(withTail);
             stroke = withTail;
         }
-        var buf = new OpacityEffect { Source = _raster!.Finish(stroke, owned), Opacity = _opacity };
+        var buf = new OpacityEffect { Source = _raster!.Finish(stroke, owned, CapActive ? _capBuffer : null), Opacity = _opacity };
         var comp = new CompositeEffect { Mode = Composite, Sources = { _layer.Target, buf } };
         owned.Add(buf);
         owned.Add(comp);
@@ -271,7 +325,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             {
                 var owned = new List<IDisposable>();
                 using (var ds = layer.Target.CreateDrawingSession())
-                    ds.DrawImage(_raster!.Finish(_buffer!, owned), new Vector2((float)r.X, (float)r.Y), r, _opacity, CanvasImageInterpolation.NearestNeighbor, Composite);
+                    ds.DrawImage(_raster!.Finish(_buffer!, owned, CapActive ? _capBuffer : null), new Vector2((float)r.X, (float)r.Y), r, _opacity, CanvasImageInterpolation.NearestNeighbor, Composite);
                 owned.ForEach(o => o.Dispose());
             }
         }
@@ -312,6 +366,11 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     {
         using (var ds = _buffer!.CreateDrawingSession()) ds.Clear(KnownColors.Transparent);
         if (TailActive) using (var ts = _tailBuffer!.CreateDrawingSession()) ts.Clear(KnownColors.Transparent);
+        if (CapActive)
+        {
+            using (var cs = _capBuffer!.CreateDrawingSession()) cs.Clear(KnownColors.Transparent);
+            _cap?.Clear();
+        }
         _dirty = Rect.Empty;
         _dabs.Clear();
         _builder!.ShapeDabs(_dabs);
@@ -355,18 +414,33 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             return new InputPoint(10 + t * (w - 20), h / 2 + MathF.Sin(t * MathF.Tau) * h * 0.22f, MathF.Sin(t * MathF.PI));
         });
         var dabs = StrokeBuilder.Build(brush, size, 1, seed: 3, samples, out _);
+        if (brush.Wet.IsActive)
+        {
+            var mixer = new WetMixer(brush.Wet, new Vector3(color.R, color.G, color.B) / 255f, size, _ => default);
+            dabs = dabs.Select(mixer.Process).ToList();
+        }
         if (brush.Flow < 0.3f) dabs = dabs.Select(d => d with { Alpha = Math.Min(1, d.Alpha * 2) }).ToList();
 
-        using var raster = new StrokeRasterizer(tips, grains, brush, color, size, seed: 3);
+        using var raster = new StrokeRasterizer(tips, grains, brush, color, size, seed: 3, tinted: brush.Wet.IsActive);
         using var stroke = new CanvasRenderTarget(ds, w, h);
         using (var sds = stroke.CreateDrawingSession())
         {
             sds.Clear(KnownColors.Transparent);
             raster.Draw(sds, dabs);
         }
+        using var cap = brush.HasOpacityCap ? new CanvasRenderTarget(ds, w, h) : null;
+        if (cap is not null)
+        {
+            var px = cap.SizeInPixels;
+            var cpu = new OpacityCap((int)px.Width, (int)px.Height);
+            var mask = tips.Mask(brush.Tip);
+            var k = px.Width / w; // la vista previa puede tener otra escala de píxeles
+            foreach (var d in dabs) cpu.Stamp(d with { X = d.X * k, Y = d.Y * k, Size = d.Size * k }, mask, TipGenerator.DefaultSize);
+            cap.SetPixelBytes(cpu.ToBgra(new PixelRect(0, 0, cpu.Width, cpu.Height)));
+        }
         var owned = new List<IDisposable>();
         ds.Transform = Matrix3x2.Identity;
-        ds.DrawImage(raster.Finish(stroke, owned));
+        ds.DrawImage(raster.Finish(stroke, owned, cap));
         owned.ForEach(o => o.Dispose());
     }
 }

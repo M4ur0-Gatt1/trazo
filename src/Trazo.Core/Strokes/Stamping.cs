@@ -1,3 +1,4 @@
+using System.Numerics;
 using Trazo.Core.Brushes;
 
 namespace Trazo.Core.Strokes;
@@ -5,8 +6,12 @@ namespace Trazo.Core.Strokes;
 /// <summary>Muestra de entrada en coordenadas del documento. <see cref="Time"/> en milisegundos (0 = sin marca de tiempo).</summary>
 public readonly record struct InputPoint(float X, float Y, float Pressure = 1, float Tilt = 0, double Time = 0);
 
-/// <summary>Un sello del pincel: posición, diámetro, opacidad, giro (radianes), distancia recorrida desde el inicio (px) y dirección de avance (radianes).</summary>
-public readonly record struct Dab(float X, float Y, float Size, float Alpha, float Rotation, float Distance = 0, float TravelAngle = 0);
+/// <summary>
+/// Un sello del pincel: posición, diámetro, flujo (<see cref="Alpha"/>), giro (radianes), distancia recorrida
+/// desde el inicio (px), dirección de avance (radianes), tope de opacidad (BR-06) y color propio de la mezcla
+/// húmeda (BR-04; null = el color del pincel).
+/// </summary>
+public readonly record struct Dab(float X, float Y, float Size, float Alpha, float Rotation, float Distance = 0, float TravelAngle = 0, float Opacity = 1, Vector3? Color = null);
 
 public static class PressureCurve
 {
@@ -122,7 +127,7 @@ public sealed class StrokeStamper
         if (size < 1.5f) alpha *= size / 1.5f;
         var rot = b.Angle + (b.RotationFollowsStroke ? travelAngle : 0)
                   + (b.RotationRandom > 0 ? ((float)_rng.NextDouble() * 2 - 1) * b.RotationRandom : 0);
-        return new Dab(x, y, size, alpha, rot, distance, travelAngle);
+        return new Dab(x, y, size, alpha, rot, distance, travelAngle, b.OpacityAt(pressure));
     }
 }
 

@@ -12,9 +12,9 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | BR-01 | Entrada del lápiz y trayectoria | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/BR-01.md); 16 pruebas con entrada sintética. Falta validar con lápiz real y medir la latencia (PF-01) |
 | BR-02 | Reproducibilidad del motor de pinceles | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/BR-02.md); 21 referencias revisadas; prueba de mutación superada; métrica endurecida el 2026-10-25 (% sobre píxeles con tinta) |
 | BR-03 | Texturas y grano | Alta | 🟡 | ✅ | 🟡 | ✅ | 🟡 | [Especificación](specs/BR-03-grain.md): Moving/Texturized, Movement, Scale, Zoom, Rotation, Depth, Offset Jitter, Brillo y Contraste; 13 pruebas y 5 referencias. Faltan Depth Min/Jitter, el modo de fusión del grano, el filtrado y la importación. Sin observación en iPad |
-| BR-04 | Mezcla húmeda | Crítica | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Sin implementar; el modelo de mezcla requiere observación |
+| BR-04 | Mezcla húmeda | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/BR-04-wet-mix.md): dilución, carga, ataque y arrastre del color de la capa (al empezar el trazo), deterministas; 7 pruebas de núcleo y 2 WARP; 3 referencias BR-02 cambiadas a propósito. Falta observar la respuesta de Procreate; sin grado, desenfoque ni mezcla con otras capas |
 | BR-05 | Afinado (taper) | Alta | 🟡 | ✅ | 🟡 | ✅ | 🟡 | [Especificación](specs/BR-05-taper.md): Pressure y Touch Taper (inicio, final, punta, opacidad y forma) con cola provisional; 13 pruebas y 2 referencias. Faltan Pressure (reactivo), Link Tip Sizes y Classic. Sin observación en iPad |
-| BR-06 | Curvas de dinámica por parámetro | Alta | 🟡 | ⬜ | 🟡 | ⬜ | ⬜ | Solo hay gamma global y dos relaciones lineales |
+| BR-06 | Curvas de dinámica por parámetro | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/BR-06-dynamics.md): curvas monótonas de presión para tamaño, flujo y opacidad; opacidad por presión como tope separado del flujo. 10 pruebas de núcleo y 1 WARP. Faltan curvas de inclinación y velocidad |
 | LY-01 | Capas | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/LY-01.md); 16 operaciones con deshacer y rehacer exactos; grupos en LY-03 |
 | LY-02 | Máscaras | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/LY-02-LY-03-masks-groups.md): máscara de capa en escala de grises (pintar, invertir, aplicar, eliminar) además de la de recorte; 5 pruebas WARP (7 casos), 1 referencia y autoprueba. Sin observación en iPad |
 | LY-03 | Grupos de capas | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | ídem: un nivel, composición aislada con opacidad, fusión y visibilidad; combinar, desagrupar, eliminar; formato v3. Prueba de propiedades de contigüidad (200 secuencias). Sin grupos anidados |
@@ -74,6 +74,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 
 Los criterios de aceptación están en las especificaciones: [SE-01](specs/SE-01-selection.md#5-criterios-de-aceptación) (15) y [LY-02 / LY-03](specs/LY-02-LY-03-masks-groups.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
 
+### BR-04 y BR-06 — Mezcla húmeda y dinámica
+
+Los criterios de aceptación están en las especificaciones: [BR-04](specs/BR-04-wet-mix.md#3-criterios-de-aceptación) (9) y [BR-06](specs/BR-06-dynamics.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
+
 ### TR-01, LQ-01 y DG-01 — Transformar, Licuar y Guías
 
 Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01-transform.md#3-criterios-de-aceptación) (13), [LQ-01](specs/LQ-01-liquify.md#3-criterios-de-aceptación) (11) y [DG-01](specs/DG-01-drawing-guides.md#3-criterios-de-aceptación) (7). Todos tienen prueba automática.
@@ -83,7 +87,7 @@ Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01
 | Fecha | Error | Prueba que lo cubre |
 |---|---|---|
 | 2026-10-24 | "Ocultar" y "mostrar" seguidos se fusionaban en un solo paso de historial: deshacer saltaba dos pasos | `EveryOperationUndoesAndRedoesExactly` (HI-01.3) |
-| 2026-10-24 | La etiqueta "Opacidad por presión" modulaba en realidad el flujo (señalado por el inventario) | Corregida la etiqueta a "Flujo por presión"; falta separar opacidad y flujo (BR-06) |
+| 2026-10-24 | La etiqueta "Opacidad por presión" modulaba en realidad el flujo (señalado por el inventario) | Corregida la etiqueta a "Flujo por presión"; opacidad y flujo separados el 2026-10-25 (`OpacityCapsAccumulationButFlowBuildsUp`, BR-06.8) |
 | 2026-10-24 | El método de guardado anterior podía dejar un `.tmp` y no verificaba lo escrito | Sustituido por `ProjectSaver` (FI-01.1 a FI-01.5) |
 | 2026-10-25 | La textura de grano «Lienzo» tenía discontinuidades cada 16 px | `GrainTilesSeamlessly` (BR-03.2) |
 | 2026-10-25 | BR-02 calculaba el % de píxeles distintos sobre toda la imagen: un cambio solo en los extremos del trazo (afinado) pasaba sin detectarse | Métrica sobre píxeles con tinta; la pluma y el rotulador de pincel fallaron como debían y se actualizaron |

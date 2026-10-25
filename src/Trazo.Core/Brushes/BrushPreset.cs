@@ -31,11 +31,27 @@ public sealed class BrushPreset
     /// <summary>Suavizado 0–1.</summary>
     public float StreamLine { get; set; } = 0.3f;
 
+    /// <summary>Respuesta del tamaño a la presión (BR-06).</summary>
+    public DynamicsCurve SizeCurve { get; set; } = DynamicsCurve.Identity;
+    /// <summary>Respuesta del flujo a la presión (BR-06).</summary>
+    public DynamicsCurve FlowCurve { get; set; } = DynamicsCurve.Identity;
+    /// <summary>Cuánto limita la presión baja la opacidad máxima del trazo (BR-06). 0 = sin tope.</summary>
+    public float OpacityPressure { get; set; }
+    public DynamicsCurve OpacityCurve { get; set; } = DynamicsCurve.Identity;
+    /// <summary>Mezcla húmeda (BR-04).</summary>
+    public WetMixSettings Wet { get; set; } = WetMixSettings.Off;
+
     public float SizeAt(float baseSize, float pressure) =>
-        baseSize * (MinSizePressure + (1 - MinSizePressure) * Math.Clamp(pressure, 0, 1));
+        baseSize * (MinSizePressure + (1 - MinSizePressure) * SizeCurve.Evaluate(pressure));
 
     public float FlowAt(float pressure) =>
-        Flow * (1 - FlowPressure + FlowPressure * Math.Clamp(pressure, 0, 1));
+        Flow * (1 - FlowPressure + FlowPressure * FlowCurve.Evaluate(pressure));
+
+    /// <summary>Tope de opacidad del sello: el trazo acumulado no pasa de este valor.</summary>
+    public float OpacityAt(float pressure) =>
+        1 - OpacityPressure + OpacityPressure * OpacityCurve.Evaluate(pressure);
+
+    public bool HasOpacityCap => OpacityPressure > 0;
 
     /// <summary>Grano independiente de la punta (BR-03).</summary>
     public GrainSettings Grain { get; set; } = GrainSettings.Off;
@@ -62,5 +78,10 @@ public sealed class BrushPreset
         Grain = o.Grain;
         PressureTaper = o.PressureTaper;
         TouchTaper = o.TouchTaper;
+        SizeCurve = o.SizeCurve;
+        FlowCurve = o.FlowCurve;
+        OpacityPressure = o.OpacityPressure;
+        OpacityCurve = o.OpacityCurve;
+        Wet = o.Wet;
     }
 }

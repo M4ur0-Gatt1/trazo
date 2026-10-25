@@ -8,7 +8,7 @@ Está hecho con **C# / .NET 10**, **WinUI 3** (Windows App SDK 1.8) y **Win2D**:
 
 ## Descargar
 
-En [Releases](https://github.com/M4ur0-Gatt1/trazo/releases):
+**Versión actual: 1.0.0** ([historial](CHANGELOG.md)). En [Releases](https://github.com/M4ur0-Gatt1/trazo/releases):
 
 - `Trazo-x.y.z-x64-setup.exe`: instalador para PC Intel/AMD. Instala solo para tu usuario, sin pedir permisos de administrador, y asocia los archivos `.trazo`.
 - `Trazo-x.y.z-arm64-setup.exe`: instalador para equipos ARM (Surface Pro X, Snapdragon).
@@ -22,6 +22,8 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 - 21 pinceles en 6 categorías (Bocetos, Entintado, Pintura, Aerógrafos, Caligrafía, Texturas) con puntas generadas por código.
 - Presión e inclinación del lápiz, con curva de presión ajustable y lectura de los puntos intermedios del lápiz para trazos fluidos a alta frecuencia.
 - **StreamLine**, espaciado, flujo, dispersión y variación de tamaño, editables por pincel y guardados.
+- **Curvas de presión** para el tamaño, el flujo y la opacidad. La opacidad por presión pone un tope al trazo que no sube al pasar varias veces; el flujo sí se acumula.
+- **Mezcla húmeda**: dilución, carga, ataque y arrastre del color que ya hay en la capa (activada en el gouache, el óleo y la acuarela).
 - Herramientas **Pintar, Difuminar y Borrar**, cada una con su pincel, tamaño y opacidad.
 - **QuickShape**: mantén el lápiz quieto al final del trazo y se convierte en línea, círculo, elipse o polilínea, que puedes seguir ajustando.
 - **Simetría** vertical, horizontal, en cuadrante o radial (8 ejes).
