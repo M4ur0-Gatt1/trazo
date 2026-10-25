@@ -39,7 +39,10 @@ Textos listos para copiar en *Listas de la Store*. La ficha principal va en espa
 > • Formato .trazo abierto y guardado verificado, con copia de seguridad.
 > • Exportación a PNG, PNG transparente, JPEG y capas sueltas.
 >
-> Trazo es software libre (licencia MIT): https://github.com/M4ur0-Gatt1/trazo
+> COMPRARLA APOYA EL PROYECTO
+> Trazo es software libre (licencia MIT) y lo desarrolla una sola persona. Comprarla en la Microsoft Store te da la instalación sin avisos y las actualizaciones automáticas, y financia nuevas funciones.
+> Código fuente: https://github.com/M4ur0-Gatt1/trazo
+>
 > Trazo es un proyecto independiente y no está afiliado a Savage Interactive ni a Procreate®.
 
 **Características destacadas** (una por línea, hasta 20):
@@ -57,11 +60,16 @@ Textos listos para copiar en *Listas de la Store*. La ficha principal va en espa
 
 **Novedades de esta versión:** las notas de `installer/RELEASE_NOTES.md`, resumidas.
 
+**Precio:** de pago (nivel elegido en *Precios y disponibilidad*), sin compras dentro de la app ni anuncios.
+
 **Requisitos:** lápiz o pantalla táctil recomendados; funciona con ratón.
 
 ## English
 
 **Short description:**
 > A native digital painting studio for Windows, built for pen and touch. Paint with 21 pressure-sensitive brushes with grain and wet mixing; organize your work with layers, masks and groups; select, transform in perspective and liquify; and draw with guides and drawing assist. Fast on the GPU, no accounts, no ads, works offline.
+
+**Support note:**
+> Trazo is free software (MIT license) built by a single developer. Buying it on the Microsoft Store gives you warning-free installation and automatic updates, and funds new features. Source code: https://github.com/M4ur0-Gatt1/trazo
 
 **Keywords:** painting, drawing, illustration, pen, sketch, digital art, Surface

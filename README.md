@@ -8,7 +8,11 @@ Está hecho con **C# / .NET 10**, **WinUI 3** (Windows App SDK 1.8) y **Win2D**:
 
 ## Descargar
 
-**Versión actual: 1.0.0** ([historial](CHANGELOG.md)). En [Releases](https://github.com/M4ur0-Gatt1/trazo/releases):
+**Versión actual: 1.0.0** ([historial](CHANGELOG.md)).
+
+Trazo es **gratis** aquí, con el código abierto. Pronto estará también en la **Microsoft Store**, de pago: es la misma app, con instalación sin avisos de SmartScreen y actualizaciones automáticas, y comprarla financia el desarrollo.
+
+En [Releases](https://github.com/M4ur0-Gatt1/trazo/releases):
 
 - `Trazo-x.y.z-x64-setup.exe`: instalador para PC Intel/AMD. Instala solo para tu usuario, sin pedir permisos de administrador, y asocia los archivos `.trazo`.
 - `Trazo-x.y.z-arm64-setup.exe`: instalador para equipos ARM (Surface Pro X, Snapdragon).
@@ -158,7 +162,7 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Curvas, mapa de degradado y más desenfoques
 - Grabación en time-lapse
 - Importar y exportar PSD
-- Publicación en la Microsoft Store (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
+- Publicación en la Microsoft Store, de pago (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
 - Recuperación ante pérdida del dispositivo gráfico (por ejemplo, al cambiar de GPU)
 
 ## Créditos

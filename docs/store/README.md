@@ -2,6 +2,15 @@
 
 La Store firma el paquete al publicarlo, así que no hace falta comprar un certificado y no aparece el aviso de SmartScreen. El paquete MSIX convive con el instalador `.exe` de GitHub: el código es el mismo y solo cambia el empaquetado.
 
+## Modelo de distribución
+
+Trazo sigue el modelo de Krita:
+
+- **GitHub:** gratis, con el código abierto (licencia MIT) y el instalador `.exe`.
+- **Microsoft Store:** de pago. Quien compra paga la comodidad (instalación sin avisos y actualizaciones automáticas) y apoya el desarrollo.
+
+La app es la misma en los dos sitios, sin funciones bloqueadas, así que no hace falta código de licencias ni de compras.
+
 ## Lo que hay en el repositorio
 
 | Pieza | Dónde |
@@ -17,6 +26,8 @@ La Store firma el paquete al publicarlo, así que no hace falta comprar un certi
 ## Pasos (los 1 a 4 los haces tú, una sola vez)
 
 1. **Cuenta de desarrollador.** Entra en <https://storedeveloper.microsoft.com> y crea una cuenta **individual** con tu cuenta Microsoft. Pide verificar tu identidad (documento y selfi). Comprueba allí el coste vigente: para particulares no ha tenido coste en los últimos años.
+   - **Para cobrar:** en el Centro de partners › *Configuración de la cuenta* › *Perfil de pago* añade tu cuenta bancaria, y en *Perfil fiscal* completa el formulario que te pida (fuera de EE. UU., normalmente el W-8BEN). Sin estos dos perfiles la app de pago puede publicarse, pero Microsoft no te transfiere lo cobrado.
+   - Microsoft cobra al comprador, se queda una comisión (consulta la vigente en el *Contrato para desarrolladores de aplicaciones*) y paga el resto cada mes. Los impuestos de tu país sobre esos ingresos los declaras tú: conviene consultarlo con un contador.
 2. **Reservar el nombre.** En el [Centro de partners](https://partner.microsoft.com/dashboard) › *Aplicaciones y juegos* › *Nueva aplicación* › reserva **Trazo**. Si ya está tomado, prueba con «Trazo Paint» o «Trazo — Estudio de pintura».
 3. **Copiar la identidad.** En la aplicación reservada › *Administración de productos* › *Identidad del producto*, copia tres valores:
    - `Package/Identity/Name` (por ejemplo `12345MauroGatti.Trazo`)
@@ -36,7 +47,7 @@ La Store firma el paquete al publicarlo, así que no hace falta comprar un certi
    - **Paquetes**: sube el `.msixbundle`.
    - **Listas de la Store**: usa [ficha.md](ficha.md) y capturas de 1920 × 1080 (mejor con obras reales que con la escena de la autoprueba).
    - **Clasificación por edad**: el cuestionario (no hay contenido generado por usuarios compartido, ni compras ni chat).
-   - **Precio**: gratis.
+   - **Precios y disponibilidad**: un nivel de precio (por ejemplo 4,99 o 9,99 USD; Microsoft lo convierte a cada moneda). Sin prueba gratuita: la app no tiene código de licencias, así que una prueba daría la app completa sin límite. Mercados: todos.
    - **Propiedades**: categoría *Foto y vídeo* › *Ilustración y diseño gráfico*; política de privacidad: la URL de arriba.
    - **Declaración de `runFullTrust`**: «Trazo es una aplicación de escritorio WinUI 3 que necesita acceso completo para leer y escribir los archivos de dibujo que el usuario abre y guarda, y para usar la GPU con Direct2D.»
 7. **Certificación.** Microsoft revisa el envío, normalmente en uno a tres días hábiles. Si lo rechaza, el informe dice qué corregir.
