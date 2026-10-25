@@ -329,4 +329,5 @@ internal sealed class LayerV1
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(ManifestV2))]
 [JsonSerializable(typeof(ManifestV1))]
+[JsonSerializable(typeof(SessionEntry))]
 internal sealed partial class TrazoJson : JsonSerializerContext;

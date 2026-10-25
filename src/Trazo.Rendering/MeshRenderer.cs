@@ -27,13 +27,19 @@ public static class MeshRenderer
         };
         Vector2 Src(int i, int j) => new(bounds.X + (float)bounds.Width * i / n, bounds.Y + (float)bounds.Height * j / n);
         Vector2 Dst(int i, int j) => mesh[j * (n + 1) + i];
+        // PF-01: un solo triángulo unidad para toda la malla; cada triángulo es ese con su transformación
+        // (crear una geometría por triángulo y fotograma era lo más lento de la vista previa)
+        using var unit = CanvasGeometry.CreatePolygon(device, [Vector2.Zero, Vector2.UnitX, Vector2.UnitY]);
         void Triangle(Vector2 s0, Vector2 s1, Vector2 s2, Vector2 d0, Vector2 d1, Vector2 d2)
         {
             var area = (d1.X - d0.X) * (d2.Y - d0.Y) - (d1.Y - d0.Y) * (d2.X - d0.X);
             if (MathF.Abs(area) < 1e-4f) return;
-            brush.Transform = Affine(s0, s1, s2, d0, d1, d2);
-            using var tri = CanvasGeometry.CreatePolygon(device, [d0, d1, d2]);
-            ds.FillGeometry(tri, brush);
+            var toSource = new Matrix3x2(s1.X - s0.X, s1.Y - s0.Y, s2.X - s0.X, s2.Y - s0.Y, s0.X, s0.Y);
+            if (!Matrix3x2.Invert(toSource, out var fromSource)) return;
+            // el pincel vive en el espacio del triángulo unidad: origen → unidad; la sesión: unidad → destino
+            brush.Transform = fromSource;
+            ds.Transform = new Matrix3x2(d1.X - d0.X, d1.Y - d0.Y, d2.X - d0.X, d2.Y - d0.Y, d0.X, d0.Y);
+            ds.FillGeometry(unit, brush);
         }
         for (var j = 0; j < n; j++)
             for (var i = 0; i < n; i++)
@@ -41,6 +47,7 @@ public static class MeshRenderer
                 Triangle(Src(i, j), Src(i + 1, j), Src(i + 1, j + 1), Dst(i, j), Dst(i + 1, j), Dst(i + 1, j + 1));
                 Triangle(Src(i, j), Src(i + 1, j + 1), Src(i, j + 1), Dst(i, j), Dst(i + 1, j + 1), Dst(i, j + 1));
             }
+        ds.Transform = Matrix3x2.Identity;
         return list;
     }
 

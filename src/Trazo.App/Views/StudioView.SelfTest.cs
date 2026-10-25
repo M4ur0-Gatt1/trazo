@@ -19,6 +19,19 @@ namespace Trazo.App.Views;
 /// </summary>
 public sealed partial class StudioView
 {
+    /// <summary>Pinta una línea negra horizontal de prueba a la altura <paramref name="y"/> (autopruebas).</summary>
+    public void PaintTestStroke(float y)
+    {
+        var mono = _brushes["monoline"];
+        _engine!.Begin(new InputPoint(100, y), ToolKind.Brush, mono, Colors.Black, 12, 1, SymmetryMode.None, 1, seed: 1);
+        for (var k = 1; k <= 40; k++) _engine.Add(new InputPoint(100 + k * 10, y));
+        _engine.End();
+    }
+
+    /// <summary>¿Está la línea de prueba en la capa activa?</summary>
+    public bool TestStrokePresent(float y) =>
+        _doc is { } d && d.ActiveLayer.Surface.GetPixelBytes(150, (int)y, 300, 1).Where((_, i) => i % 4 == 3).All(a => a > 200);
+
     public async Task<bool> RunSelfTestAsync(string outDir)
     {
         Directory.CreateDirectory(outDir);
@@ -286,6 +299,22 @@ public sealed partial class StudioView
             var capMax = Enumerable.Range(580, 40).Max(y => capLayer.Surface.GetPixelBytes(560, y, 240, 1).Where((_, i) => i % 4 == 3).Max());
             Check("la opacidad por presión limita la acumulación", capMax >= 0.28 * 255 && capMax <= 0.32 * 255);
 
+            // 9f. Tipografías propias en Win2D dentro de la app real (regresión del 2026-10-25: ms-appx fallaba sin paquete)
+            bool FontWorks(string family)
+            {
+                try
+                {
+                    using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontFamily = family, FontSize = 13 };
+                    using var layout = new Microsoft.Graphics.Canvas.Text.CanvasTextLayout(doc.Device, "Texto", fmt, 200, 30);
+                    return layout.LayoutBounds.Width > 0;
+                }
+                catch (ArgumentException)
+                {
+                    return false;
+                }
+            }
+            Check("tipografías para la etiqueta de QuickShape y «Añadir texto»", FontWorks(CanvasFonts.Ui) && FontWorks(CanvasFonts.Display));
+
             // 10. Guardar y volver a abrir
             Canvas.Invalidate();
             doc.IsDirty = true;
@@ -305,6 +334,34 @@ public sealed partial class StudioView
             using (var final = doc.Flatten())
                 await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-render.png"), await PaintDocument.EncodePngAsync(final));
 
+            // 11. Recuperación tras perder la GPU (RC-01.7): el disparo real no se puede provocar con un dispositivo
+            // sano, así que se llama a la recuperación directamente; el resto del camino es el mismo
+            Check("diario de sesión abierto mientras se trabaja", File.Exists(App.Journal.FilePath));
+            doc.IsDirty = true;
+            await SaveAsync();
+            byte[] beforeLoss;
+            using (var f = doc.Flatten()) beforeLoss = f.GetPixelBytes(1100, 500, 400, 300);
+            var oldDoc = doc;
+            var oldTips = _tips;
+            var layerCount = doc.Layers.Count;
+            var trIndex = doc.Layers.IndexOf(trLayer);
+            var recovered = await RecoverFromDeviceLossAsync();
+            Check("la recuperación reabre el documento desde el último guardado",
+                recovered && _doc is not null && !ReferenceEquals(_doc, oldDoc) && _doc.Layers.Count == layerCount);
+            doc = _doc!;
+            ops = _ops!;
+            engine = _engine!;
+            trLayer = doc.Layers[trIndex];
+            using (var f = doc.Flatten())
+            {
+                var after = f.GetPixelBytes(1100, 500, 400, 300);
+                Check("misma imagen tras la recuperación (± 1 nivel)", after.Length == beforeLoss.Length && after.Zip(beforeLoss).All(p => Math.Abs(p.First - p.Second) <= 1));
+            }
+            Check("cachés de la GPU nuevas", _tips is not null && !ReferenceEquals(_tips, oldTips) && _thumbs.Count == 0);
+            doc.ActiveIndex = doc.Layers.Count - 1;
+            PaintTestStroke(960);
+            Check("se puede seguir pintando tras la recuperación", TestStrokePresent(960));
+
             // deja una herramienta abierta para la captura de la ventana (TRAZO_SELFTEST_UI elige cuál)
             switch (Environment.GetEnvironmentVariable("TRAZO_SELFTEST_UI"))
             {
@@ -322,6 +379,9 @@ public sealed partial class StudioView
                     for (var k = 0; k < 6; k++) _liquify.DabAt(new Vector2(1250, 640), 1);
                     BuildLiquifySheet();
                     _hover = _view.ToScreen(new Vector2(1250, 640));
+                    break;
+                case "about":
+                    _ = AboutAsync();
                     break;
                 case "guide":
                     ShowGuideSheet();

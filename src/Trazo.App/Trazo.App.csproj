@@ -42,6 +42,9 @@
 
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- la licencia y los avisos de terceros viajan con la app (instalador y MSIX) -->
+    <Content Include="..\..\LICENSE" Link="Assets\Legal\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD-PARTY-NOTICES.md" Link="Assets\Legal\THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

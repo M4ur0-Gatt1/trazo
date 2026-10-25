@@ -151,6 +151,12 @@ tools/                      Iconos, capturas y hoja de contacto de referencias
 El desarrollo sigue una regla: **cada función tiene una especificación, cada especificación tiene pruebas y cada error corregido deja una prueba de regresión.**
 La [matriz de requisitos](docs/requirements.md) muestra el estado real de cada módulo con 5 puertas de cierre: investigación, especificación, implementación, pruebas y aprobación.
 
+- **Pruebas:** lógica pura en `Trazo.Core.Tests`, el motor de dibujo con Direct3D WARP e imágenes de referencia en `Trazo.Rendering.Tests`, y una autoprueba de extremo a extremo en la GPU real (`--selftest`).
+- **Rendimiento:** `tools/Trazo.Benchmarks` mide trazo, composición, Licuar, Deformar, guardado y apertura en un lienzo de 4K con 20 capas, contra presupuestos de tiempo ([PF-01](docs/specs/PF-01-performance.md)).
+- **Recuperación:** autoguardado verificado cada 3 s, aviso al volver a abrir tras un cierre inesperado, recuperación si se reinicia la tarjeta gráfica y copia de emergencia ante un error inesperado ([RC-01](docs/specs/RC-01-recovery.md)). `tools/crash-test.ps1` lo comprueba matando el proceso de verdad.
+
+Para contribuir, mira [CONTRIBUTING.md](CONTRIBUTING.md). Las vulnerabilidades se informan según [SECURITY.md](SECURITY.md). Los componentes de terceros y sus licencias están en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Versión web
 
 La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-gatt1.github.io/trazo/> para probar Trazo desde el navegador.
@@ -163,7 +169,6 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Grabación en time-lapse
 - Importar y exportar PSD
 - Publicación en la Microsoft Store, de pago (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
-- Recuperación ante pérdida del dispositivo gráfico (por ejemplo, al cambiar de GPU)
 
 ## Créditos
 

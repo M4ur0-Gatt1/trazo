@@ -145,6 +145,9 @@ public sealed partial class LayerGroup : ObservableObject
 }
 
 /// <summary>Documento abierto: capas, grupos, fondo, selección, historial y archivo asociado.</summary>
+/// <summary>Unidad de composición: capas [From, To] sueltas o el grupo <see cref="GroupId"/> completo.</summary>
+public readonly record struct CompositionUnit(int From, int To, string? GroupId);
+
 public sealed partial class PaintDocument : ObservableObject, IDisposable
 {
     private int _activeIndex;
@@ -262,30 +265,67 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
     /// </summary>
     public ICanvasImage Compose(IReadOnlyDictionary<object, ICanvasImage>? overrides, List<IDisposable> owned, bool includeBackground = true)
     {
-        var acc = Solid(includeBackground && BackgroundVisible ? Background : KnownColors.Transparent, owned);
+        var acc = Backdrop(includeBackground, owned);
+        foreach (var u in Units()) acc = ComposeUnit(u, acc, overrides, owned);
+        return acc;
+    }
+
+    /// <summary>Fondo sobre el que se componen las capas (el color de fondo o transparente).</summary>
+    public ICanvasImage Backdrop(bool includeBackground, List<IDisposable> owned) =>
+        Solid(includeBackground && BackgroundVisible ? Background : KnownColors.Transparent, owned);
+
+    /// <summary>
+    /// Unidades de composición, de abajo arriba: un tramo de capas sueltas o un grupo entero. La imagen final es
+    /// el plegado de las unidades sobre el fondo, así que lo que queda debajo de una unidad no depende de ella (PF-01).
+    /// </summary>
+    public List<CompositionUnit> Units()
+    {
+        var units = new List<CompositionUnit>();
         var i = 0;
         while (i < Layers.Count)
         {
             var gid = Layers[i].GroupId;
             var j = i;
-            while (j + 1 < Layers.Count && Layers[j + 1].GroupId == gid) j++;
-            if (gid is null)
+            if (gid is not null)
             {
-                acc = ComposeRange(i, j, acc, overrides, owned);
+                // un grupo es una sola unidad: se compone aislado
+                while (j + 1 < Layers.Count && Layers[j + 1].GroupId == gid) j++;
             }
             else
             {
-                var g = Group(gid);
-                if (g is null || (g.Visible && g.Opacity > 0))
-                {
-                    var sub = ComposeRange(i, j, Solid(KnownColors.Transparent, owned), overrides, owned);
-                    if (g is not null && g.Opacity < 1) sub = Track(owned, new OpacityEffect { Source = sub, Opacity = g.Opacity });
-                    acc = BlendOver(acc, sub, g?.Blend ?? BlendMode.Normal, owned);
-                }
+                // fuera de grupos, cada capa base con las de recorte que tiene encima
+                while (j + 1 < Layers.Count && Layers[j + 1].GroupId is null && Layers[j + 1].Clip) j++;
             }
+            units.Add(new CompositionUnit(i, j, gid));
             i = j + 1;
         }
-        return acc;
+        return units;
+    }
+
+    /// <summary>Compone una unidad sobre <paramref name="acc"/>.</summary>
+    public ICanvasImage ComposeUnit(CompositionUnit u, ICanvasImage acc, IReadOnlyDictionary<object, ICanvasImage>? overrides, List<IDisposable> owned)
+    {
+        if (u.GroupId is null) return ComposeRange(u.From, u.To, acc, overrides, owned);
+        var g = Group(u.GroupId);
+        if (g is not null && (!g.Visible || g.Opacity <= 0)) return acc;
+        var sub = ComposeRange(u.From, u.To, Solid(KnownColors.Transparent, owned), overrides, owned);
+        if (g is not null && g.Opacity < 1) sub = Track(owned, new OpacityEffect { Source = sub, Opacity = g.Opacity });
+        return BlendOver(acc, sub, g?.Blend ?? BlendMode.Normal, owned);
+    }
+
+    /// <summary>
+    /// Firma de todo lo que influye en la imagen de una unidad: identidad, revisión, propiedades y máscara de cada
+    /// capa, y las propiedades del grupo. Si no cambia, la imagen de la unidad no cambia.
+    /// </summary>
+    public IEnumerable<object> UnitSignature(CompositionUnit u)
+    {
+        if (u.GroupId is not null)
+            yield return Group(u.GroupId) is { } g ? (object)(g.Id, g.Visible, g.Opacity, g.Blend) : u.GroupId;
+        for (var i = u.From; i <= u.To; i++)
+        {
+            var l = Layers[i];
+            yield return (l, l.Revision, l.Visible, l.Opacity, l.Blend, l.Clip && i > u.From, l.Mask);
+        }
     }
 
     private ICanvasImage Solid(Color c, List<IDisposable> owned) =>
@@ -408,9 +448,22 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
 
     public async Task<ProjectData> ToProjectDataAsync()
     {
+        // PF-01: solo se codifican las capas que cambiaron desde el último guardado (la revisión sube con cada cambio
+        // de píxeles de la capa o de su máscara); las demás reutilizan su PNG
         var layers = new List<LayerData>();
+        var live = new HashSet<Layer>();
         foreach (var l in Layers)
-            layers.Add(new LayerData(l.ToProperties(), await EncodePngAsync(l.Surface), l.Mask is null ? null : await EncodePngAsync(l.Mask)));
+        {
+            live.Add(l);
+            if (!_pngCache.TryGetValue(l, out var c) || c.Revision != l.Revision || !ReferenceEquals(c.Mask, l.Mask))
+            {
+                c = (l.Revision, l.Mask, await EncodePngAsync(l.Surface), l.Mask is null ? null : await EncodePngAsync(l.Mask));
+                _pngCache[l] = c;
+                PngEncodes++;
+            }
+            layers.Add(new LayerData(l.ToProperties(), c.Png, c.MaskPng));
+        }
+        foreach (var gone in _pngCache.Keys.Where(k => !live.Contains(k)).ToList()) _pngCache.Remove(gone);
         byte[] thumb;
         using (var flat = Flatten())
         using (var small = Thumbnail(flat, 480))
@@ -456,6 +509,8 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
                 ds.DrawImage(mbmp);
             }
             d.Layers.Add(layer);
+            // el PNG del archivo ya representa la capa: el primer guardado no tiene que volver a codificarla
+            if (ld.Png.Length > 0) d._pngCache[layer] = (layer.Revision, layer.Mask, ld.Png, layer.Mask is null ? null : ld.MaskPng);
         }
         if (d.Layers.Count == 0) d.Layers.Add(d.CreateLayer());
         d.ActiveIndex = p.ActiveLayer;
@@ -504,8 +559,14 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
     public static Rgba ToRgba(Color c) => new(c.R, c.G, c.B, c.A);
     public static Color ToColor(Rgba c) => Color.FromArgb(c.A, c.R, c.G, c.B);
 
+    private readonly Dictionary<Layer, (int Revision, CanvasRenderTarget? Mask, byte[] Png, byte[]? MaskPng)> _pngCache = [];
+
+    /// <summary>Capas (o máscaras) codificadas a PNG desde que se abrió el documento (para pruebas y mediciones).</summary>
+    public int PngEncodes { get; private set; }
+
     public void Dispose()
     {
+        _pngCache.Clear();
         History.Clear();
         foreach (var l in Layers) l.Dispose();
         Layers.Clear();

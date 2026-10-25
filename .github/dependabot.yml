@@ -1,0 +1,16 @@
+# Avisos semanales de dependencias nuevas (NuGet y acciones de GitHub).
+# Cada actualización llega como pull request y pasa por la CI completa antes de aceptarse.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      windows-sdk:
+        patterns: ["Microsoft.WindowsAppSDK*", "Microsoft.Windows.SDK.BuildTools*", "Microsoft.Graphics.Win2D"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

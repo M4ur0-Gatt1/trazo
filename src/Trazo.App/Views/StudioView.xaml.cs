@@ -28,6 +28,7 @@ public sealed partial class StudioView : UserControl
     private readonly DispatcherTimer _autosave = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly SemaphoreSlim _saveLock = new(1, 1);
     private TipCache? _tips;
+    private readonly CompositionCache _composition = new();
     private GrainCache? _grains;
     private PaintDocument? _doc;
     private LayerOperations? _ops;
@@ -185,6 +186,9 @@ public sealed partial class StudioView : UserControl
     {
         _doc?.Dispose();
         _doc = doc;
+        WatchDevice(doc.Device);
+        App.Journal.Begin(doc.FilePath, DateTimeOffset.Now);
+        _lastSaved = doc.FilePath is { } existing && File.Exists(existing) && !doc.IsDirty ? File.GetLastWriteTime(existing) : null;
         _tips ??= new TipCache(doc.Device);
         _grains ??= new GrainCache(doc.Device);
         _ops = new LayerOperations(doc);
@@ -227,6 +231,8 @@ public sealed partial class StudioView : UserControl
             doc.IsDirty = false;
             var data = await doc.ToProjectDataAsync();
             await ProjectSaver.SaveAsync(doc.FilePath, data);
+            _lastSaved = DateTimeOffset.Now;
+            App.Journal.MarkSaved(_lastSaved.Value, doc.FilePath);
         }
         catch (SaveFailedException e)
         {
@@ -258,6 +264,8 @@ public sealed partial class StudioView : UserControl
         await SaveAsync();
         _doc?.Dispose();
         _doc = null;
+        _composition.Dispose();
+        App.Journal.End();
         Canvas.Invalidate();
     }
 
@@ -342,7 +350,8 @@ public sealed partial class StudioView : UserControl
             var interp = _view.Scale >= 2.5f ? CanvasImageInterpolation.NearestNeighbor
                 : _view.Scale < 0.5f ? CanvasImageInterpolation.HighQualityCubic
                 : CanvasImageInterpolation.Linear;
-            ds.DrawImage(doc.Compose(overrides, owned), Vector2.Zero, doc.Bounds, 1, interp);
+            // PF-01: la parte que no cambia se compone una vez y se reutiliza en cada fotograma
+            ds.DrawImage(_composition.Compose(doc, overrides, owned), Vector2.Zero, doc.Bounds, 1, interp);
             DrawSelectionOverlay(ds, doc, owned);
             ds.Transform = Matrix3x2.Identity;
             DrawSelectionDrag(ds);
@@ -417,7 +426,7 @@ public sealed partial class StudioView : UserControl
     {
         if (_engine?.Shape is not { } shape) return;
         var text = shape.DisplayName + " creada";
-        using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = "ms-appx:///Assets/Fonts/Inter.ttf#Inter" };
+        using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = CanvasFonts.Ui };
         using var layout = new Microsoft.Graphics.Canvas.Text.CanvasTextLayout(ds, text, fmt, 400, 30);
         var w = (float)layout.LayoutBounds.Width + 28;
         var x = (ViewSize.X - w) / 2;

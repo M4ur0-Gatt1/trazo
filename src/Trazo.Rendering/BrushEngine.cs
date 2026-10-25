@@ -125,6 +125,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         _raster = new StrokeRasterizer(tips, _grains, brush, _color, size, LastSeed, allowGrain: tool != ToolKind.Smudge, tinted: wet);
         _wet = null;
         _dirty = Rect.Empty;
+        _tailRect = Rect.Empty;
         if (_patch is not null) { _patch.Dispose(); _mask!.Dispose(); _patch = _mask = null; }
 
         if (_buffer is null || _buffer.SizeInPixels.Width != doc.Width || _buffer.SizeInPixels.Height != doc.Height)
@@ -197,7 +198,17 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         var expanded = Expand(_tailDabs);
         _raster!.Draw(ds, expanded);
         DrawCap(expanded);
+        _tailRect = Rect.Empty;
+        foreach (var d in expanded)
+        {
+            var hs = d.Size * 0.75f + 2;
+            var r = new Rect(d.X - hs, d.Y - hs, hs * 2, hs * 2);
+            if (_tailRect.IsEmpty) _tailRect = r;
+            else _tailRect.Union(r);
+        }
     }
+
+    private Rect _tailRect = Rect.Empty;
 
     private bool CapActive => _capBuffer is not null && _brush?.HasOpacityCap == true && _tool != ToolKind.Smudge;
 
@@ -302,6 +313,19 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             owned.Add(withTail);
             stroke = withTail;
         }
+        // PF-01: el grano y el tope solo se calculan donde hay trazo (fuera de ahí el búfer es transparente)
+        var area = _dirty;
+        if (TailActive && !_tailRect.IsEmpty)
+        {
+            if (area.IsEmpty) area = _tailRect;
+            else area.Union(_tailRect);
+        }
+        if (!area.IsEmpty)
+        {
+            var crop = new CropEffect { Source = stroke, SourceRectangle = area };
+            owned.Add(crop);
+            stroke = crop;
+        }
         var buf = new OpacityEffect { Source = _raster!.Finish(stroke, owned, CapActive ? _capBuffer : null), Opacity = _opacity };
         var comp = new CompositeEffect { Mode = Composite, Sources = { _layer.Target, buf } };
         owned.Add(buf);
@@ -372,6 +396,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             _cap?.Clear();
         }
         _dirty = Rect.Empty;
+        _tailRect = Rect.Empty;
         _dabs.Clear();
         _builder!.ShapeDabs(_dabs);
         if (_dabs.Count > 0) Render(_dabs);

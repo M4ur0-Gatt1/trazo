@@ -108,6 +108,9 @@ public sealed class TransformSession : IDisposable
     /// <summary>Celdas por lado de la malla con que se dibujan Distorsionar y Deformar.</summary>
     public const int MeshCells = 32;
 
+    /// <summary>Celdas de la malla en la vista previa: menos triángulos para mantener el ritmo de fotogramas (PF-01).</summary>
+    public const int PreviewMeshCells = 16;
+
     private readonly PaintDocument _doc;
 
     private TransformSession(PaintDocument doc, Layer layer, CanvasRenderTarget source, CanvasRenderTarget? background, PixelRect bounds)
@@ -168,7 +171,7 @@ public sealed class TransformSession : IDisposable
     }
 
     /// <summary>Imagen transformada (sin el fondo fijo).</summary>
-    private ICanvasImage Transformed(CanvasBitmap image, PixelRect bounds, List<IDisposable> owned)
+    private ICanvasImage Transformed(CanvasBitmap image, PixelRect bounds, List<IDisposable> owned, int cells = MeshCells)
     {
         ICanvasImage fx;
         if (State.IsAffine)
@@ -185,8 +188,8 @@ public sealed class TransformSession : IDisposable
         else
         {
             // la malla se calcula sobre el rectángulo del contenido; para otra imagen (la selección) se reescala
-            var mesh = State.Mesh(MeshCells);
-            fx = MeshRenderer.Render(_doc.Device, image, bounds, mesh, MeshCells, Smooth);
+            var mesh = State.Mesh(cells);
+            fx = MeshRenderer.Render(_doc.Device, image, bounds, mesh, cells, Smooth);
         }
         owned.Add((IDisposable)fx);
         var crop = new CropEffect { Source = fx, SourceRectangle = _doc.Bounds };
@@ -194,9 +197,13 @@ public sealed class TransformSession : IDisposable
         return crop;
     }
 
-    public ICanvasImage Preview(List<IDisposable> owned)
+    /// <summary>Vista previa en vivo (malla más ligera: <see cref="PreviewMeshCells"/>).</summary>
+    public ICanvasImage Preview(List<IDisposable> owned) => Result(owned, PreviewMeshCells);
+
+    /// <summary>Resultado con la malla de <paramref name="cells"/> celdas por lado, sobre lo que queda fijo.</summary>
+    private ICanvasImage Result(List<IDisposable> owned, int cells)
     {
-        var moved = Transformed(Source, Bounds, owned);
+        var moved = Transformed(Source, Bounds, owned, cells);
         if (Background is null) return moved;
         var over = new CompositeEffect { Sources = { Background, moved } };
         owned.Add(over);
@@ -222,7 +229,7 @@ public sealed class TransformSession : IDisposable
     {
         var owned = new List<IDisposable>();
         // lo movido puede quedar fuera de la selección original: no se recorta
-        ops.ReplaceWith(Layer, Preview(owned), "Transformar", clipToSelection: false);
+        ops.ReplaceWith(Layer, Result(owned, MeshCells), "Transformar", clipToSelection: false);
         owned.ForEach(o => o.Dispose());
         // la selección se transforma con su contenido
         if (_doc.SelectionBitmap is { } sel && (Matrix != Matrix3x2.Identity || !State.IsAffine))

@@ -1,0 +1,20 @@
+name: Proponer una función
+description: Una idea para mejorar Trazo
+labels: ["idea"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qué quieres conseguir
+      description: Describe el problema o el flujo de trabajo, no solo la solución.
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Cómo te imaginas que funcione
+  - type: textarea
+    id: referencia
+    attributes:
+      label: Referencias
+      description: Si otra aplicación (por ejemplo Procreate) lo resuelve bien, cuenta cómo lo hace o enlaza su documentación.

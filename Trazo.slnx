@@ -6,6 +6,11 @@
       <Platform Project="x64" />
     </Project>
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Trazo.Benchmarks/Trazo.Benchmarks.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Trazo.Core.Tests/Trazo.Core.Tests.csproj" />
     <Project Path="tests/Trazo.Rendering.Tests/Trazo.Rendering.Tests.csproj">

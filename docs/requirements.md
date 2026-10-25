@@ -26,7 +26,8 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | HI-01 | Historial | Crítica | ✅ | ✅ | ✅ | ✅ | 🟡 | Pruebas en el núcleo y en LY-01. Falta cubrir las operaciones interrumpidas |
 | FI-01 | Persistencia y recuperación | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/FI-01.md); fallos inyectados en las 5 etapas del guardado |
 | EX-01 | Interoperabilidad | Alta | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | PNG y JPEG; abre el formato web v1. Sin PSD ni `.procreate` |
-| PF-01 | Rendimiento | Crítica | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Se registran tiempos con WARP, pero aún no hay presupuestos ni medición en GPU real |
+| PF-01 | Rendimiento | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/PF-01-performance.md): presupuestos por medición y `tools/Trazo.Benchmarks`. En una Intel Iris Xe con un lienzo de 4K y 20 capas, todas las mediciones cumplen el mínimo de 60 Hz; la composición también cumple el objetivo de 120 Hz. Cachés de autoguardado y de composición con pruebas de equivalencia. Falta la latencia de extremo a extremo con hardware de medida y medir en GPU dedicada y ARM |
+| RC-01 | Recuperación tras fallos | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/RC-01-recovery.md): diario de sesión con aviso al volver a abrir, recuperación tras perder la GPU y copia de emergencia. 7 pruebas de núcleo, 1 WARP, autoprueba y prueba con el proceso real (`tools/crash-test.ps1`). El disparo real de la pérdida de GPU no se puede provocar en pruebas |
 | AN-01 | Animación | Media | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Fuera de esta fase |
 
 ## Requisitos detallados de las áreas activas
@@ -58,7 +59,7 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | FI-01.5 | Integridad | Cada capa es un PNG del tamaño del lienzo; se verifica releyendo antes de reemplazar | `RejectsLayerWithWrongSize`, `RejectsInvalidPng` |
 | FI-01.6 | Guardar y reabrir con el motor real | Estructura idéntica; píxeles ± 1 nivel (redondeo PNG sin premultiplicar) | `SaveAndReopenPreservesDocument` |
 | FI-01.7 | Archivo bloqueado por otro programa | Falla en la etapa Replace sin tocar el original | `InterruptedSaveDoesNotDamageExistingFile` |
-| FI-01.8 | Pérdida máxima ante un cierre inesperado | **3 s** de trabajo (intervalo de autoguardado) | Especificado; prueba de cierre forzado pendiente |
+| FI-01.8 | Pérdida máxima ante un cierre inesperado | **3 s** de trabajo (intervalo de autoguardado) | `tools/crash-test.ps1` (RC-01.9): pintar, esperar al autoguardado, matar el proceso y reabrir |
 
 ### LY-01 / HI-01 — Capas e historial
 
@@ -73,6 +74,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 ### SE-01, LY-02 y LY-03 — Selección, máscaras y grupos
 
 Los criterios de aceptación están en las especificaciones: [SE-01](specs/SE-01-selection.md#5-criterios-de-aceptación) (15) y [LY-02 / LY-03](specs/LY-02-LY-03-masks-groups.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
+
+### PF-01 y RC-01 — Rendimiento y recuperación
+
+Los criterios de aceptación están en las especificaciones: [PF-01](specs/PF-01-performance.md#3-criterios-de-aceptación) (4) y [RC-01](specs/RC-01-recovery.md#3-criterios-de-aceptación) (9). Todos tienen prueba automática o medición.
 
 ### BR-04 y BR-06 — Mezcla húmeda y dinámica
 
@@ -93,4 +98,7 @@ Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01
 | 2026-10-25 | BR-02 calculaba el % de píxeles distintos sobre toda la imagen: un cambio solo en los extremos del trazo (afinado) pasaba sin detectarse | Métrica sobre píxeles con tinta; la pluma y el rotulador de pincel fallaron como debían y se actualizaron |
 | 2026-10-25 | Una recta de la guía isométrica que rozaba una esquina del lienzo producía un tramo de longitud casi nula con ángulo arbitrario | `IsometricLinesGeometry` (DG-01.5): se descartan los tramos de menos de medio píxel |
 | 2026-10-25 | Prueba débil: `PushComposes` (radio enorme, campo casi uniforme) no detectaba una fórmula de composición rota | Nueva `ComposedFieldEqualsSequentialWarps` (LQ-01.4b), comprobada con la mutación |
+| 2026-10-25 | **Error de la 1.0 instalada (visto en su registro):** Win2D no resuelve `ms-appx:///` en una app sin empaquetar. La etiqueta de QuickShape perdía el fotograma y «Añadir texto» fallaba | `BundledFontsLoadWithoutPackage`, `NoWin2DFontUsesMsAppx` y la autoprueba (fuentes con `file:///`) |
+| 2026-10-25 | Rendimiento: cada autoguardado codificaba todas las capas (9,4 s con 20 capas de 4K) | `IncrementalSaveMatchesFullEncode` (PF-01.2) y la medición PF-5d (0,5 s) |
+| 2026-10-25 | Prueba mal planteada: el escenario de cierre forzado daba la señal de «guardado» al empezar a guardar y no al terminar, y el proceso podía morir a mitad del primer guardado | `RunCrashScenarioAsync` espera a `LastSaved`; el aviso al arrancar también cuenta un guardado interrumpido (temporal o copia) |
 | 2026-10-25 | El script de publicación se bloqueaba al escribir el archivo de sumas SHA-256 | Corregido en `release.yml`; beta 0.2.0-beta.1 publicada y probada |

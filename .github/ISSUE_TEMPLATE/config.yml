@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Informar de una vulnerabilidad
+    url: https://github.com/M4ur0-Gatt1/trazo/security/advisories/new
+    about: Los fallos de seguridad se informan en privado.

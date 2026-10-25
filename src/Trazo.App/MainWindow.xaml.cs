@@ -33,6 +33,8 @@ public sealed partial class MainWindow : Window
 
     public nint Handle => WinRT.Interop.WindowNative.GetWindowHandle(this);
     public static CanvasDevice Device => CanvasDevice.GetSharedDevice();
+    /// <summary>El estudio, para la recuperación tras fallos desde App (RC-01).</summary>
+    public Views.StudioView StudioPage => Studio;
 
     public void ShowMessage(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
     {
@@ -59,7 +61,7 @@ public sealed partial class MainWindow : Window
         return picker;
     }
 
-    private void ShowStudio(PaintDocument doc)
+    internal void ShowStudio(PaintDocument doc)
     {
         Gallery.Visibility = Visibility.Collapsed;
         Studio.Visibility = Visibility.Visible;
@@ -141,6 +143,7 @@ public sealed partial class MainWindow : Window
         await Task.Delay(1000);
         var ok = await Studio.RunSelfTestAsync(folder);
         await Task.Delay(5000); // deja la ventana visible para capturarla
+        App.Journal.End(); // la autoprueba termina bien: no debe parecer un cierre inesperado
         Environment.Exit(ok ? 0 : 1);
     }
 
@@ -158,7 +161,11 @@ public sealed partial class MainWindow : Window
     // Al cerrar con cambios sin guardar, se cancela el cierre, se guarda y se vuelve a cerrar
     private async void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (_savedBeforeClose || !Studio.HasUnsavedChanges) return;
+        if (_savedBeforeClose || !Studio.HasUnsavedChanges)
+        {
+            App.Journal.End(); // cierre normal: no hay nada que recuperar al volver
+            return;
+        }
         args.Cancel = true;
         await Studio.SaveAsync();
         _savedBeforeClose = true;
