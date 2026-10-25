@@ -102,6 +102,8 @@ public sealed partial class StudioView
             return;
         }
 
+        if (_selectMode && TryBeginSelection(pt, type, c)) return;
+
         switch (type)
         {
             case PointerDeviceType.Pen:
@@ -194,6 +196,12 @@ public sealed partial class StudioView
             return;
         }
 
+        if (_selDrag is not null && c.Id == _selDrag.Pointer)
+        {
+            UpdateSelectionDrag(c.Position);
+            return;
+        }
+
         switch (_mode)
         {
             case InputMode.Draw when c.Id == _strokeId && _engine?.IsActive == true:
@@ -241,6 +249,11 @@ public sealed partial class StudioView
     {
         if (!_contacts.Remove(e.Pointer.PointerId, out var c)) return;
         Canvas.ReleasePointerCapture(e.Pointer);
+        if (_selDrag is not null && c.Id == _selDrag.Pointer)
+        {
+            EndSelectionDrag(cancelled);
+            return;
+        }
         if (_transform is not null)
         {
             _transform.Anchor(_contacts.Values.Select(k => (k.Id, _view.ToDocument(k.Position))).ToList());
@@ -602,6 +615,9 @@ public sealed partial class StudioView
             switch (e.Key)
             {
                 case VirtualKey.Z when shift: Redo(); break;
+                case VirtualKey.A: _ops?.SelectAll(); break;
+                case VirtualKey.D: _ops?.Deselect(); break;
+                case VirtualKey.I when shift: _ops?.InvertSelection(); break;
                 case VirtualKey.R when shift: ToggleStrokeRecording(); break;
                 case VirtualKey.Z: Undo(); break;
                 case VirtualKey.Y: Redo(); break;
@@ -628,12 +644,14 @@ public sealed partial class StudioView
         switch (e.Key)
         {
             case VirtualKey.Space: _spaceDown = true; break;
+            case VirtualKey.Escape when _selectMode: ExitSelectMode(); break;
             case VirtualKey.B: Tool = ToolKind.Brush; break;
             case VirtualKey.E: Tool = ToolKind.Eraser; break;
             case VirtualKey.S: Tool = ToolKind.Smudge; break;
             case VirtualKey.I: _eyedropOnce = true; EyedropperButton.IsChecked = true; break;
             case VirtualKey.G: _fillOnce = true; Window.ShowMessage("Toca el lienzo para rellenar"); break;
             case VirtualKey.V: StartTransform(); break;
+            case VirtualKey.M: if (_selectMode) ExitSelectMode(); else EnterSelectMode(); break;
             case VirtualKey.L: ShowLayersPanel(); break;
             case VirtualKey.C: ShowColorPanel(); break;
             case (VirtualKey)219: SetSize(ToolState(Tool).Size / 1.15f); break; // [

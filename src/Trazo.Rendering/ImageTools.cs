@@ -83,14 +83,18 @@ public sealed class AdjustmentSession(PaintDocument doc, Layer layer, Adjustment
     public Adjustment Adjustment { get; } = adjustment;
     public Dictionary<string, double> Values { get; } = adjustment.Params.ToDictionary(p => p.Key, p => p.Default);
 
-    public ICanvasImage Preview(List<IDisposable> owned) => Adjustment.Build(Layer.Surface, Values, owned);
+    /// <summary>Textura sobre la que actúa el ajuste (la capa o su máscara) y su clave de sustitución.</summary>
+    public CanvasRenderTarget Target { get; } = layer.Target;
+    public object TargetKey { get; } = layer.TargetKey;
+
+    /// <summary>Vista previa: el ajuste solo se ve dentro de la selección, igual que se confirmará.</summary>
+    public ICanvasImage Preview(List<IDisposable> owned) => doc.SelectionBlend(Target, Adjustment.Build(Target, Values, owned), owned);
 
     public void Apply(LayerOperations ops)
     {
         var owned = new List<IDisposable>();
-        ops.ReplaceWith(Layer, Preview(owned), Adjustment.Name);
+        ops.ReplaceWith(Layer, Adjustment.Build(Target, Values, owned), Adjustment.Name);
         owned.ForEach(o => o.Dispose());
-        _ = doc;
     }
 }
 
@@ -102,13 +106,19 @@ public sealed class TransformSession : IDisposable
     private Vector2[] _anchorPoints = [];
     private uint[] _anchorIds = [];
 
-    private TransformSession(PaintDocument doc, Layer layer, CanvasRenderTarget source, PixelRect bounds)
+    private TransformSession(PaintDocument doc, Layer layer, CanvasRenderTarget source, CanvasRenderTarget? background, PixelRect bounds)
     {
         _doc = doc;
         Layer = layer;
         Source = source;
+        Background = background;
         Bounds = bounds;
+        TargetKey = layer.TargetKey;
     }
+
+    /// <summary>Lo que queda fijo: el resto de la capa si hay selección, o blanco si se transforma una máscara.</summary>
+    public CanvasRenderTarget? Background { get; }
+    public object TargetKey { get; }
 
     public Layer Layer { get; }
     public CanvasRenderTarget Source { get; }
@@ -116,13 +126,36 @@ public sealed class TransformSession : IDisposable
     public Matrix3x2 Matrix { get; set; } = Matrix3x2.Identity;
     public bool Smooth { get; set; } = true;
 
+    /// <summary>
+    /// Empieza a transformar la textura de trabajo de la capa. Con selección (SE-01) se levanta solo el
+    /// contenido seleccionado y el resto queda en su sitio.
+    /// </summary>
     public static TransformSession? Start(PaintDocument doc, Layer layer)
     {
-        var bounds = FloodFill.ContentBounds(layer.Surface.GetPixelBytes(), doc.Width, doc.Height);
-        if (bounds.IsEmpty) return null;
-        var copy = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
-        copy.CopyPixelsFromBitmap(layer.Surface);
-        return new TransformSession(doc, layer, copy, bounds);
+        var target = layer.Target;
+        var source = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
+        CanvasRenderTarget? background = null;
+        if (doc.SelectionBitmap is { } sel)
+        {
+            background = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
+            using (var lifted = new CompositeEffect { Mode = CanvasComposite.DestinationIn, Sources = { target, sel } })
+            using (var ds = source.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(lifted); }
+            using (var rest = new CompositeEffect { Mode = CanvasComposite.DestinationOut, Sources = { target, sel } })
+            using (var ds = background.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(rest); }
+        }
+        else
+        {
+            source.CopyPixelsFromBitmap(target);
+            if (layer.EditingMask) background = Layer.CreateMask(doc.Device, doc.Width, doc.Height, KnownColors.White);
+        }
+        var bounds = FloodFill.ContentBounds(source.GetPixelBytes(), doc.Width, doc.Height);
+        if (bounds.IsEmpty)
+        {
+            source.Dispose();
+            background?.Dispose();
+            return null;
+        }
+        return new TransformSession(doc, layer, source, background, bounds);
     }
 
     public ICanvasImage Preview(List<IDisposable> owned)
@@ -137,7 +170,10 @@ public sealed class TransformSession : IDisposable
         owned.Add(fx);
         var crop = new CropEffect { Source = fx, SourceRectangle = _doc.Bounds };
         owned.Add(crop);
-        return crop;
+        if (Background is null) return crop;
+        var over = new CompositeEffect { Sources = { Background, crop } };
+        owned.Add(over);
+        return over;
     }
 
     public Vector2[] Corners()
@@ -203,11 +239,27 @@ public sealed class TransformSession : IDisposable
     public void Apply(LayerOperations ops)
     {
         var owned = new List<IDisposable>();
-        ops.ReplaceWith(Layer, Preview(owned), "Transformar");
+        // lo movido puede quedar fuera de la selección original: no se recorta
+        ops.ReplaceWith(Layer, Preview(owned), "Transformar", clipToSelection: false);
         owned.ForEach(o => o.Dispose());
+        // la selección se mueve con su contenido
+        if (_doc.SelectionBitmap is { } sel && Matrix != Matrix3x2.Identity)
+        {
+            using var moved = new CanvasRenderTarget(_doc.Device, _doc.Width, _doc.Height, 96);
+            using (var fx = new Transform2DEffect { Source = sel, TransformMatrix = Matrix, InterpolationMode = CanvasImageInterpolation.Linear })
+            using (var ds = moved.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(fx); }
+            var px = moved.GetPixelBytes();
+            var mask = new Trazo.Core.Selection.SelectionMask(_doc.Width, _doc.Height);
+            for (var i = 0; i < mask.Data.Length; i++) mask.Data[i] = px[i * 4 + 3];
+            ops.SetSelection(mask, "Mover selección");
+        }
     }
 
-    public void Dispose() => Source.Dispose();
+    public void Dispose()
+    {
+        Source.Dispose();
+        Background?.Dispose();
+    }
 
     public static Rect ToRect(PixelRect r) => new(r.X, r.Y, r.Width, r.Height);
 }

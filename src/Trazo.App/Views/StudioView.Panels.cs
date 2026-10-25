@@ -246,6 +246,21 @@ public sealed partial class StudioView
         return img;
     }
 
+    private readonly Dictionary<Layer, (CanvasImageSource Image, int Revision)> _maskThumbs = [];
+
+    private ImageSource MaskThumbnail(Layer layer)
+    {
+        if (_maskThumbs.TryGetValue(layer, out var t) && t.Revision == layer.Revision) return t.Image;
+        var doc = _doc!;
+        var k = Math.Min(40f / doc.Width, 48f / doc.Height);
+        var img = t.Image ?? new CanvasImageSource(doc.Device, 40, 48, Dpi);
+        using (var ds = img.CreateDrawingSession(Colors.Black))
+            if (layer.Mask is { } m)
+                ds.DrawImage(m, new Windows.Foundation.Rect((40 - doc.Width * k) / 2, (48 - doc.Height * k) / 2, doc.Width * k, doc.Height * k), doc.Bounds, 1, CanvasImageInterpolation.HighQualityCubic);
+        _maskThumbs[layer] = (img, layer.Revision);
+        return img;
+    }
+
     private void RefreshLayersPanel()
     {
         if (_layersList is null || _doc is null) return;
@@ -253,58 +268,16 @@ public sealed partial class StudioView
         _layersList.Children.Clear();
         var accent = (Brush)Application.Current.Resources["AccentBrushTrazo"];
         var normal = new SolidColorBrush(Color.FromArgb(255, 44, 45, 49));
+        var groupBg = new SolidColorBrush(Color.FromArgb(255, 34, 35, 39));
         for (var i = doc.Layers.Count - 1; i >= 0; i--)
         {
-            var index = i;
             var layer = doc.Layers[i];
-            var active = i == doc.ActiveIndex;
-            var row = new Grid { Padding = new Thickness(6), CornerRadius = new CornerRadius(10), Background = active ? accent : normal, ColumnSpacing = 10, MinHeight = 60 };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var thumb = new Border
-            {
-                Width = 64, Height = 48, CornerRadius = new CornerRadius(6),
-                Background = new SolidColorBrush(Color.FromArgb(255, 210, 210, 210)),
-                Child = new Image { Source = Thumbnail(layer) },
-                Margin = new Thickness(layer.Clip && i > 0 ? 14 : 0, 0, 0, 0),
-                Opacity = layer.Visible ? 1 : 0.45,
-            };
-            row.Children.Add(thumb);
-            var info = new List<string>();
-            if (layer.AlphaLock) info.Add("α bloqueado");
-            if (layer.Clip && i > 0) info.Add("recorte");
-            if (layer.Opacity < 1) info.Add($"{layer.Opacity * 100:0} %");
-            var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = layer.Visible ? 1 : 0.55 };
-            name.Children.Add(new TextBlock { Text = layer.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
-            if (info.Count > 0) name.Children.Add(new TextBlock { Text = string.Join(" · ", info), FontSize = 11, Opacity = 0.75 });
-            Grid.SetColumn(name, 1);
-            row.Children.Add(name);
-            var blend = new Button { Content = layer.BlendShort, Width = 38, Height = 34, Padding = new Thickness(0), FontWeight = FontWeights.Bold };
-            ToolTipService.SetToolTip(blend, "Opacidad y modo de fusión");
-            blend.Click += (_, _) => ShowBlendFlyout(blend, layer);
-            Grid.SetColumn(blend, 2);
-            row.Children.Add(blend);
-            var visible = new CheckBox { IsChecked = layer.Visible, MinWidth = 0, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
-            ToolTipService.SetToolTip(visible, "Visible");
-            visible.Click += (_, _) =>
-            {
-                _ops?.Set(layer, "visible", visible.IsChecked == true, l => l.Visible, (l, v) => l.Visible = v, "Visibilidad");
-            };
-            Grid.SetColumn(visible, 3);
-            row.Children.Add(visible);
-            row.Tapped += (_, e) =>
-            {
-                if (e.OriginalSource is FrameworkElement fe && (IsInside(fe, blend) || IsInside(fe, visible))) return;
-                if (active) ShowLayerMenu(row, layer);
-                else
-                {
-                    doc.ActiveIndex = index;
-                    RefreshLayersPanel();
-                }
-            };
-            _layersList.Children.Add(row);
+            var group = doc.Group(layer.GroupId);
+            // la cabecera del grupo va encima de su miembro más alto
+            if (group is not null && (i == doc.Layers.Count - 1 || doc.Layers[i + 1].GroupId != group.Id))
+                _layersList.Children.Add(GroupRow(group, groupBg));
+            if (group is { Collapsed: true }) continue;
+            _layersList.Children.Add(LayerRow(i, group is not null, accent, normal));
         }
 
         // fila del color de fondo
@@ -325,6 +298,182 @@ public sealed partial class StudioView
         bgRow.Children.Add(bgVisible);
         _layersList.Children.Add(bgRow);
         _layersList.Children.Add(new TextBlock { Text = $"{doc.Layers.Count} de {doc.MaxLayers} capas", FontSize = 11, Opacity = 0.5, Margin = new Thickness(4, 6, 0, 0) });
+    }
+
+    private Grid LayerRow(int index, bool inGroup, Brush accent, Brush normal)
+    {
+        var doc = _doc!;
+        var layer = doc.Layers[index];
+        var active = index == doc.ActiveIndex;
+        var row = new Grid
+        {
+            Padding = new Thickness(6), CornerRadius = new CornerRadius(10), Background = active ? accent : normal, ColumnSpacing = 8, MinHeight = 60,
+            Margin = new Thickness(inGroup ? 18 : 0, 0, 0, 0),
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var editingMask = layer.HasMask && layer.EditingMask;
+        var selectedBorder = new SolidColorBrush(Colors.White);
+        var thumb = new Border
+        {
+            Width = 64, Height = 48, CornerRadius = new CornerRadius(6),
+            Background = new SolidColorBrush(Color.FromArgb(255, 210, 210, 210)),
+            Child = new Image { Source = Thumbnail(layer) },
+            Margin = new Thickness(layer.Clip && index > 0 ? 14 : 0, 0, 0, 0),
+            Opacity = layer.Visible ? 1 : 0.45,
+            BorderThickness = new Thickness(layer.HasMask && active && !editingMask ? 2 : 0),
+            BorderBrush = selectedBorder,
+        };
+        row.Children.Add(thumb);
+        Border? maskThumb = null;
+        if (layer.HasMask)
+        {
+            maskThumb = new Border
+            {
+                Width = 40, Height = 48, CornerRadius = new CornerRadius(6), Child = new Image { Source = MaskThumbnail(layer) },
+                BorderThickness = new Thickness(editingMask && active ? 2 : 0), BorderBrush = selectedBorder,
+                Opacity = layer.Visible ? 1 : 0.45,
+            };
+            ToolTipService.SetToolTip(maskThumb, "Máscara de capa: tócala para pintar en ella");
+            Grid.SetColumn(maskThumb, 1);
+            row.Children.Add(maskThumb);
+        }
+        var info = new List<string>();
+        if (editingMask) info.Add("editando máscara");
+        if (layer.AlphaLock) info.Add("α bloqueado");
+        if (layer.Clip && index > 0) info.Add("recorte");
+        if (layer.Opacity < 1) info.Add($"{layer.Opacity * 100:0} %");
+        var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = layer.Visible ? 1 : 0.55 };
+        name.Children.Add(new TextBlock { Text = layer.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        if (info.Count > 0) name.Children.Add(new TextBlock { Text = string.Join(" · ", info), FontSize = 11, Opacity = 0.75, TextTrimming = TextTrimming.CharacterEllipsis });
+        Grid.SetColumn(name, 2);
+        row.Children.Add(name);
+        var blend = new Button { Content = layer.BlendShort, Width = 38, Height = 34, Padding = new Thickness(0), FontWeight = FontWeights.Bold };
+        ToolTipService.SetToolTip(blend, "Opacidad y modo de fusión");
+        blend.Click += (_, _) => ShowBlendFlyout(blend, layer);
+        Grid.SetColumn(blend, 3);
+        row.Children.Add(blend);
+        var visible = new CheckBox { IsChecked = layer.Visible, MinWidth = 0, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
+        ToolTipService.SetToolTip(visible, "Visible");
+        visible.Click += (_, _) => _ops?.Set(layer, "visible", visible.IsChecked == true, l => l.Visible, (l, v) => l.Visible = v, "Visibilidad");
+        Grid.SetColumn(visible, 4);
+        row.Children.Add(visible);
+        row.Tapped += (_, e) =>
+        {
+            if (e.OriginalSource is FrameworkElement fe && (IsInside(fe, blend) || IsInside(fe, visible))) return;
+            var onMask = maskThumb is not null && e.OriginalSource is FrameworkElement m && IsInside(m, maskThumb);
+            var onThumb = e.OriginalSource is FrameworkElement t && IsInside(t, thumb);
+            var i = doc.Layers.IndexOf(layer);
+            if (onMask || (onThumb && layer.HasMask))
+            {
+                // tocar una miniatura elige dónde se pinta: la capa o su máscara
+                doc.ActiveIndex = i;
+                layer.EditingMask = onMask;
+                RefreshLayersPanel();
+                Canvas.Invalidate();
+            }
+            else if (i == doc.ActiveIndex) ShowLayerMenu(row, layer);
+            else
+            {
+                doc.ActiveIndex = i;
+                RefreshLayersPanel();
+            }
+        };
+        return row;
+    }
+
+    private Grid GroupRow(LayerGroup group, Brush background)
+    {
+        var row = new Grid { Padding = new Thickness(4, 6, 6, 6), CornerRadius = new CornerRadius(10), Background = background, ColumnSpacing = 8, MinHeight = 44 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var chevron = new Button
+        {
+            Content = new FontIcon { Glyph = group.Collapsed ? "" : "", FontSize = 12 },
+            Width = 34, Height = 34, Padding = new Thickness(0), Background = new SolidColorBrush(Colors.Transparent), BorderThickness = new Thickness(0),
+        };
+        ToolTipService.SetToolTip(chevron, group.Collapsed ? "Expandir grupo" : "Contraer grupo");
+        chevron.Click += (_, _) =>
+        {
+            group.Collapsed = !group.Collapsed;
+            RefreshLayersPanel();
+        };
+        row.Children.Add(chevron);
+        var count = _doc!.Layers.Count(l => l.GroupId == group.Id);
+        var info = new List<string> { count == 1 ? "1 capa" : $"{count} capas" };
+        if (group.Opacity < 1) info.Add($"{group.Opacity * 100:0} %");
+        var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = group.Visible ? 1 : 0.55, Orientation = Orientation.Horizontal, Spacing = 8 };
+        name.Children.Add(new FontIcon { Glyph = "", FontSize = 16 });
+        var text = new StackPanel();
+        text.Children.Add(new TextBlock { Text = group.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        text.Children.Add(new TextBlock { Text = string.Join(" · ", info), FontSize = 11, Opacity = 0.75 });
+        name.Children.Add(text);
+        Grid.SetColumn(name, 1);
+        row.Children.Add(name);
+        var blend = new Button { Content = group.Blend.ShortName(), Width = 38, Height = 34, Padding = new Thickness(0), FontWeight = FontWeights.Bold };
+        ToolTipService.SetToolTip(blend, "Opacidad y modo de fusión del grupo");
+        blend.Click += (_, _) => ShowGroupBlendFlyout(blend, group);
+        Grid.SetColumn(blend, 2);
+        row.Children.Add(blend);
+        var visible = new CheckBox { IsChecked = group.Visible, MinWidth = 0, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
+        ToolTipService.SetToolTip(visible, "Visible");
+        visible.Click += (_, _) => _ops?.SetGroup(group, visible.IsChecked == true, g => g.Visible, (g, v) => g.Visible = v, "Visibilidad del grupo");
+        Grid.SetColumn(visible, 3);
+        row.Children.Add(visible);
+        row.Tapped += (_, e) =>
+        {
+            if (e.OriginalSource is FrameworkElement fe && (IsInside(fe, blend) || IsInside(fe, visible) || IsInside(fe, chevron))) return;
+            ShowGroupMenu(row, group);
+        };
+        return row;
+    }
+
+    private void ShowGroupBlendFlyout(FrameworkElement anchor, LayerGroup group)
+    {
+        var opacity = new Slider { Header = "Opacidad del grupo", Minimum = 0, Maximum = 100, Value = group.Opacity * 100 };
+        opacity.ValueChanged += (_, e) =>
+        {
+            _ops?.SetGroup(group, (float)e.NewValue / 100, g => g.Opacity, (g, v) => g.Opacity = v, "Opacidad del grupo");
+            Canvas.Invalidate();
+        };
+        var modes = new ListView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 360 };
+        foreach (var m in BlendModes.All) modes.Items.Add(new ListViewItem { Content = m.DisplayName(), Tag = m });
+        modes.SelectedIndex = (int)group.Blend;
+        modes.SelectionChanged += (_, _) =>
+        {
+            if (modes.SelectedItem is ListViewItem { Tag: BlendMode m })
+                _ops?.SetGroup(group, m, g => g.Blend, (g, v) => g.Blend = v, "Fusión del grupo");
+            Canvas.Invalidate();
+        };
+        new Flyout { Content = new StackPanel { Width = 260, Spacing = 8, Children = { opacity, modes } } }.ShowAt(anchor);
+    }
+
+    private void ShowGroupMenu(FrameworkElement anchor, LayerGroup group)
+    {
+        var menu = new MenuFlyout();
+        void Item(string text, string glyph, Action action)
+        {
+            var mi = new MenuFlyoutItem { Text = text, Icon = new FontIcon { Glyph = glyph } };
+            mi.Click += (_, _) => { action(); RefreshLayersPanel(); Canvas.Invalidate(); };
+            menu.Items.Add(mi);
+        }
+        Item("Cambiar nombre…", "", async () =>
+        {
+            var box = new TextBox { Text = group.Name };
+            if (await Dialogs.ShowAsync(XamlRoot, "Nombre del grupo", box, "Aceptar") == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
+                _ops!.SetGroup(group, box.Text.Trim(), g => g.Name, (g, v) => g.Name = v, "Renombrar grupo");
+            RefreshLayersPanel();
+        });
+        Item("Combinar grupo", "", () => _ops!.MergeGroup(group.Id));
+        Item("Desagrupar", "", () => _ops!.Ungroup(group.Id));
+        menu.Items.Add(new MenuFlyoutSeparator());
+        Item("Eliminar grupo y sus capas", "", () => _ops!.DeleteGroup(group.Id));
+        menu.ShowAt(anchor);
     }
 
     private static bool IsInside(DependencyObject? child, DependencyObject parent)
@@ -396,6 +545,21 @@ public sealed partial class StudioView
         menu.Items.Add(new MenuFlyoutSeparator());
         Toggle("Bloqueo alfa", layer.AlphaLock, v => _ops!.Set(layer, "alphaLock", v, l => l.AlphaLock, (l, x) => l.AlphaLock = x, "Bloqueo alfa"));
         Toggle("Máscara de recorte", layer.Clip, v => _ops!.Set(layer, "clip", v, l => l.Clip, (l, x) => l.Clip = x, "Máscara de recorte"));
+        menu.Items.Add(new MenuFlyoutSeparator());
+        if (!layer.HasMask) Item("Máscara de capa", "\uE7B8", () => _ops!.AddMask(layer));
+        else
+        {
+            Toggle("Pintar en la máscara", layer.EditingMask, v => layer.EditingMask = v);
+            Item("Invertir máscara", "\uE746", () => _ops!.InvertMask(layer));
+            Item("Aplicar máscara", "\uE73E", () => _ops!.ApplyMask(layer));
+            Item("Eliminar máscara", "\uE74D", () => _ops!.DeleteMask(layer));
+        }
+        Item("Seleccionar contenido", "\uE8B3", () => _ops!.SelectLayerContent(layer));
+        if (layer.GroupId is null)
+        {
+            Item("Nuevo grupo con esta capa", "\uE8B7", () => _ops!.CreateGroup(Index()));
+            Item("Agrupar con la de abajo", "\uE8B7", () => _ops!.GroupWithBelow(Index()), Index() > 0);
+        }
         menu.Items.Add(new MenuFlyoutSeparator());
         Item("Invertir", "", () => _ops!.Invert(Index()));
         Item("Transformar", "", StartTransform);
@@ -553,6 +717,7 @@ public sealed partial class StudioView
         if (_doc is null || _transform is not null) return;
         if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); return; }
         CancelInput();
+        if (_selectMode) ExitSelectMode();
         _adjust = new AdjustmentSession(_doc, _doc.ActiveLayer, a);
         SheetBody.Children.Clear();
         foreach (var p in a.Params)
@@ -592,7 +757,8 @@ public sealed partial class StudioView
 
     private void SheetApply_Click(object sender, RoutedEventArgs e)
     {
-        if (_transform is not null) ApplyTransform();
+        if (_selectMode) ExitSelectMode();
+        else if (_transform is not null) ApplyTransform();
         else if (_adjust is not null)
         {
             _adjust.Apply(_ops!);
@@ -602,7 +768,12 @@ public sealed partial class StudioView
 
     private void SheetCancel_Click(object sender, RoutedEventArgs e)
     {
-        if (_transform is not null) CancelTransform();
+        if (_selectMode)
+        {
+            _ops?.Deselect();
+            ExitSelectMode();
+        }
+        else if (_transform is not null) CancelTransform();
         else CloseSheet();
     }
 
@@ -616,6 +787,7 @@ public sealed partial class StudioView
 
     private void StartTransform()
     {
+        if (_selectMode) ExitSelectMode();
         if (_doc is null || _transform is not null || _adjust is not null) { TransformButton.IsChecked = _transform is not null; return; }
         if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); TransformButton.IsChecked = false; return; }
         CancelInput();

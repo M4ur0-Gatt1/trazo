@@ -34,13 +34,19 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 - Hasta 250 capas, según el tamaño del lienzo y un presupuesto de 2 GB de memoria de vídeo.
 - Color de fondo, que se puede ocultar para exportar con transparencia.
 
+**Selección y máscaras**
+- **Seleccionar**: automática (por color, con umbral), a mano, rectángulo y elipse; nueva, añadir, restar e intersecar; invertir, difuminar, copiar y pegar y seleccionar el contenido de una capa.
+- Con una selección activa, pincel, borrador, difuminar, relleno, ajustes y transformar solo cambian la zona seleccionada.
+- **Máscaras de capa** en escala de grises: se pintan con cualquier pincel (blanco muestra, negro oculta) y se pueden invertir, aplicar o eliminar.
+- **Grupos de capas** con opacidad, modo de fusión y visibilidad propios; contraer, combinar, desagrupar y eliminar.
+
 **Ajustes y transformación**
 - Tono/saturación/brillo, contraste, exposición, temperatura y matiz, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
 - Transformar capa: mover, escalar y girar con los dedos o la rueda, voltear, rotar 90°, ajustar al lienzo, con interpolación suave o nítida.
 
 **Archivos**
 - Galería con autoguardado en `Documentos\Trazo`.
-- Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa y una miniatura. Abre también los proyectos de la versión web.
+- Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa (y por máscara) y una miniatura. Abre también los proyectos de la versión web.
 - Exportación a PNG, PNG transparente, JPEG, capas sueltas y `.trazo`.
 - Importar imágenes, pegar desde el portapapeles y añadir texto.
 - Lienzos de hasta 16 384 px por lado (64 megapíxeles) y 150 pasos de deshacer, con un límite de memoria.
@@ -69,6 +75,8 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 | `[` · `]` | Tamaño del pincel |
 | `1`…`9` | Opacidad 10…90 % |
 | `I` · `G` · `V` · `X` | Cuentagotas · Relleno · Transformar · Color anterior |
+| `M` · `Esc` | Seleccionar · Salir de la selección |
+| `Ctrl+A` · `Ctrl+D` · `Ctrl+Mayús+I` | Seleccionar todo · Deseleccionar · Invertir selección |
 | `L` · `C` | Capas · Color |
 | `Ctrl+Z` · `Ctrl+Y` | Deshacer · Rehacer |
 | `Ctrl+J` · `Ctrl+E` | Duplicar capa · Combinar hacia abajo |
@@ -138,8 +146,8 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 
 ## Hoja de ruta
 
-- Selección (lazo, rectángulo, varita) y máscaras de capa
-- Grupos de capas
+- Selecciones guardadas y pluma de selección
+- Grupos anidados
 - Licuar, curvas, mapa de degradado
 - Grabación en time-lapse
 - Importar y exportar PSD

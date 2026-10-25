@@ -15,8 +15,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | BR-04 | Mezcla húmeda | Crítica | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Sin implementar; el modelo de mezcla requiere observación |
 | BR-05 | Afinado (taper) | Alta | 🟡 | ✅ | 🟡 | ✅ | 🟡 | [Especificación](specs/BR-05-taper.md): Pressure y Touch Taper (inicio, final, punta, opacidad y forma) con cola provisional; 13 pruebas y 2 referencias. Faltan Pressure (reactivo), Link Tip Sizes y Classic. Sin observación en iPad |
 | BR-06 | Curvas de dinámica por parámetro | Alta | 🟡 | ⬜ | 🟡 | ⬜ | ⬜ | Solo hay gamma global y dos relaciones lineales |
-| LY-01 | Capas | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/LY-01.md); 16 operaciones con deshacer y rehacer exactos. Faltan los grupos |
-| LY-02 | Máscaras | Crítica | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | Solo existe la máscara de recorte; faltan las máscaras de capa |
+| LY-01 | Capas | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Protocolo](protocols/LY-01.md); 16 operaciones con deshacer y rehacer exactos; grupos en LY-03 |
+| LY-02 | Máscaras | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/LY-02-LY-03-masks-groups.md): máscara de capa en escala de grises (pintar, invertir, aplicar, eliminar) además de la de recorte; 5 pruebas WARP (7 casos), 1 referencia y autoprueba. Sin observación en iPad |
+| LY-03 | Grupos de capas | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | ídem: un nivel, composición aislada con opacidad, fusión y visibilidad; combinar, desagrupar, eliminar; formato v3. Prueba de propiedades de contigüidad (200 secuencias). Sin grupos anidados |
+| SE-01 | Selección | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/SE-01-selection.md): automática, a mano, rectángulo y elipse; añadir, restar e intersecar; invertir, difuminar, copiar y pegar. Todas las herramientas la respetan (comprobado píxel a píxel y con mutación). Faltan las selecciones guardadas y la pluma de selección |
 | CO-01 | Composición y color | Crítica | 🟡 | 🟡 | ✅ | 🟡 | ⬜ | 16 modos de Direct2D. Falta medir la precisión cromática ([ADR-0004](adr/0004-color-and-compositing.md)) |
 | HI-01 | Historial | Crítica | ✅ | ✅ | ✅ | ✅ | 🟡 | Pruebas en el núcleo y en LY-01. Falta cubrir las operaciones interrumpidas |
 | FI-01 | Persistencia y recuperación | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/FI-01.md); fallos inyectados en las 5 etapas del guardado |
@@ -64,6 +66,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | HI-01.2 | Rehacer reproduce exactamente | Estado final idéntico tras rehacer todo | ídem |
 | HI-01.3 | Un paso por acción discreta | Los interruptores (visible, recorte…) registran cada cambio; solo los deslizadores se agrupan | ídem (regresión de un error encontrado el 2026-10-24) |
 | HI-01.4 | Límites de memoria | Se descartan los pasos más antiguos al superar el límite de pasos o de bytes | `RespectsStepAndMemoryLimits` |
+
+### SE-01, LY-02 y LY-03 — Selección, máscaras y grupos
+
+Los criterios de aceptación están en las especificaciones: [SE-01](specs/SE-01-selection.md#5-criterios-de-aceptación) (15) y [LY-02 / LY-03](specs/LY-02-LY-03-masks-groups.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
 
 ## Errores encontrados por las pruebas (regresiones registradas)
 

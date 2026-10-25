@@ -5,8 +5,8 @@ using Trazo.Core.Documents;
 
 namespace Trazo.Core.IO;
 
-/// <summary>Una capa serializada: propiedades + PNG (no premultiplicado).</summary>
-public sealed record LayerData(LayerProperties Properties, byte[] Png);
+/// <summary>Una capa serializada: propiedades + PNG (no premultiplicado) + máscara opcional (PNG en gris, blanco = visible).</summary>
+public sealed record LayerData(LayerProperties Properties, byte[] Png, byte[]? MaskPng = null);
 
 /// <summary>Contenido completo de un archivo .trazo.</summary>
 public sealed record ProjectData
@@ -19,18 +19,21 @@ public sealed record ProjectData
     public int ActiveLayer { get; init; }
     /// <summary>De abajo hacia arriba.</summary>
     public IReadOnlyList<LayerData> Layers { get; init; } = [];
+    /// <summary>Grupos de capas (v3). Las capas indican su grupo con <see cref="LayerProperties.GroupId"/>.</summary>
+    public IReadOnlyList<GroupProperties> Groups { get; init; } = [];
     public byte[]? ThumbnailPng { get; init; }
     public DateTimeOffset Created { get; init; } = DateTimeOffset.Now;
 }
 
 /// <summary>
-/// Formato .trazo v2: ZIP con <c>manifest.json</c>, <c>thumbnail.png</c> y
-/// <c>layers/NN.png</c>. También lee el formato v1 (JSON con PNG en base64) de la versión web.
+/// Formato .trazo v3: ZIP con <c>manifest.json</c>, <c>thumbnail.png</c>, <c>layers/NNN.png</c> y, si hay
+/// máscaras, <c>layers/NNN-mask.png</c>; el manifiesto incluye los grupos. Lee también v2 y el v1 (JSON con
+/// PNG en base64) de la versión web.
 /// </summary>
 public static class TrazoFile
 {
     public const string Extension = ".trazo";
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public static void Write(Stream output, ProjectData project)
     {
@@ -54,12 +57,21 @@ public static class TrazoFile
                 Visible = l.Properties.Visible,
                 AlphaLock = l.Properties.AlphaLock,
                 Clip = l.Properties.Clip,
+                GroupId = l.Properties.GroupId,
                 File = $"layers/{i:D3}.png",
+                Mask = l.MaskPng is null ? null : $"layers/{i:D3}-mask.png",
+            }).ToList(),
+            Groups = project.Groups.Count == 0 ? null : project.Groups.Select(g => new GroupV3
+            {
+                Id = g.Id, Name = g.Name, Opacity = g.Opacity, Blend = g.Blend.ToString(), Visible = g.Visible, Collapsed = g.Collapsed,
             }).ToList(),
         };
         // PNG ya está comprimido: se guarda sin compresión adicional para que sea rápido
         for (var i = 0; i < project.Layers.Count; i++)
+        {
             WriteEntry(zip, manifest.Layers[i].File, project.Layers[i].Png, CompressionLevel.NoCompression);
+            if (project.Layers[i].MaskPng is { } mask) WriteEntry(zip, manifest.Layers[i].Mask!, mask, CompressionLevel.NoCompression);
+        }
         if (project.ThumbnailPng is { } thumb)
             WriteEntry(zip, "thumbnail.png", thumb, CompressionLevel.NoCompression);
         WriteEntry(zip, "manifest.json", JsonSerializer.SerializeToUtf8Bytes(manifest, TrazoJson.Default.ManifestV2), CompressionLevel.Optimal);
@@ -108,8 +120,19 @@ public static class TrazoFile
                 Visible = l.Visible,
                 AlphaLock = l.AlphaLock,
                 Clip = l.Clip,
+                GroupId = string.IsNullOrEmpty(l.GroupId) ? null : l.GroupId,
             },
-            ReadEntry(zip.GetEntry(l.File) ?? throw new InvalidDataException($"Falta {l.File}")))).ToList();
+            ReadEntry(zip.GetEntry(l.File) ?? throw new InvalidDataException($"Falta {l.File}")),
+            l.Mask is null ? null : ReadEntry(zip.GetEntry(l.Mask) ?? throw new InvalidDataException($"Falta {l.Mask}")))).ToList();
+        var groups = (m.Groups ?? []).Select(g => new GroupProperties
+        {
+            Id = g.Id ?? Guid.NewGuid().ToString("N"),
+            Name = g.Name ?? "Grupo",
+            Opacity = Math.Clamp(g.Opacity, 0, 1),
+            Blend = Enum.TryParse<BlendMode>(g.Blend, out var gb) ? gb : BlendMode.Normal,
+            Visible = g.Visible,
+            Collapsed = g.Collapsed,
+        }).ToList();
         return Validate(new ProjectData
         {
             Name = m.Name ?? "Sin título",
@@ -120,6 +143,7 @@ public static class TrazoFile
             ActiveLayer = m.Active,
             Created = m.Created ?? DateTimeOffset.Now,
             Layers = layers,
+            Groups = groups,
             ThumbnailPng = zip.GetEntry("thumbnail.png") is { } t ? ReadEntry(t) : null,
         });
     }
@@ -164,7 +188,12 @@ public static class TrazoFile
         if (p.Width < CanvasLimits.MinSide || p.Height < CanvasLimits.MinSide ||
             p.Width > CanvasLimits.MaxSide || p.Height > CanvasLimits.MaxSide)
             throw new InvalidDataException($"Tamaño de lienzo no admitido: {p.Width}×{p.Height}");
-        return p with { ActiveLayer = Math.Clamp(p.ActiveLayer, 0, Math.Max(0, p.Layers.Count - 1)) };
+        // capas que apuntan a un grupo inexistente quedan fuera de grupo; los grupos deben ser contiguos
+        var known = p.Groups.Select(g => g.Id).ToHashSet();
+        var layers = p.Layers.Select(l => l.Properties.GroupId is { } gid && !known.Contains(gid) ? l with { Properties = l.Properties with { GroupId = null } } : l).ToList();
+        if (!GroupRules.AreContiguous(layers.Select(l => l.Properties.GroupId).ToList()))
+            throw new InvalidDataException("Grupos de capas no contiguos");
+        return p with { Layers = layers, ActiveLayer = Math.Clamp(p.ActiveLayer, 0, Math.Max(0, p.Layers.Count - 1)) };
     }
 
     private static byte[] DecodeDataUrl(string? url)
@@ -201,6 +230,17 @@ internal sealed class ManifestV2
     public int Active { get; set; }
     public DateTimeOffset? Created { get; set; }
     public List<LayerV2> Layers { get; set; } = [];
+    public List<GroupV3>? Groups { get; set; }
+}
+
+internal sealed class GroupV3
+{
+    public string? Id { get; set; }
+    public string? Name { get; set; }
+    public float Opacity { get; set; } = 1;
+    public string? Blend { get; set; }
+    public bool Visible { get; set; } = true;
+    public bool Collapsed { get; set; }
 }
 
 internal sealed class BackgroundV2
@@ -218,7 +258,9 @@ internal sealed class LayerV2
     public bool Visible { get; set; } = true;
     public bool AlphaLock { get; set; }
     public bool Clip { get; set; }
+    public string? GroupId { get; set; }
     public string File { get; set; } = "";
+    public string? Mask { get; set; }
 }
 
 internal sealed class ManifestV1

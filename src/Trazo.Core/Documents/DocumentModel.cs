@@ -96,6 +96,8 @@ public sealed record LayerProperties
     public bool Visible { get; init; } = true;
     public bool AlphaLock { get; init; }
     public bool Clip { get; init; }
+    /// <summary>Grupo al que pertenece (LY-03), o null.</summary>
+    public string? GroupId { get; init; }
 }
 
 public sealed record CanvasPreset(string Name, int Width, int Height);

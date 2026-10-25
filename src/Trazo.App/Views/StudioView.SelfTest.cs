@@ -3,6 +3,7 @@ using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
 using Trazo.Rendering;
 using Trazo.Core.IO;
+using Trazo.Core.Selection;
 using Trazo.Core.Strokes;
 using Windows.UI;
 
@@ -164,6 +165,42 @@ public sealed partial class StudioView
                 Check("vistas previas de los 21 pinceles", true);
             }
 
+            // 9c. Selección, máscaras y grupos (SE-01, LY-02, LY-03)
+            byte Shown(Layer l, int x, int y)
+            {
+                var owned = new List<IDisposable>();
+                using var rt = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
+                using (var ds = rt.CreateDrawingSession())
+                {
+                    ds.Clear(Colors.Transparent);
+                    ds.DrawImage(doc.LayerImage(l, null, owned));
+                }
+                owned.ForEach(o => o.Dispose());
+                return rt.GetPixelBytes(x, y, 1, 1)[3];
+            }
+            var selLayer = ops.Add()!;
+            ops.Select(SelectionMask.Ellipse(doc.Width, doc.Height, 1200, 250, 1400, 450), SelectionCombine.Replace, "Selección elíptica");
+            ops.Fill(doc.Layers.IndexOf(selLayer), Colors.Black);
+            Check("relleno limitado a la selección", Pixel(selLayer, 1300, 350).A == 255 && Pixel(selLayer, 1205, 255).A == 0 && Pixel(selLayer, 1100, 350).A == 0);
+            ops.InvertSelection();
+            ops.Clear(doc.Layers.IndexOf(selLayer));
+            Check("borrar con selección invertida respeta la forma", Pixel(selLayer, 1300, 350).A == 255);
+            ops.Deselect();
+            ops.AddMask(selLayer);
+            Check("máscara nueva no cambia nada", selLayer.EditingMask && Shown(selLayer, 1300, 350) == 255);
+            ops.Select(SelectionMask.Rectangle(doc.Width, doc.Height, 1300, 250, 1400, 450), SelectionCombine.Replace, "Selección rectangular");
+            ops.Fill(doc.Layers.IndexOf(selLayer), Colors.Black);
+            ops.Deselect();
+            Check("máscara negra oculta", Shown(selLayer, 1350, 350) == 0 && Shown(selLayer, 1250, 350) == 255 && Pixel(selLayer, 1350, 350).A == 255);
+            selLayer.EditingMask = false;
+            ops.GroupWithBelow(doc.Layers.IndexOf(selLayer));
+            var group = doc.Group(selLayer.GroupId);
+            Check("agrupar con la de abajo", group is not null && doc.Layers.Count(l => l.GroupId == group.Id) == 2);
+            byte Flat(int x, int y) { using var f = doc.Flatten(); return f.GetPixelBytes(x, y, 1, 1)[0]; }
+            var opaque = Flat(1250, 350);
+            ops.SetGroup(group!, 0.5f, g => g.Opacity, (g, v) => g.Opacity = v, "Opacidad del grupo");
+            Check("opacidad del grupo", opaque < 10 && Flat(1250, 350) > 60);
+
             // 10. Guardar y volver a abrir
             Canvas.Invalidate();
             doc.IsDirty = true;
@@ -173,12 +210,19 @@ public sealed partial class StudioView
             data = ProjectSaver.Load(doc.FilePath!).Project;
             using var reopened = await PaintDocument.FromProjectDataAsync(doc.Device, data, doc.FilePath);
             Check("se reabre con las mismas capas", reopened.Layers.Count == doc.Layers.Count && reopened.Width == doc.Width);
+            Check("se reabren máscaras y grupos", reopened.Layers.Count(l => l.HasMask) == 1 && reopened.Groups.Count == 1 && reopened.Groups[0].Opacity == 0.5f);
             using (var a = doc.Flatten())
             using (var b = reopened.Flatten())
-                Check("misma imagen tras reabrir", a.GetPixelBytes(1050, 150, 1, 1).SequenceEqual(b.GetPixelBytes(1050, 150, 1, 1)));
+                Check("misma imagen tras reabrir", a.GetPixelBytes(1050, 150, 1, 1).SequenceEqual(b.GetPixelBytes(1050, 150, 1, 1))
+                    && a.GetPixelBytes(1190, 240, 220, 220).SequenceEqual(b.GetPixelBytes(1190, 240, 220, 220)));
 
             using (var final = doc.Flatten())
                 await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-render.png"), await PaintDocument.EncodePngAsync(final));
+
+            // deja visibles la herramienta Seleccionar y el panel de capas para la captura de la ventana
+            ops.Select(SelectionMask.Ellipse(doc.Width, doc.Height, 300, 250, 900, 750), SelectionCombine.Replace, "Selección elíptica");
+            EnterSelectMode();
+            ShowLayersPanel();
         }
         catch (Exception e)
         {

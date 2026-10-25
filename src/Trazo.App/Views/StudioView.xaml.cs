@@ -320,10 +320,11 @@ public sealed partial class StudioView : UserControl
         var owned = new List<IDisposable>();
         try
         {
-            var overrides = new Dictionary<Layer, ICanvasImage>();
-            if (_engine?.Preview(owned) is { } stroke && _engine.Layer is { } sl) overrides[sl] = stroke;
-            if (_adjust is not null) overrides[_adjust.Layer] = _adjust.Preview(owned);
-            if (_transform is not null) overrides[_transform.Layer] = _transform.Preview(owned);
+            // la clave es la capa o su máscara (MaskKey), según dónde se esté pintando
+            var overrides = new Dictionary<object, ICanvasImage>();
+            if (_engine?.Preview(owned) is { } stroke && _engine.PreviewKey is { } key) overrides[key] = stroke;
+            if (_adjust is not null) overrides[_adjust.TargetKey] = _adjust.Preview(owned);
+            if (_transform is not null) overrides[_transform.TargetKey] = _transform.Preview(owned);
 
             ds.Transform = _view.Matrix;
             // sombra del lienzo
@@ -339,7 +340,9 @@ public sealed partial class StudioView : UserControl
                 : _view.Scale < 0.5f ? CanvasImageInterpolation.HighQualityCubic
                 : CanvasImageInterpolation.Linear;
             ds.DrawImage(doc.Compose(overrides, owned), Vector2.Zero, doc.Bounds, 1, interp);
+            DrawSelectionOverlay(ds, doc, owned);
             ds.Transform = Matrix3x2.Identity;
+            DrawSelectionDrag(ds);
 
             DrawSymmetryGuides(ds, doc);
             DrawTransformBox(ds);

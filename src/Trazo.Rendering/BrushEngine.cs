@@ -80,6 +80,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     public bool IsActive => _layer is not null;
     public QuickShape? Shape => _builder?.Shape;
     public Layer? Layer => _layer;
+    /// <summary>Clave de la imagen que sustituye la vista previa del trazo (la capa o su máscara).</summary>
+    public object? PreviewKey => _layer?.TargetKey;
+    private bool OnMask => _layer?.EditingMask == true;
     /// <summary>Semilla del último trazo (para reproducirlo exactamente).</summary>
     public int LastSeed { get; private set; }
 
@@ -93,7 +96,10 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         _layer = layer;
         _tool = tool;
         _brush = brush;
-        _color = tool == ToolKind.Eraser ? KnownColors.Black : color;
+        // En una máscara se pinta la luminancia del color (negro oculta, blanco muestra) y el borrador restaura blanco
+        _color = layer.EditingMask
+            ? tool == ToolKind.Eraser ? KnownColors.White : LayerOperations.ToMaskGray(color)
+            : tool == ToolKind.Eraser ? KnownColors.Black : color;
         _size = size;
         _opacity = opacity;
         _symmetry = tool == ToolKind.Smudge ? SymmetryMode.None : symmetry;
@@ -183,7 +189,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     // Difuminar: arrastra un parche de píxeles que se mezcla poco a poco con lo que encuentra
     private void Smudge(Dab d)
     {
-        var src = _layer!.Surface;
+        var src = _layer!.Target;
         if (_patch is null)
         {
             _patchSize = Math.Max(4, (int)MathF.Ceiling(_size));
@@ -208,7 +214,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         {
             var alpha = Math.Clamp(_opacity * (0.35f + 0.65f * d.Alpha) * 0.6f, 0, 1);
             lds.DrawImage(_mask, new Rect(d.X - d.Size / 2, d.Y - d.Size / 2, d.Size, d.Size), new Rect(0, 0, S, S), alpha,
-                CanvasImageInterpolation.Linear, _layer.AlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver);
+                CanvasImageInterpolation.Linear, _layer.TargetAlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver);
         }
         using (var pds = _patch.CreateDrawingSession())
             pds.DrawImage(src, new Rect(0, 0, S, S), Around(d.X, d.Y, S), 0.35f - 0.3f * _opacity);
@@ -217,9 +223,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
 
     private static Rect Around(float x, float y, int s) => new(x - s / 2f, y - s / 2f, s, s);
 
-    private CanvasComposite Composite => _tool == ToolKind.Eraser
+    private CanvasComposite Composite => _tool == ToolKind.Eraser && !OnMask
         ? CanvasComposite.DestinationOut
-        : _layer!.AlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver;
+        : _layer!.TargetAlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver;
 
     /// <summary>Imagen de vista previa de la capa con el trazo en curso.</summary>
     public ICanvasImage? Preview(List<IDisposable> owned)
@@ -233,10 +239,11 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             stroke = withTail;
         }
         var buf = new OpacityEffect { Source = _raster!.Finish(stroke, owned), Opacity = _opacity };
-        var comp = new CompositeEffect { Mode = Composite, Sources = { _layer.Surface, buf } };
+        var comp = new CompositeEffect { Mode = Composite, Sources = { _layer.Target, buf } };
         owned.Add(buf);
         owned.Add(comp);
-        return comp;
+        // con selección, la vista previa muestra solo lo que se confirmará (SE-01)
+        return doc.SelectionBlend(_layer.Target, comp, owned);
     }
 
     public void End()
@@ -253,7 +260,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             if (!r.IsEmpty)
             {
                 var owned = new List<IDisposable>();
-                using (var ds = layer.Surface.CreateDrawingSession())
+                using (var ds = layer.Target.CreateDrawingSession())
                     ds.DrawImage(_raster!.Finish(_buffer!, owned), new Vector2((float)r.X, (float)r.Y), r, _opacity, CanvasImageInterpolation.NearestNeighbor, Composite);
                 owned.ForEach(o => o.Dispose());
             }
@@ -272,7 +279,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         // difuminar escribe directamente en la capa: se restaura desde la copia previa
         if (_tool == ToolKind.Smudge && ops.CurrentSnapshot is { } snapshot)
         {
-            _layer.Surface.CopyPixelsFromBitmap(snapshot);
+            _layer.Target.CopyPixelsFromBitmap(snapshot);
             _layer.Touch();
         }
         _layer = null;
@@ -313,13 +320,14 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         using (var flat = doc.Flatten()) pixels = flat.GetPixelBytes();
         var mask = FloodFill.Compute(pixels, doc.Width, doc.Height, ix, iy, tolerance);
         if (mask is null) return false;
+        if (layer.EditingMask) color = LayerOperations.ToMaskGray(color);
         var bgra = FloodFill.ToBgra(mask, doc.Width, color.R, color.G, color.B);
         var b = mask.Bounds;
         using var bmp = CanvasBitmap.CreateFromBytes(doc.Device, bgra, b.Width, b.Height, DirectXPixelFormat.B8G8R8A8UIntNormalized, 96, CanvasAlphaMode.Premultiplied);
         ops.Snapshot(layer);
-        using (var ds = layer.Surface.CreateDrawingSession())
+        using (var ds = layer.Target.CreateDrawingSession())
             ds.DrawImage(bmp, new Vector2(b.X, b.Y), new Rect(0, 0, b.Width, b.Height), 1, CanvasImageInterpolation.NearestNeighbor,
-                layer.AlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver);
+                layer.TargetAlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver);
         ops.CommitPixels(layer, new Rect(b.X, b.Y, b.Width, b.Height), "Relleno");
         return true;
     }

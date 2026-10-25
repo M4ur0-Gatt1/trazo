@@ -44,6 +44,9 @@
                         <MenuFlyout x:Name="AdjustMenu" Placement="BottomEdgeAlignedLeft" />
                     </Button.Flyout>
                 </Button>
+                <ToggleButton x:Name="SelectButton" Style="{StaticResource BarToggle}" Click="Select_Click" ToolTipService.ToolTip="Seleccionar (M)">
+                    <FontIcon Glyph="&#xE8B3;" FontSize="20" />
+                </ToggleButton>
                 <ToggleButton x:Name="TransformButton" Style="{StaticResource BarToggle}" Click="Transform_Click" ToolTipService.ToolTip="Transformar (V)">
                     <FontIcon Glyph="&#xE7C2;" FontSize="20" />
                 </ToggleButton>

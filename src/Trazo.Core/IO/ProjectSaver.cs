@@ -152,6 +152,8 @@ public static class ProjectSaver
     {
         if (actual.Width != expected.Width || actual.Height != expected.Height)
             throw new InvalidDataException("Dimensiones distintas tras releer");
+        if (!actual.Groups.SequenceEqual(expected.Groups))
+            throw new InvalidDataException("Grupos distintos tras releer");
         if (actual.Layers.Count != expected.Layers.Count)
             throw new InvalidDataException("Número de capas distinto tras releer");
         for (var i = 0; i < actual.Layers.Count; i++)
@@ -160,6 +162,8 @@ public static class ProjectSaver
                 throw new InvalidDataException($"Propiedades distintas en la capa {i + 1}");
             if (!actual.Layers[i].Png.AsSpan().SequenceEqual(expected.Layers[i].Png))
                 throw new InvalidDataException($"Píxeles distintos en la capa {i + 1}");
+            if (!(actual.Layers[i].MaskPng ?? []).AsSpan().SequenceEqual(expected.Layers[i].MaskPng ?? []))
+                throw new InvalidDataException($"Máscara distinta en la capa {i + 1}");
         }
         ValidateLayers(actual);
     }
@@ -172,6 +176,11 @@ public static class ProjectSaver
             var (w, h) = PngSize(p.Layers[i].Png) ?? throw new InvalidDataException($"La capa {i + 1} no es un PNG válido");
             if (w != p.Width || h != p.Height)
                 throw new InvalidDataException($"La capa {i + 1} mide {w}×{h} y el lienzo {p.Width}×{p.Height}");
+            if (p.Layers[i].MaskPng is { } mask)
+            {
+                var (mw, mh) = PngSize(mask) ?? throw new InvalidDataException($"La máscara de la capa {i + 1} no es un PNG válido");
+                if (mw != p.Width || mh != p.Height) throw new InvalidDataException($"La máscara de la capa {i + 1} no mide lo que el lienzo");
+            }
         }
     }
 
