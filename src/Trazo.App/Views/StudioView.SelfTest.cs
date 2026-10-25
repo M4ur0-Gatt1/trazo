@@ -2,6 +2,9 @@ using System.Text;
 using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
 using Trazo.Rendering;
+using System.Numerics;
+using Trazo.Core.Geometry;
+using Trazo.Core.Imaging;
 using Trazo.Core.IO;
 using Trazo.Core.Selection;
 using Trazo.Core.Strokes;
@@ -201,6 +204,57 @@ public sealed partial class StudioView
             ops.SetGroup(group!, 0.5f, g => g.Opacity, (g, v) => g.Opacity = v, "Opacidad del grupo");
             Check("opacidad del grupo", opaque < 10 && Flat(1250, 350) > 60);
 
+            // 9d. Transformar, Licuar y Asistente de dibujo (TR-01, LQ-01, DG-01)
+            string LayerHash(Layer l) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(l.Surface.GetPixelBytes()))[..16];
+            var trLayer = ops.Add()!;
+            ops.Select(SelectionMask.Rectangle(doc.Width, doc.Height, 1100, 560, 1300, 700), SelectionCombine.Replace, "Selección rectangular");
+            ops.Fill(doc.Layers.IndexOf(trLayer), Colors.Black);
+            ops.Deselect();
+            using (var t = TransformSession.Start(doc, trLayer)!)
+            {
+                Check("distorsionar acepta un cuadrilátero válido", t.State.SetCorners([new(1150, 520), new(1450, 560), new(1420, 740), new(1120, 700)]));
+                Check("distorsionar rechaza uno cruzado", !t.State.MovePoint(0, new Vector2(1500, 800)));
+                t.Apply(ops);
+            }
+            Check("distorsionar mueve el contenido", Pixel(trLayer, 1400, 600).A == 255 && Pixel(trLayer, 1105, 565).A == 0);
+            var beforeWarp = LayerHash(trLayer);
+            using (var t = TransformSession.Start(doc, trLayer)!)
+            {
+                t.SetMode(TransformMode.Warp);
+                var pts = t.State.HandlePoints();
+                t.State.MovePoint(5, pts[5] + new Vector2(30, 25));
+                t.Apply(ops);
+            }
+            Check("deformar cambia la capa", LayerHash(trLayer) != beforeWarp);
+            doc.History.Undo();
+            Check("deshacer deformar", LayerHash(trLayer) == beforeWarp);
+            doc.History.Redo();
+
+            var beforeLiquify = LayerHash(trLayer);
+            using (var lq = LiquifySession.Start(doc, trLayer))
+            {
+                lq.Size = 160;
+                lq.Strength = 1;
+                lq.BeginStroke(new Vector2(1200, 630), 1);
+                for (var k = 1; k <= 30; k++) lq.ContinueStroke(new Vector2(1200 + k * 4, 630 + k), 1);
+                lq.EndStroke();
+                lq.Apply(ops);
+            }
+            Check("licuar cambia la capa", LayerHash(trLayer) != beforeLiquify);
+            doc.History.Undo();
+            Check("deshacer licuar", LayerHash(trLayer) == beforeLiquify);
+            doc.History.Redo();
+
+            doc.Guide = new DrawingGuide { Kind = GuideKind.Grid, Size = 100, Assist = true };
+            var assisted = ops.Add()!;
+            engine.Begin(new InputPoint(200, 300), ToolKind.Brush, mono, Colors.Black, 6, 1, SymmetryMode.None, 1, assist: NewAssist());
+            var wobble = new Random(2);
+            for (var k = 1; k <= 60; k++) engine.Add(new InputPoint(200 + k * 6, 300 + (k < 3 ? 1 : wobble.Next(-12, 13))));
+            engine.End();
+            var assistedRows = Enumerable.Range(270, 60).Where(y => assisted.Surface.GetPixelBytes(200, y, 360, 1).Where((_, i) => i % 4 == 3).Any(a => a > 0)).ToList();
+            Check("el asistente endereza el trazo", assistedRows.Count > 0 && assistedRows.Max() - assistedRows.Min() <= 8);
+            doc.Guide = new DrawingGuide { Kind = GuideKind.Perspective, Assist = true, VanishingPoints = [new(300, 180), new(1350, 200)] };
+
             // 10. Guardar y volver a abrir
             Canvas.Invalidate();
             doc.IsDirty = true;
@@ -210,6 +264,7 @@ public sealed partial class StudioView
             data = ProjectSaver.Load(doc.FilePath!).Project;
             using var reopened = await PaintDocument.FromProjectDataAsync(doc.Device, data, doc.FilePath);
             Check("se reabre con las mismas capas", reopened.Layers.Count == doc.Layers.Count && reopened.Width == doc.Width);
+            Check("se reabre la guía de dibujo", reopened.Guide is { Kind: GuideKind.Perspective, Assist: true } rg && rg.VanishingPoints.Count == 2);
             Check("se reabren máscaras y grupos", reopened.Layers.Count(l => l.HasMask) == 1 && reopened.Groups.Count == 1 && reopened.Groups[0].Opacity == 0.5f);
             using (var a = doc.Flatten())
             using (var b = reopened.Flatten())
@@ -219,10 +274,35 @@ public sealed partial class StudioView
             using (var final = doc.Flatten())
                 await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-render.png"), await PaintDocument.EncodePngAsync(final));
 
-            // deja visibles la herramienta Seleccionar y el panel de capas para la captura de la ventana
-            ops.Select(SelectionMask.Ellipse(doc.Width, doc.Height, 300, 250, 900, 750), SelectionCombine.Replace, "Selección elíptica");
-            EnterSelectMode();
-            ShowLayersPanel();
+            // deja una herramienta abierta para la captura de la ventana (TRAZO_SELFTEST_UI elige cuál)
+            switch (Environment.GetEnvironmentVariable("TRAZO_SELFTEST_UI"))
+            {
+                case "select":
+                    ops.Select(SelectionMask.Ellipse(doc.Width, doc.Height, 300, 250, 900, 750), SelectionCombine.Replace, "Selección elíptica");
+                    EnterSelectMode();
+                    ShowLayersPanel();
+                    break;
+                case "liquify":
+                    doc.ActiveIndex = doc.Layers.IndexOf(trLayer);
+                    StartLiquify();
+                    _liquify!.Mode = LiquifyMode.TwirlRight;
+                    _liquify.Size = 300;
+                    _liquify.Strength = 1;
+                    for (var k = 0; k < 6; k++) _liquify.DabAt(new Vector2(1250, 640), 1);
+                    BuildLiquifySheet();
+                    _hover = _view.ToScreen(new Vector2(1250, 640));
+                    break;
+                case "guide":
+                    ShowGuideSheet();
+                    break;
+                default:
+                    doc.ActiveIndex = doc.Layers.IndexOf(trLayer);
+                    StartTransform(TransformMode.Warp);
+                    var wp = _transform!.State.HandlePoints();
+                    _transform.State.MovePoint(5, wp[5] + new Vector2(40, 30));
+                    break;
+            }
+            Canvas.Invalidate();
         }
         catch (Exception e)
         {

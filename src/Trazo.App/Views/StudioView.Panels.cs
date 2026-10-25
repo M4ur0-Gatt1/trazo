@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Trazo.Core.Geometry;
 using Trazo.Rendering;
 using Trazo.Core.Brushes;
 using Trazo.Core.Colors;
@@ -704,6 +705,10 @@ public sealed partial class StudioView
 
     private void BuildAdjustMenu()
     {
+        var liquify = new MenuFlyoutItem { Text = "Licuar" };
+        liquify.Click += (_, _) => StartLiquify();
+        AdjustMenu.Items.Add(liquify);
+        AdjustMenu.Items.Add(new MenuFlyoutSeparator());
         foreach (var a in Adjustment.All)
         {
             var mi = new MenuFlyoutItem { Text = a.Name };
@@ -718,6 +723,8 @@ public sealed partial class StudioView
         if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); return; }
         CancelInput();
         if (_selectMode) ExitSelectMode();
+        if (_liquify is not null) ApplyLiquify();
+        if (_guideEdit) EndGuideEdit();
         _adjust = new AdjustmentSession(_doc, _doc.ActiveLayer, a);
         SheetBody.Children.Clear();
         foreach (var p in a.Params)
@@ -758,6 +765,8 @@ public sealed partial class StudioView
     private void SheetApply_Click(object sender, RoutedEventArgs e)
     {
         if (_selectMode) ExitSelectMode();
+        else if (_liquify is not null) ApplyLiquify();
+        else if (_guideEdit) EndGuideEdit();
         else if (_transform is not null) ApplyTransform();
         else if (_adjust is not null)
         {
@@ -773,6 +782,8 @@ public sealed partial class StudioView
             _ops?.Deselect();
             ExitSelectMode();
         }
+        else if (_liquify is not null) EndLiquify();
+        else if (_guideEdit) EndGuideEdit();
         else if (_transform is not null) CancelTransform();
         else CloseSheet();
     }
@@ -785,9 +796,13 @@ public sealed partial class StudioView
         else StartTransform();
     }
 
-    private void StartTransform()
+    private void StartTransform() => StartTransform(TransformMode.Freeform);
+
+    private void StartTransform(TransformMode mode)
     {
         if (_selectMode) ExitSelectMode();
+        if (_liquify is not null) ApplyLiquify();
+        if (_guideEdit) EndGuideEdit();
         if (_doc is null || _transform is not null || _adjust is not null) { TransformButton.IsChecked = _transform is not null; return; }
         if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); TransformButton.IsChecked = false; return; }
         CancelInput();
@@ -799,31 +814,10 @@ public sealed partial class StudioView
             return;
         }
         _transform.Smooth = _settings.SmoothTransform;
+        _transform.State.Magnetic = _settings.MagneticTransform;
+        _transform.SetMode(mode);
         TransformButton.IsChecked = true;
-        SheetBody.Children.Clear();
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center };
-        void B(string text, string glyph, Action a)
-        {
-            var b = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new FontIcon { Glyph = glyph, FontSize = 14 }, new TextBlock { Text = text } } } };
-            b.Click += (_, _) => { a(); Canvas.Invalidate(); };
-            buttons.Children.Add(b);
-        }
-        B("Voltear H", "", () => _transform?.Flip(true));
-        B("Voltear V", "", () => _transform?.Flip(false));
-        B("Rotar 90°", "", () => _transform?.Rotate(90));
-        B("Ajustar", "", () => _transform?.FitToCanvas());
-        B("Restablecer", "", () => _transform?.Reset());
-        SheetBody.Children.Add(buttons);
-        var smooth = new ToggleSwitch { Header = "Interpolación suave", IsOn = _transform.Smooth };
-        smooth.Toggled += (_, _) =>
-        {
-            if (_transform is null) return;
-            _transform.Smooth = _settings.SmoothTransform = smooth.IsOn;
-            _settings.Save();
-            Canvas.Invalidate();
-        };
-        SheetBody.Children.Add(smooth);
-        SheetBody.Children.Add(new TextBlock { Text = "Arrastra para mover · pellizca con dos dedos para escalar y girar · rueda = escala · Alt+rueda = giro · Intro aplica", Opacity = 0.6, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        BuildTransformSheet();
         OpenSheet("Transformar");
     }
 
@@ -905,6 +899,7 @@ public sealed partial class StudioView
             sym.Items.Add(r);
         }
         canvas.Items.Add(sym);
+        canvas.Items.Add(Item("Guía de dibujo…", Sync(ShowGuideSheet)));
         canvas.Items.Add(Item("Cambiar nombre…", RenameDocumentAsync));
         canvas.Items.Add(Item("Información del lienzo", async () =>
         {

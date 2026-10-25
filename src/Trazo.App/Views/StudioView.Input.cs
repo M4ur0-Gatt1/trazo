@@ -6,6 +6,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Trazo.Core.Geometry;
 using Trazo.Rendering;
 using Trazo.Core.Strokes;
 using Windows.System;
@@ -98,11 +99,15 @@ public sealed partial class StudioView
 
         if (_transform is not null)
         {
+            if (_transformDrag is not null) EndTransformHandle();   // un segundo dedo pasa a gesto
+            else if (TryBeginTransformHandle(c)) return;
             _transform.Anchor(_contacts.Values.Select(k => (k.Id, _view.ToDocument(k.Position))).ToList());
             return;
         }
 
         if (_selectMode && TryBeginSelection(pt, type, c)) return;
+        if (_liquify is not null && TryBeginLiquify(pt, type, c)) return;
+        if (_guideEdit && TryBeginGuidePoint(pt, type, c)) return;
 
         switch (type)
         {
@@ -166,7 +171,7 @@ public sealed partial class StudioView
         {
             if (_eyedropOnce) { StartEyedrop(c); return; }
             if (_fillOnce) { DoFill(c.Position); return; }
-            if (PenOnly || _adjust is not null) { StartGesture(); return; }
+            if (PenOnly || _adjust is not null || _liquify is not null || _guideEdit) { StartGesture(); return; }
             StartDraw(pt, type, null);
             return;
         }
@@ -191,8 +196,24 @@ public sealed partial class StudioView
 
         if (_transform is not null)
         {
-            _transform.Move(_contacts.ToDictionary(k => k.Key, k => _view.ToDocument(k.Value.Position)));
+            if (_transformDrag is not null)
+            {
+                if (_transformDrag.Pointer == c.Id) UpdateTransformHandle(c.Position);
+                return;
+            }
+            _transform.Move(_contacts.ToDictionary(k => k.Key, k => _view.ToDocument(k.Value.Position)), Magnetics.CenterThresholdScreenPx / _view.Scale);
             Canvas.Invalidate();
+            return;
+        }
+
+        if (_liquifyPointer == c.Id)
+        {
+            UpdateLiquify(pt, c.Type, c.Position);
+            return;
+        }
+        if (_guideDrag is { } gd && gd.Pointer == c.Id)
+        {
+            UpdateGuidePoint(c.Position);
             return;
         }
 
@@ -256,7 +277,18 @@ public sealed partial class StudioView
         }
         if (_transform is not null)
         {
+            if (_transformDrag?.Pointer == c.Id) EndTransformHandle();
             _transform.Anchor(_contacts.Values.Select(k => (k.Id, _view.ToDocument(k.Position))).ToList());
+            return;
+        }
+        if (_liquifyPointer == c.Id)
+        {
+            EndLiquifyStroke();
+            return;
+        }
+        if (_guideDrag is { } gd && gd.Pointer == c.Id)
+        {
+            EndGuidePoint(c.Position);
             return;
         }
         switch (_mode)
@@ -292,7 +324,7 @@ public sealed partial class StudioView
 
     private void StartDraw(Microsoft.UI.Input.PointerPoint pt, PointerDeviceType type, ToolKind? overrideTool)
     {
-        if (_doc is null || _engine is null || _adjust is not null) return;
+        if (_doc is null || _engine is null || _adjust is not null || _liquify is not null || _guideEdit) return;
         if (overrideTool is { } o && o != Tool)
         {
             _toolBeforeOverride = Tool;
@@ -303,7 +335,7 @@ public sealed partial class StudioView
         var st = ToolState(tool);
         // el lápiz usa el afinado de presión; dedo y ratón, el táctil (BR-05)
         var ok = _engine.Begin(ToInput(pt, type), tool, BrushFor(tool), CurrentColor, st.Size, st.Opacity, _settings.Symmetry, _view.Scale,
-            hasPressure: type == PointerDeviceType.Pen);
+            hasPressure: type == PointerDeviceType.Pen, assist: NewAssist());
         if (!ok)
         {
             RestoreTool();
@@ -645,6 +677,9 @@ public sealed partial class StudioView
         {
             case VirtualKey.Space: _spaceDown = true; break;
             case VirtualKey.Escape when _selectMode: ExitSelectMode(); break;
+            case VirtualKey.Escape when _liquify is not null: EndLiquify(); break;
+            case VirtualKey.Enter when _liquify is not null: ApplyLiquify(); break;
+            case VirtualKey.Escape when _guideEdit: EndGuideEdit(); break;
             case VirtualKey.B: Tool = ToolKind.Brush; break;
             case VirtualKey.E: Tool = ToolKind.Eraser; break;
             case VirtualKey.S: Tool = ToolKind.Smudge; break;

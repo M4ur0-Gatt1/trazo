@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Numerics;
 using Trazo.Core.Documents;
+using Trazo.Core.Geometry;
 
 namespace Trazo.Core.IO;
 
@@ -21,6 +23,8 @@ public sealed record ProjectData
     public IReadOnlyList<LayerData> Layers { get; init; } = [];
     /// <summary>Grupos de capas (v3). Las capas indican su grupo con <see cref="LayerProperties.GroupId"/>.</summary>
     public IReadOnlyList<GroupProperties> Groups { get; init; } = [];
+    /// <summary>Guía de dibujo (DG-01); null si no hay ninguna. Campo opcional: no cambia la versión del formato.</summary>
+    public DrawingGuide? Guide { get; init; }
     public byte[]? ThumbnailPng { get; init; }
     public DateTimeOffset Created { get; init; } = DateTimeOffset.Now;
 }
@@ -65,6 +69,11 @@ public static class TrazoFile
             {
                 Id = g.Id, Name = g.Name, Opacity = g.Opacity, Blend = g.Blend.ToString(), Visible = g.Visible, Collapsed = g.Collapsed,
             }).ToList(),
+            Guide = project.Guide is not { Kind: not GuideKind.None } guide ? null : new GuideV3
+            {
+                Kind = guide.Kind.ToString(), Size = guide.Size, Thickness = guide.Thickness, Opacity = guide.Opacity, Color = guide.Color,
+                Assist = guide.Assist, Points = guide.VanishingPoints.SelectMany(p => new[] { p.X, p.Y }).ToList(),
+            },
         };
         // PNG ya está comprimido: se guarda sin compresión adicional para que sea rápido
         for (var i = 0; i < project.Layers.Count; i++)
@@ -75,6 +84,24 @@ public static class TrazoFile
         if (project.ThumbnailPng is { } thumb)
             WriteEntry(zip, "thumbnail.png", thumb, CompressionLevel.NoCompression);
         WriteEntry(zip, "manifest.json", JsonSerializer.SerializeToUtf8Bytes(manifest, TrazoJson.Default.ManifestV2), CompressionLevel.Optimal);
+    }
+
+    private static DrawingGuide? ReadGuide(GuideV3? g)
+    {
+        if (g is null || !Enum.TryParse<GuideKind>(g.Kind, out var kind) || kind == GuideKind.None) return null;
+        var pts = g.Points ?? [];
+        var vps = Enumerable.Range(0, Math.Min(3, pts.Count / 2)).Select(i => new Vector2(pts[2 * i], pts[2 * i + 1]))
+            .Where(p => float.IsFinite(p.X) && float.IsFinite(p.Y)).ToList();
+        return new DrawingGuide
+        {
+            Kind = kind,
+            Size = float.IsFinite(g.Size) ? Math.Clamp(g.Size, 4, 10000) : 100,
+            Thickness = float.IsFinite(g.Thickness) ? Math.Clamp(g.Thickness, 0.5f, 10) : 1,
+            Opacity = float.IsFinite(g.Opacity) ? Math.Clamp(g.Opacity, 0, 1) : 0.4f,
+            Color = g.Color is { Length: 6 } c && c.All(Uri.IsHexDigit) ? c.ToUpperInvariant() : "00E5FF",
+            Assist = g.Assist,
+            VanishingPoints = vps,
+        };
     }
 
     public static ProjectData Read(Stream input)
@@ -144,6 +171,7 @@ public static class TrazoFile
             Created = m.Created ?? DateTimeOffset.Now,
             Layers = layers,
             Groups = groups,
+            Guide = ReadGuide(m.Guide),
             ThumbnailPng = zip.GetEntry("thumbnail.png") is { } t ? ReadEntry(t) : null,
         });
     }
@@ -219,6 +247,17 @@ public static class TrazoFile
     }
 }
 
+internal sealed class GuideV3
+{
+    public string? Kind { get; set; }
+    public float Size { get; set; } = 100;
+    public float Thickness { get; set; } = 1;
+    public float Opacity { get; set; } = 0.4f;
+    public string? Color { get; set; }
+    public bool Assist { get; set; }
+    public List<float>? Points { get; set; }
+}
+
 internal sealed class ManifestV2
 {
     public string Format { get; set; } = "trazo";
@@ -231,6 +270,7 @@ internal sealed class ManifestV2
     public DateTimeOffset? Created { get; set; }
     public List<LayerV2> Layers { get; set; } = [];
     public List<GroupV3>? Groups { get; set; }
+    public GuideV3? Guide { get; set; }
 }
 
 internal sealed class GroupV3

@@ -42,7 +42,12 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 
 **Ajustes y transformación**
 - Tono/saturación/brillo, contraste, exposición, temperatura y matiz, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
-- Transformar capa: mover, escalar y girar con los dedos o la rueda, voltear, rotar 90°, ajustar al lienzo, con interpolación suave o nítida.
+- **Transformar** en cuatro modos: Libre y Uniforme (asas de esquina, de lado y de giro), **Distorsionar** (perspectiva por las cuatro esquinas) y **Deformar** (malla que se dobla). Modo Magnético, voltear, rotar 90°, ajustar al lienzo e interpolación suave o nítida.
+- **Licuar**: empujar, girar a la derecha o a la izquierda, pellizcar, expandir y reconstruir, con tamaño, presión, Ajustar y Restablecer.
+
+**Guías de dibujo**
+- Cuadrícula 2D, isométrica y perspectiva de 1, 2 o 3 puntos de fuga, con tamaño, grosor, opacidad y color. Se guardan con el lienzo.
+- **Asistente de dibujo**: los trazos se pegan a las horizontales y verticales, a los ejes isométricos o a las líneas de los puntos de fuga.
 
 **Archivos**
 - Galería con autoguardado en `Documentos\Trazo`.
@@ -148,7 +153,7 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 
 - Selecciones guardadas y pluma de selección
 - Grupos anidados
-- Licuar, curvas, mapa de degradado
+- Curvas, mapa de degradado y más desenfoques
 - Grabación en time-lapse
 - Importar y exportar PSD
 - Paquete MSIX firmado para la Microsoft Store

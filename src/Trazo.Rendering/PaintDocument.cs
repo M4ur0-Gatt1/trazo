@@ -5,6 +5,7 @@ using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
 using Trazo.Core.Colors;
 using Trazo.Core.Documents;
+using Trazo.Core.Geometry;
 using Trazo.Core.History;
 using Trazo.Core.IO;
 using Trazo.Core.Selection;
@@ -201,6 +202,9 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         d.Layers.Add(d.CreateLayer());
         return d;
     }
+
+    /// <summary>Guía de dibujo del lienzo (DG-01), o null si no hay. Se guarda con el documento.</summary>
+    public DrawingGuide? Guide { get; set; }
 
     // ---------- Selección (SE-01) ----------
 
@@ -421,6 +425,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
             ActiveLayer = ActiveIndex,
             Layers = layers,
             Groups = Groups.Where(g => Layers.Any(l => l.GroupId == g.Id)).Select(g => g.ToProperties()).ToList(),
+            Guide = Guide,
             ThumbnailPng = thumb,
             Created = Created,
         };
@@ -431,6 +436,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         var d = new PaintDocument(device, p.Width, p.Height, p.Name) { FilePath = path, Created = p.Created };
         if (Rgba.TryParseHex(p.BackgroundColor, out var bg)) d.Background = Color.FromArgb(255, bg.R, bg.G, bg.B);
         d.BackgroundVisible = p.BackgroundVisible;
+        d.Guide = p.Guide;
         foreach (var g in p.Groups) d.Groups.Add(LayerGroup.From(g));
         foreach (var ld in p.Layers)
         {

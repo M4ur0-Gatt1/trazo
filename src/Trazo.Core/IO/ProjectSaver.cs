@@ -147,6 +147,12 @@ public static class ProjectSaver
         throw new InvalidDataException(problem ?? $"No existe {path}");
     }
 
+    private static bool SameGuide(Geometry.DrawingGuide? a, Geometry.DrawingGuide? b)
+    {
+        if (a is not { Kind: not Geometry.GuideKind.None }) return b is null;
+        return b is not null && a.Kind == b.Kind && a.Size == b.Size && a.Assist == b.Assist && a.VanishingPoints.SequenceEqual(b.VanishingPoints);
+    }
+
     /// <summary>Comprueba que lo releído coincide con lo que se quería guardar.</summary>
     internal static void Verify(ProjectData expected, ProjectData actual)
     {
@@ -154,6 +160,8 @@ public static class ProjectSaver
             throw new InvalidDataException("Dimensiones distintas tras releer");
         if (!actual.Groups.SequenceEqual(expected.Groups))
             throw new InvalidDataException("Grupos distintos tras releer");
+        if (!SameGuide(expected.Guide, actual.Guide))
+            throw new InvalidDataException("Guía de dibujo distinta tras releer");
         if (actual.Layers.Count != expected.Layers.Count)
             throw new InvalidDataException("Número de capas distinto tras releer");
         for (var i = 0; i < actual.Layers.Count; i++)

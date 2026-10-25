@@ -2,6 +2,7 @@ using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
 using Trazo.Core.Brushes;
+using Trazo.Core.Geometry;
 using Trazo.Core.Imaging;
 using Trazo.Core.Strokes;
 using Windows.Foundation;
@@ -72,6 +73,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     private Color _color;
     private float _size, _opacity;
     private SymmetryMode _symmetry;
+    private GuideAssist? _assist;
     private StrokeBuilder? _builder;
     private Rect _dirty = Rect.Empty;
     private int _patchSize;
@@ -89,7 +91,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     /// <summary>Empieza un trazo. Devuelve false si la capa activa está oculta.</summary>
     /// <param name="seed">Semilla de la variación aleatoria; si es null se usa un contador determinista.</param>
     /// <param name="hasPressure">El dispositivo informa presión (lápiz); si no, se usa el afinado táctil.</param>
-    public bool Begin(InputPoint p, ToolKind tool, BrushPreset brush, Color color, float size, float opacity, SymmetryMode symmetry, float viewScale, int? seed = null, bool hasPressure = true)
+    public bool Begin(InputPoint p, ToolKind tool, BrushPreset brush, Color color, float size, float opacity, SymmetryMode symmetry, float viewScale, int? seed = null, bool hasPressure = true, GuideAssist? assist = null)
     {
         var layer = doc.ActiveLayer;
         if (!layer.Visible) return false;
@@ -103,6 +105,9 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         _size = size;
         _opacity = opacity;
         _symmetry = tool == ToolKind.Smudge ? SymmetryMode.None : symmetry;
+        // Asistente de dibujo (DG-01): los puntos se pegan a la guía antes de la simetría
+        _assist = assist;
+        _assist?.Begin(new Vector2(p.X, p.Y));
         LastSeed = seed ?? ++_strokeCounter;
         _builder = new StrokeBuilder(brush, size, viewScale, LastSeed, tool == ToolKind.Smudge ? Math.Max(brush.Spacing, 0.12f) : null, hasPressure);
         _raster?.Dispose();
@@ -134,6 +139,11 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     public void Add(InputPoint p)
     {
         if (_layer is null || _builder is null) return;
+        if (_assist is not null)
+        {
+            var c = _assist.Constrain(new Vector2(p.X, p.Y));
+            p = p with { X = c.X, Y = c.Y };
+        }
         _dabs.Clear();
         if (!_builder.Add(p, _dabs)) return;
         if (_builder.Shape is not null) RedrawShape();

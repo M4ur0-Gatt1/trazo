@@ -1,6 +1,7 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
+using Trazo.Core.Geometry;
 using Trazo.Core.Imaging;
 using Windows.Foundation;
 
@@ -98,13 +99,16 @@ public sealed class AdjustmentSession(PaintDocument doc, Layer layer, Adjustment
     }
 }
 
-/// <summary>Transformar la capa activa: mover, escalar, girar y voltear.</summary>
+/// <summary>
+/// Sesión de Transformar (TR-01) sobre la textura activa de la capa. La geometría vive en
+/// <see cref="TransformState"/> (pura y probada sin GPU); aquí se levanta el contenido y se dibuja.
+/// </summary>
 public sealed class TransformSession : IDisposable
 {
+    /// <summary>Celdas por lado de la malla con que se dibujan Distorsionar y Deformar.</summary>
+    public const int MeshCells = 32;
+
     private readonly PaintDocument _doc;
-    private Matrix3x2 _anchorMatrix;
-    private Vector2[] _anchorPoints = [];
-    private uint[] _anchorIds = [];
 
     private TransformSession(PaintDocument doc, Layer layer, CanvasRenderTarget source, CanvasRenderTarget? background, PixelRect bounds)
     {
@@ -114,6 +118,7 @@ public sealed class TransformSession : IDisposable
         Background = background;
         Bounds = bounds;
         TargetKey = layer.TargetKey;
+        State = new TransformState(bounds, new Vector2(doc.Width, doc.Height));
     }
 
     /// <summary>Lo que queda fijo: el resto de la capa si hay selección, o blanco si se transforma una máscara.</summary>
@@ -123,8 +128,12 @@ public sealed class TransformSession : IDisposable
     public Layer Layer { get; }
     public CanvasRenderTarget Source { get; }
     public PixelRect Bounds { get; }
-    public Matrix3x2 Matrix { get; set; } = Matrix3x2.Identity;
+    public TransformState State { get; }
     public bool Smooth { get; set; } = true;
+
+    public Matrix3x2 Matrix { get => State.Matrix; set => State.Matrix = value; }
+    public TransformMode Mode => State.Mode;
+    public void SetMode(TransformMode mode) => State.SetMode(mode);
 
     /// <summary>
     /// Empieza a transformar la textura de trabajo de la capa. Con selección (SE-01) se levanta solo el
@@ -158,83 +167,56 @@ public sealed class TransformSession : IDisposable
         return new TransformSession(doc, layer, source, background, bounds);
     }
 
-    public ICanvasImage Preview(List<IDisposable> owned)
+    /// <summary>Imagen transformada (sin el fondo fijo).</summary>
+    private ICanvasImage Transformed(CanvasBitmap image, PixelRect bounds, List<IDisposable> owned)
     {
-        var fx = new Transform2DEffect
+        ICanvasImage fx;
+        if (State.IsAffine)
         {
-            Source = Source,
-            TransformMatrix = Matrix,
-            InterpolationMode = Smooth ? CanvasImageInterpolation.HighQualityCubic : CanvasImageInterpolation.NearestNeighbor,
-            BorderMode = EffectBorderMode.Hard,
-        };
-        owned.Add(fx);
+            // camino afín de siempre: Direct2D aplica M directamente
+            fx = new Transform2DEffect
+            {
+                Source = image,
+                TransformMatrix = Matrix,
+                InterpolationMode = Smooth ? CanvasImageInterpolation.HighQualityCubic : CanvasImageInterpolation.NearestNeighbor,
+                BorderMode = EffectBorderMode.Hard,
+            };
+        }
+        else
+        {
+            // la malla se calcula sobre el rectángulo del contenido; para otra imagen (la selección) se reescala
+            var mesh = State.Mesh(MeshCells);
+            fx = MeshRenderer.Render(_doc.Device, image, bounds, mesh, MeshCells, Smooth);
+        }
+        owned.Add((IDisposable)fx);
         var crop = new CropEffect { Source = fx, SourceRectangle = _doc.Bounds };
         owned.Add(crop);
-        if (Background is null) return crop;
-        var over = new CompositeEffect { Sources = { Background, crop } };
+        return crop;
+    }
+
+    public ICanvasImage Preview(List<IDisposable> owned)
+    {
+        var moved = Transformed(Source, Bounds, owned);
+        if (Background is null) return moved;
+        var over = new CompositeEffect { Sources = { Background, moved } };
         owned.Add(over);
         return over;
     }
 
-    public Vector2[] Corners()
-    {
-        var b = Bounds;
-        Vector2[] c = [new(b.X, b.Y), new(b.Right, b.Y), new(b.Right, b.Bottom), new(b.X, b.Bottom)];
-        return c.Select(p => Vector2.Transform(p, Matrix)).ToArray();
-    }
+    public Vector2[] Corners() => State.Corners();
+    public Vector2 Center => State.Center;
 
-    public Vector2 Center
-    {
-        get
-        {
-            var c = Corners();
-            return (c[0] + c[2]) / 2;
-        }
-    }
-
-    private void Around(Vector2 pivot, Matrix3x2 m) =>
-        Matrix = Matrix * Matrix3x2.CreateTranslation(-pivot) * m * Matrix3x2.CreateTranslation(pivot);
-
-    public void Flip(bool horizontal) => Around(Center, Matrix3x2.CreateScale(horizontal ? -1 : 1, horizontal ? 1 : -1));
-    public void Rotate(float degrees) => Around(Center, Matrix3x2.CreateRotation(degrees * MathF.PI / 180));
-    public void ScaleAt(Vector2 pivot, float k) => Around(pivot, Matrix3x2.CreateScale(k));
-    public void RotateAt(Vector2 pivot, float degrees) => Around(pivot, Matrix3x2.CreateRotation(degrees * MathF.PI / 180));
-    public void Reset() => Matrix = Matrix3x2.Identity;
-
-    public void FitToCanvas()
-    {
-        var b = Bounds;
-        var k = Math.Min((float)_doc.Width / b.Width, (float)_doc.Height / b.Height);
-        Matrix = Matrix3x2.CreateTranslation(-b.X, -b.Y) * Matrix3x2.CreateScale(k)
-                 * Matrix3x2.CreateTranslation((_doc.Width - b.Width * k) / 2, (_doc.Height - b.Height * k) / 2);
-    }
+    public void Flip(bool horizontal) => State.Flip(horizontal);
+    public void Rotate(float degrees) => State.Rotate(degrees);
+    public void ScaleAt(Vector2 pivot, float k) => State.ScaleAt(pivot, k);
+    public void RotateAt(Vector2 pivot, float degrees) => State.RotateAt(pivot, degrees);
+    public void Reset() => State.Reset();
+    public void FitToCanvas() => State.FitToCanvas();
 
     // ---- Gestos: los puntos llegan en coordenadas del documento ----
 
-    public void Anchor(IReadOnlyList<(uint Id, Vector2 DocPoint)> pointers)
-    {
-        _anchorMatrix = Matrix;
-        _anchorIds = pointers.Take(2).Select(p => p.Id).ToArray();
-        _anchorPoints = pointers.Take(2).Select(p => p.DocPoint).ToArray();
-    }
-
-    public void Move(IReadOnlyDictionary<uint, Vector2> current)
-    {
-        if (_anchorIds.Length == 0) return;
-        if (_anchorIds.Length >= 2 && current.TryGetValue(_anchorIds[0], out var a1) && current.TryGetValue(_anchorIds[1], out var b1))
-        {
-            Vector2 a0 = _anchorPoints[0], b0 = _anchorPoints[1];
-            var c0 = (a0 + b0) / 2;
-            var c1 = (a1 + b1) / 2;
-            var k = Vector2.Distance(a1, b1) / Math.Max(1e-3f, Vector2.Distance(a0, b0));
-            var da = MathF.Atan2(b1.Y - a1.Y, b1.X - a1.X) - MathF.Atan2(b0.Y - a0.Y, b0.X - a0.X);
-            Matrix = _anchorMatrix * Matrix3x2.CreateTranslation(-c0) * Matrix3x2.CreateScale(k) * Matrix3x2.CreateRotation(da) * Matrix3x2.CreateTranslation(c1);
-        }
-        else if (current.TryGetValue(_anchorIds[0], out var p))
-        {
-            Matrix = _anchorMatrix * Matrix3x2.CreateTranslation(p - _anchorPoints[0]);
-        }
-    }
+    public void Anchor(IReadOnlyList<(uint Id, Vector2 DocPoint)> pointers) => State.Anchor(pointers);
+    public void Move(IReadOnlyDictionary<uint, Vector2> current, float centerThreshold = 0) => State.Move(current, centerThreshold);
 
     public void Apply(LayerOperations ops)
     {
@@ -242,12 +224,30 @@ public sealed class TransformSession : IDisposable
         // lo movido puede quedar fuera de la selección original: no se recorta
         ops.ReplaceWith(Layer, Preview(owned), "Transformar", clipToSelection: false);
         owned.ForEach(o => o.Dispose());
-        // la selección se mueve con su contenido
-        if (_doc.SelectionBitmap is { } sel && Matrix != Matrix3x2.Identity)
+        // la selección se transforma con su contenido
+        if (_doc.SelectionBitmap is { } sel && (Matrix != Matrix3x2.Identity || !State.IsAffine))
         {
             using var moved = new CanvasRenderTarget(_doc.Device, _doc.Width, _doc.Height, 96);
-            using (var fx = new Transform2DEffect { Source = sel, TransformMatrix = Matrix, InterpolationMode = CanvasImageInterpolation.Linear })
-            using (var ds = moved.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(fx); }
+            var o2 = new List<IDisposable>();
+            if (State.IsAffine)
+            {
+                var fx = new Transform2DEffect { Source = sel, TransformMatrix = Matrix, InterpolationMode = CanvasImageInterpolation.Linear };
+                o2.Add(fx);
+                using var ds = moved.CreateDrawingSession();
+                ds.Clear(KnownColors.Transparent);
+                ds.DrawImage(fx);
+            }
+            else
+            {
+                // la selección se deforma con la misma malla (fuera del rectángulo del contenido no hay nada que mover)
+                using var selBitmap = new CanvasRenderTarget(_doc.Device, _doc.Width, _doc.Height, 96);
+                using (var ds = selBitmap.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(sel); }
+                var img = Transformed(selBitmap, Bounds, o2);
+                using var ds2 = moved.CreateDrawingSession();
+                ds2.Clear(KnownColors.Transparent);
+                ds2.DrawImage(img);
+            }
+            o2.ForEach(o => o.Dispose());
             var px = moved.GetPixelBytes();
             var mask = new Trazo.Core.Selection.SelectionMask(_doc.Width, _doc.Height);
             for (var i = 0; i < mask.Data.Length; i++) mask.Data[i] = px[i * 4 + 3];

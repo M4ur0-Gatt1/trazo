@@ -56,6 +56,10 @@ public sealed class Settings
     public float PressureGamma { get; set; } = 1;
     public int FillTolerance { get; set; } = 46;
     public bool SmoothTransform { get; set; } = true;
+    public bool MagneticTransform { get; set; } = true;
+    public string LiquifyMode { get; set; } = "Push";
+    public float LiquifySize { get; set; } = 200;
+    public float LiquifyStrength { get; set; } = 0.6f;
     public string ProjectsFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Trazo");
 
     public string Tool { get; set; } = "Brush";

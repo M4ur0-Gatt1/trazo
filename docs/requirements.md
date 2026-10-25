@@ -19,6 +19,9 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | LY-02 | Máscaras | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/LY-02-LY-03-masks-groups.md): máscara de capa en escala de grises (pintar, invertir, aplicar, eliminar) además de la de recorte; 5 pruebas WARP (7 casos), 1 referencia y autoprueba. Sin observación en iPad |
 | LY-03 | Grupos de capas | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | ídem: un nivel, composición aislada con opacidad, fusión y visibilidad; combinar, desagrupar, eliminar; formato v3. Prueba de propiedades de contigüidad (200 secuencias). Sin grupos anidados |
 | SE-01 | Selección | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/SE-01-selection.md): automática, a mano, rectángulo y elipse; añadir, restar e intersecar; invertir, difuminar, copiar y pegar. Todas las herramientas la respetan (comprobado píxel a píxel y con mutación). Faltan las selecciones guardadas y la pluma de selección |
+| TR-01 | Transformar | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/TR-01-transform.md): Libre, Uniforme (asas), Distorsionar (homografía) y Deformar (Bézier 4 × 4) dibujados con una malla de 2048 triángulos; Magnético. 8 pruebas de núcleo, 9 WARP, 2 referencias. Sin observación en iPad |
+| LQ-01 | Licuar | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/LQ-01-liquify.md): Empujar, Girar a ambos lados, Pellizcar, Expandir, Reconstruir, Ajustar y Restablecer, con campo compuesto de forma exacta. 15 pruebas de núcleo, 3 WARP, 1 referencia. Faltan Cristales, Borde e impulso |
+| DG-01 | Guías de dibujo y Asistente | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/DG-01-drawing-guides.md): cuadrícula 2D, isométrica y perspectiva de 1 a 3 puntos, con Asistente; se guarda en el `.trazo`. 8 pruebas de núcleo y 1 WARP |
 | CO-01 | Composición y color | Crítica | 🟡 | 🟡 | ✅ | 🟡 | ⬜ | 16 modos de Direct2D. Falta medir la precisión cromática ([ADR-0004](adr/0004-color-and-compositing.md)) |
 | HI-01 | Historial | Crítica | ✅ | ✅ | ✅ | ✅ | 🟡 | Pruebas en el núcleo y en LY-01. Falta cubrir las operaciones interrumpidas |
 | FI-01 | Persistencia y recuperación | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/FI-01.md); fallos inyectados en las 5 etapas del guardado |
@@ -71,6 +74,10 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 
 Los criterios de aceptación están en las especificaciones: [SE-01](specs/SE-01-selection.md#5-criterios-de-aceptación) (15) y [LY-02 / LY-03](specs/LY-02-LY-03-masks-groups.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
 
+### TR-01, LQ-01 y DG-01 — Transformar, Licuar y Guías
+
+Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01-transform.md#3-criterios-de-aceptación) (13), [LQ-01](specs/LQ-01-liquify.md#3-criterios-de-aceptación) (11) y [DG-01](specs/DG-01-drawing-guides.md#3-criterios-de-aceptación) (7). Todos tienen prueba automática.
+
 ## Errores encontrados por las pruebas (regresiones registradas)
 
 | Fecha | Error | Prueba que lo cubre |
@@ -80,4 +87,6 @@ Los criterios de aceptación están en las especificaciones: [SE-01](specs/SE-01
 | 2026-10-24 | El método de guardado anterior podía dejar un `.tmp` y no verificaba lo escrito | Sustituido por `ProjectSaver` (FI-01.1 a FI-01.5) |
 | 2026-10-25 | La textura de grano «Lienzo» tenía discontinuidades cada 16 px | `GrainTilesSeamlessly` (BR-03.2) |
 | 2026-10-25 | BR-02 calculaba el % de píxeles distintos sobre toda la imagen: un cambio solo en los extremos del trazo (afinado) pasaba sin detectarse | Métrica sobre píxeles con tinta; la pluma y el rotulador de pincel fallaron como debían y se actualizaron |
+| 2026-10-25 | Una recta de la guía isométrica que rozaba una esquina del lienzo producía un tramo de longitud casi nula con ángulo arbitrario | `IsometricLinesGeometry` (DG-01.5): se descartan los tramos de menos de medio píxel |
+| 2026-10-25 | Prueba débil: `PushComposes` (radio enorme, campo casi uniforme) no detectaba una fórmula de composición rota | Nueva `ComposedFieldEqualsSequentialWarps` (LQ-01.4b), comprobada con la mutación |
 | 2026-10-25 | El script de publicación se bloqueaba al escribir el archivo de sumas SHA-256 | Corregido en `release.yml`; beta 0.2.0-beta.1 publicada y probada |

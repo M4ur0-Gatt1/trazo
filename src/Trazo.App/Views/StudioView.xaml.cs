@@ -252,6 +252,8 @@ public sealed partial class StudioView : UserControl
         CancelInput();
         if (_transform is not null) ApplyTransform();
         if (_adjust is not null) CloseSheet();
+        if (_liquify is not null) ApplyLiquify();
+        if (_guideEdit) EndGuideEdit();
         _autosave.Stop();
         await SaveAsync();
         _doc?.Dispose();
@@ -263,7 +265,7 @@ public sealed partial class StudioView : UserControl
 
     private void Undo()
     {
-        if (_doc is null || _transform is not null || _adjust is not null) return;
+        if (_doc is null || _transform is not null || _adjust is not null || _liquify is not null) return;
         CancelInput();
         var a = _doc.History.Undo();
         Window.ShowMessage(a is null ? "Nada que deshacer" : "Deshacer: " + a.Label);
@@ -271,7 +273,7 @@ public sealed partial class StudioView : UserControl
 
     private void Redo()
     {
-        if (_doc is null || _transform is not null || _adjust is not null) return;
+        if (_doc is null || _transform is not null || _adjust is not null || _liquify is not null) return;
         var a = _doc.History.Redo();
         Window.ShowMessage(a is null ? "Nada que rehacer" : "Rehacer: " + a.Label);
     }
@@ -325,6 +327,7 @@ public sealed partial class StudioView : UserControl
             if (_engine?.Preview(owned) is { } stroke && _engine.PreviewKey is { } key) overrides[key] = stroke;
             if (_adjust is not null) overrides[_adjust.TargetKey] = _adjust.Preview(owned);
             if (_transform is not null) overrides[_transform.TargetKey] = _transform.Preview(owned);
+            if (_liquify is not null) overrides[_liquify.TargetKey] = _liquify.Preview(owned);
 
             ds.Transform = _view.Matrix;
             // sombra del lienzo
@@ -344,8 +347,10 @@ public sealed partial class StudioView : UserControl
             ds.Transform = Matrix3x2.Identity;
             DrawSelectionDrag(ds);
 
+            DrawGuide(ds, doc);
             DrawSymmetryGuides(ds, doc);
-            DrawTransformBox(ds);
+            DrawTransformOverlay(ds);
+            DrawLiquifyCursor(ds);
             DrawShapeLabel(ds);
             DrawEyedropper(ds);
             DrawBrushCursor(ds);
@@ -408,20 +413,6 @@ public sealed partial class StudioView : UserControl
         }
     }
 
-    private void DrawTransformBox(CanvasDrawingSession ds)
-    {
-        if (_transform is null) return;
-        var pts = _transform.Corners().Select(_view.ToScreen).ToArray();
-        var accent = Color.FromArgb(255, 0, 229, 255);
-        var dash = new Microsoft.Graphics.Canvas.Geometry.CanvasStrokeStyle { DashStyle = Microsoft.Graphics.Canvas.Geometry.CanvasDashStyle.Dash };
-        for (var i = 0; i < 4; i++) ds.DrawLine(pts[i], pts[(i + 1) % 4], accent, 1.5f, dash);
-        foreach (var p in pts)
-        {
-            ds.FillCircle(p, 6, Colors.White);
-            ds.DrawCircle(p, 6, accent, 1.5f);
-        }
-    }
-
     private void DrawShapeLabel(CanvasDrawingSession ds)
     {
         if (_engine?.Shape is not { } shape) return;
@@ -436,7 +427,7 @@ public sealed partial class StudioView : UserControl
 
     private void DrawBrushCursor(CanvasDrawingSession ds)
     {
-        var show = _hover is { } && _settings.BrushCursor && _transform is null && _mode is InputMode.Idle or InputMode.Draw;
+        var show = _hover is { } && _settings.BrushCursor && _transform is null && _liquify is null && _mode is InputMode.Idle or InputMode.Draw;
         var preview = DateTime.UtcNow < _cursorPreviewUntil;
         if (!show && !preview) return;
         var p = _hover ?? ViewSize / 2;
