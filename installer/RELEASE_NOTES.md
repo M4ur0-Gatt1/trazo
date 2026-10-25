@@ -18,7 +18,14 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 
 ### Qué incluye
 
-Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, máscara de recorte, bloqueo alfa, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, transformar y exportación a PNG/JPEG.
+Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, grupos de capas, máscaras de capa y de recorte, bloqueo alfa, selección, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, transformar y exportación a PNG/JPEG.
+
+**Novedades de la beta 4**
+
+- **Selección** (botón de la barra superior o tecla M): automática por color, a mano, rectángulo y elipse. Añadir, restar e intersecar; invertir, difuminar, copiar y pegar. Con una selección activa, pinceles, borrador, relleno, ajustes y transformar solo cambian la zona seleccionada. Ctrl+A, Ctrl+D y Ctrl+Mayús+I.
+- **Máscaras de capa:** menú de la capa → *Máscara de capa*. Pinta en negro para ocultar y en blanco para mostrar; toca la miniatura de la máscara o la de la capa para elegir dónde pintas.
+- **Grupos de capas** con opacidad, modo de fusión y visibilidad propios: menú de la capa → *Agrupar con la de abajo*.
+- Formato `.trazo` versión 3: los archivos guardados con la beta 4 **no se abren en las betas anteriores** (la beta 4 abre todos los anteriores).
 
 **Novedades de la beta 3**
 
@@ -36,6 +43,6 @@ Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, 
 
 - No se ha probado todavía con todos los modelos de lápiz: cuéntanos cómo funciona el tuyo.
 - El grano en movimiento solo se aprecia con flujo bajo.
-- Sin selección ni máscaras de capa.
+- Todavía no hay selecciones guardadas, pluma de selección ni grupos anidados.
 
 Reporta errores en [Issues](https://github.com/M4ur0-Gatt1/trazo/issues).
