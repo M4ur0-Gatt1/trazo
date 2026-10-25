@@ -20,10 +20,17 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 
 Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, máscara de recorte, bloqueo alfa, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, transformar y exportación a PNG/JPEG.
 
+**Novedades de la beta 2**
+
+- **Grano de papel:** los lápices, la tiza, el carboncillo, la acuarela, el gouache y el óleo tienen textura real. Hay dos modos: *Texturizado* (fijo al lienzo) y *En movimiento* (viaja con el trazo).
+- **Afinado de extremos:** las plumas y los rotuladores afinan el inicio y el final del trazo, también con el dedo o el ratón.
+- Ajustes de grano y afinado en la biblioteca de pinceles (toca de nuevo el pincel activo → *Ajustes del pincel*).
+- Guardado más seguro: verifica el archivo antes de reemplazarlo y conserva una copia `.bak`.
+
 ### Limitaciones conocidas
 
 - No se ha probado todavía con todos los modelos de lápiz: cuéntanos cómo funciona el tuyo.
-- Sin grano de papel independiente ni afinado de extremos (en desarrollo).
+- El grano en movimiento solo se aprecia con flujo bajo.
 - Sin selección ni máscaras de capa.
 
 Reporta errores en [Issues](https://github.com/M4ur0-Gatt1/trazo/issues).
