@@ -20,6 +20,11 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 
 Lápiz con presión e inclinación, 21 pinceles, capas con 16 modos de fusión, máscara de recorte, bloqueo alfa, gestos táctiles (deshacer con dos dedos, pellizcar para hacer zoom y girar), QuickShape, simetría, relleno, ajustes de imagen, transformar y exportación a PNG/JPEG.
 
+**Novedades de la beta 3**
+
+- **Corrección importante:** al alejar mucho el zoom (o al restaurar la ventana minimizada) el lienzo podía dejar de redibujarse. Afectaba a las betas 1 y 2. Tus obras se guardaban igualmente.
+- Nuevo icono y nueva identidad visual: tipografías Inter y Space Grotesk, y acento cian.
+
 **Novedades de la beta 2**
 
 - **Grano de papel:** los lápices, la tiza, el carboncillo, la acuarela, el gouache y el óleo tienen textura real. Hay dos modos: *Texturizado* (fijo al lienzo) y *En movimiento* (viaja con el trazo).
