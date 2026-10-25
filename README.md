@@ -158,7 +158,7 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Curvas, mapa de degradado y más desenfoques
 - Grabación en time-lapse
 - Importar y exportar PSD
-- Paquete MSIX firmado para la Microsoft Store
+- Publicación en la Microsoft Store (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
 - Recuperación ante pérdida del dispositivo gráfico (por ejemplo, al cambiar de GPU)
 
 ## Créditos

@@ -57,3 +57,25 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           body_path: installer/RELEASE_NOTES.md
           generate_release_notes: true
+
+  store:
+    # Lote para la Microsoft Store; se activa al crear las variables TRAZO_STORE_* (docs/store/README.md)
+    needs: test
+    if: ${{ vars.TRAZO_STORE_IDENTITY != '' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Paquete MSIX (x64 + ARM64)
+        shell: pwsh
+        env:
+          TRAZO_STORE_IDENTITY: ${{ vars.TRAZO_STORE_IDENTITY }}
+          TRAZO_STORE_PUBLISHER: ${{ vars.TRAZO_STORE_PUBLISHER }}
+          TRAZO_STORE_PUBLISHER_NAME: ${{ vars.TRAZO_STORE_PUBLISHER_NAME }}
+        run: ./tools/build-msix.ps1 -Version $env:GITHUB_REF_NAME.TrimStart('v')
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-msixbundle
+          path: artifacts/msix/*.msixbundle

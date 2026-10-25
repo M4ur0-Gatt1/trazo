@@ -1,6 +1,7 @@
 # Genera todos los iconos de Trazo desde una sola definición:
 #   src/Trazo.App/Assets/Trazo.ico y Logo.png (app de escritorio e instalador)
 #   web/icons/icon.svg, icon-192.png e icon-512.png (versión web)
+#   src/Trazo.App/Assets/Store/*.png (logos y mosaicos del paquete MSIX para la Microsoft Store)
 # Diseño: una pincelada en S con presión (fina → gruesa → fina), degradado rojo anaranjado → cian, fondo negro.
 # Uso: powershell -ExecutionPolicy Bypass -File tools/make-icon.ps1
 Add-Type -AssemblyName System.Drawing
@@ -87,6 +88,35 @@ foreach ($spec in @(@((Join-Path $assets 'Logo.png'), 256), @((Join-Path $web 'i
   $b = New-Icon $spec[1]; $b.Save($spec[0], [System.Drawing.Imaging.ImageFormat]::Png); $b.Dispose()
 }
 
+# ---- Paquete MSIX (Microsoft Store): logos y mosaicos con el icono centrado sobre negro ----
+$store = Join-Path $assets 'Store'
+New-Item -ItemType Directory -Force $store | Out-Null
+function Save-Tile([string]$name, [int]$w, [int]$h, [double]$fraction) {
+  $bmp = New-Object System.Drawing.Bitmap $w, $h
+  $g = [System.Drawing.Graphics]::FromImage($bmp)
+  $g.Clear([System.Drawing.Color]::Black)
+  $g.InterpolationMode = 'HighQualityBicubic'
+  $s = [int][math]::Round([math]::Min($w, $h) * $fraction)
+  $icon = New-Icon $s
+  $g.DrawImage($icon, [int](($w - $s) / 2), [int](($h - $s) / 2), $s, $s)
+  $icon.Dispose(); $g.Dispose()
+  $bmp.Save((Join-Path $store $name), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
+}
+function Save-Icon([string]$name, [int]$size) {
+  $b = New-Icon $size; $b.Save((Join-Path $store $name), [System.Drawing.Imaging.ImageFormat]::Png); $b.Dispose()
+}
+foreach ($k in @(@(100, 44), @(200, 88), @(400, 176))) { Save-Icon "Square44x44Logo.scale-$($k[0]).png" $k[1] }
+foreach ($t in 16, 24, 32, 48, 256) {
+  Save-Icon "Square44x44Logo.targetsize-$t.png" $t
+  Save-Icon "Square44x44Logo.targetsize-$($t)_altform-unplated.png" $t
+}
+foreach ($k in @(@(100, 50), @(200, 100), @(400, 200))) { Save-Icon "StoreLogo.scale-$($k[0]).png" $k[1] }
+foreach ($k in @(@(100, 1), @(200, 2), @(400, 4))) {
+  Save-Tile "Square150x150Logo.scale-$($k[0]).png" (150 * $k[1]) (150 * $k[1]) 0.6
+  Save-Tile "Wide310x150Logo.scale-$($k[0]).png" (310 * $k[1]) (150 * $k[1]) 0.6
+  Save-Tile "SplashScreen.scale-$($k[0]).png" (620 * $k[1]) (300 * $k[1]) 0.5
+}
+
 # ---- SVG equivalente para la web ----
 $d = ($outline | ForEach-Object -Begin { $first = $true } -Process {
   $cmd = if ($first) { 'M' } else { 'L' }; $first = $false
@@ -105,4 +135,4 @@ $svg = @"
 </svg>
 "@
 Set-Content -Path (Join-Path $web 'icon.svg') -Value $svg -Encoding ascii
-Write-Output "Iconos generados: Trazo.ico, Logo.png, icon.svg, icon-192.png, icon-512.png"
+Write-Output "Iconos generados: Trazo.ico, Logo.png, icon.svg, icon-192.png, icon-512.png y Assets/Store"
