@@ -334,6 +334,24 @@ public sealed partial class StudioView
             using (var final = doc.Flatten())
                 await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-render.png"), await PaintDocument.EncodePngAsync(final));
 
+            // 10b. PSD (EX-01): exportar en la GPU real y volver a importar
+            var psdPath = Path.Combine(outDir, "selftest.psd");
+            await using (var fs = File.Create(psdPath)) PsdInterop.Write(doc, fs);
+            Check("PSD exportado", new FileInfo(psdPath).Length > 1000);
+            PsdInterop.ImportResult psdBack;
+            await using (var fs = File.OpenRead(psdPath)) psdBack = PsdInterop.Read(doc.Device, fs, "selftest");
+            using (var psdDoc = psdBack.Document)
+            {
+                var extra = doc.BackgroundVisible ? 1 : 0;
+                Check("el PSD reabre con las mismas capas, máscaras y grupos",
+                    psdDoc.Layers.Count == doc.Layers.Count + extra && psdDoc.Layers.Count(l => l.HasMask) == 1 && psdDoc.Groups.Count == 1);
+                using var a2 = doc.Flatten();
+                using var b2 = psdDoc.Flatten();
+                var pa = a2.GetPixelBytes(1190, 240, 220, 220);
+                var pb = b2.GetPixelBytes(1190, 240, 220, 220);
+                Check("misma imagen tras el viaje por PSD (± 1 nivel)", pa.Zip(pb).All(x => Math.Abs(x.First - x.Second) <= 1));
+            }
+
             // 11. Recuperación tras perder la GPU (RC-01.7): el disparo real no se puede provocar con un dispositivo
             // sano, así que se llama a la recuperación directamente; el resto del camino es el mismo
             Check("diario de sesión abierto mientras se trabaja", File.Exists(App.Journal.FilePath));

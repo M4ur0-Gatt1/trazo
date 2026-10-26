@@ -58,6 +58,7 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 **Archivos**
 - Galería con autoguardado en `Documentos\Trazo`.
 - Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa (y por máscara) y una miniatura. Abre también los proyectos de la versión web.
+- **PSD** en los dos sentidos, con capas, grupos, máscaras, recorte y modos de fusión: para pasar obras a Photoshop, Procreate, Krita o Photopea y traerlas de vuelta ([EX-01](docs/specs/EX-01-psd.md)).
 - Exportación a PNG, PNG transparente, JPEG, capas sueltas y `.trazo`.
 - Importar imágenes, pegar desde el portapapeles y añadir texto.
 - Lienzos de hasta 16 384 px por lado (64 megapíxeles) y 150 pasos de deshacer, con un límite de memoria.
@@ -167,7 +168,6 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Grupos anidados
 - Curvas, mapa de degradado y más desenfoques
 - Grabación en time-lapse
-- Importar y exportar PSD
 - Publicación en la Microsoft Store, de pago (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
 
 ## Créditos

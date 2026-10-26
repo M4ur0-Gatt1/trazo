@@ -14,3 +14,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: npm
+    directory: /tools/psd-interop
+    schedule:
+      interval: weekly
+    # solo se usa en las pruebas (EX-01.8); se deja madurar dos semanas antes de proponer una versión nueva
+    cooldown:
+      default-days: 14

@@ -944,6 +944,7 @@ public sealed partial class StudioView
         share.Items.Add(Item("PNG transparente…", async () => { using var f = doc.Flatten(includeBackground: false); await ExportBitmapAsync(f, doc.Name, CanvasBitmapFileFormat.Png); }));
         share.Items.Add(Item("JPEG…", ExportJpegAsync));
         share.Items.Add(Item("Capas como PNG…", ExportLayersAsync));
+        share.Items.Add(Item("PSD (Photoshop)…", ExportPsdAsync));
         share.Items.Add(Item("Proyecto .trazo…", ExportProjectAsync));
         menu.Items.Add(share);
 
@@ -1058,6 +1059,29 @@ public sealed partial class StudioView
             await WriteBitmapAsync(file, l.Surface, CanvasBitmapFileFormat.Png);
         }
         Window.ShowMessage($"{doc.Layers.Count} capas exportadas");
+    }
+
+    /// <summary>EX-01: capas, grupos, máscaras y modos en un PSD que abren Photoshop, Procreate, Krita y Photopea.</summary>
+    private async Task ExportPsdAsync()
+    {
+        var doc = _doc!;
+        var file = await Window.SavePicker(doc.Name, "Documento de Photoshop", PsdInterop.Extension).PickSaveFileAsync();
+        if (file is null) return;
+        try
+        {
+            var psd = PsdInterop.ToPsd(doc);
+            await Task.Run(() =>
+            {
+                using var stream = File.Create(file.Path);
+                Psd.Write(stream, psd);
+            });
+            Window.ShowMessage("Exportado: " + file.Name);
+        }
+        catch (Exception e)
+        {
+            Services.Log.Error("Exportación PSD fallida", e);
+            Window.ShowMessage("No se pudo exportar el PSD: " + e.Message, InfoBarSeverity.Error);
+        }
     }
 
     private async Task ExportProjectAsync()

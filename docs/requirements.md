@@ -25,7 +25,7 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | CO-01 | Composición y color | Crítica | 🟡 | 🟡 | ✅ | 🟡 | ⬜ | 16 modos de Direct2D. Falta medir la precisión cromática ([ADR-0004](adr/0004-color-and-compositing.md)) |
 | HI-01 | Historial | Crítica | ✅ | ✅ | ✅ | ✅ | 🟡 | Pruebas en el núcleo y en LY-01. Falta cubrir las operaciones interrumpidas |
 | FI-01 | Persistencia y recuperación | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/FI-01.md); fallos inyectados en las 5 etapas del guardado |
-| EX-01 | Interoperabilidad | Alta | ⬜ | ⬜ | 🟡 | ⬜ | ⬜ | PNG y JPEG; abre el formato web v1. Sin PSD ni `.procreate` |
+| EX-01 | Interoperabilidad | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/EX-01-psd.md): PSD con capas, grupos, máscaras, recorte y los 16 modos, en los dos sentidos; PNG y JPEG. 12 pruebas de núcleo (con fuzzing), 3 WARP, autoprueba y verificación cruzada con ag-psd en CI. Falta probar a mano con Photoshop, Procreate y Krita. Sin `.procreate` |
 | PF-01 | Rendimiento | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/PF-01-performance.md): presupuestos por medición y `tools/Trazo.Benchmarks`. En una Intel Iris Xe con un lienzo de 4K y 20 capas, todas las mediciones cumplen el mínimo de 60 Hz; la composición también cumple el objetivo de 120 Hz. Cachés de autoguardado y de composición con pruebas de equivalencia. Falta la latencia de extremo a extremo con hardware de medida y medir en GPU dedicada y ARM |
 | RC-01 | Recuperación tras fallos | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/RC-01-recovery.md): diario de sesión con aviso al volver a abrir, recuperación tras perder la GPU y copia de emergencia. 7 pruebas de núcleo, 1 WARP, autoprueba y prueba con el proceso real (`tools/crash-test.ps1`). El disparo real de la pérdida de GPU no se puede provocar en pruebas |
 | AN-01 | Animación | Media | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Fuera de esta fase |
@@ -83,6 +83,10 @@ Los criterios de aceptación están en las especificaciones: [PF-01](specs/PF-01
 
 Los criterios de aceptación están en las especificaciones: [BR-04](specs/BR-04-wet-mix.md#3-criterios-de-aceptación) (9) y [BR-06](specs/BR-06-dynamics.md#3-criterios-de-aceptación) (11). Todos tienen prueba automática.
 
+### EX-01 — PSD
+
+Los criterios de aceptación están en la [especificación](specs/EX-01-psd.md#3-criterios-de-aceptación) (9). Todos tienen prueba automática.
+
 ### TR-01, LQ-01 y DG-01 — Transformar, Licuar y Guías
 
 Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01-transform.md#3-criterios-de-aceptación) (13), [LQ-01](specs/LQ-01-liquify.md#3-criterios-de-aceptación) (11) y [DG-01](specs/DG-01-drawing-guides.md#3-criterios-de-aceptación) (7). Todos tienen prueba automática.
@@ -91,6 +95,7 @@ Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01
 
 | Fecha | Error | Prueba que lo cubre |
 |---|---|---|
+| 2026-10-26 | **Encontrado por el fuzzing del PSD:** un número de caracteres enorme en el nombre Unicode (`luni`) se volvía negativo al convertirlo a `int`, pasaba la comprobación de longitud y lanzaba `ArgumentOutOfRangeException` | `MalformedFilesFailCleanly` (EX-01.6) |
 | 2026-10-24 | "Ocultar" y "mostrar" seguidos se fusionaban en un solo paso de historial: deshacer saltaba dos pasos | `EveryOperationUndoesAndRedoesExactly` (HI-01.3) |
 | 2026-10-24 | La etiqueta "Opacidad por presión" modulaba en realidad el flujo (señalado por el inventario) | Corregida la etiqueta a "Flujo por presión"; opacidad y flujo separados el 2026-10-25 (`OpacityCapsAccumulationButFlowBuildsUp`, BR-06.8) |
 | 2026-10-24 | El método de guardado anterior podía dejar un `.tmp` y no verificaba lo escrito | Sustituido por `ProjectSaver` (FI-01.1 a FI-01.5) |

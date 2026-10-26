@@ -65,5 +65,8 @@ public partial class App : Application
         // Archivo .trazo pasado por línea de comandos (doble clic en el Explorador)
         var cmd = argv.FirstOrDefault(a => a.EndsWith(".trazo", StringComparison.OrdinalIgnoreCase));
         if (cmd is not null && File.Exists(cmd)) _ = Window.OpenFileAsync(cmd);
+        // y un PSD («Abrir con → Trazo»): se importa como documento nuevo (EX-01)
+        var psd = argv.FirstOrDefault(a => a.EndsWith(".psd", StringComparison.OrdinalIgnoreCase));
+        if (cmd is null && psd is not null && File.Exists(psd)) _ = Window.ImportPsdAsync(psd);
     }
 }

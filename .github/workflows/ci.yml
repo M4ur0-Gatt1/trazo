@@ -17,7 +17,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Núcleo (BR-01, FI-01, historial, formato)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # EX-01.8: ag-psd (versión fijada en package-lock.json) para la verificación cruzada del PSD
+      - name: Herramienta de verificación PSD
+        run: npm ci --no-audit --no-fund
+        working-directory: tools/psd-interop
+      - name: Núcleo (BR-01, FI-01, EX-01, historial, formato)
+        env:
+          TRAZO_REQUIRE_INTEROP: '1'
         run: dotnet test tests/Trazo.Core.Tests -c Release --logger "trx;LogFileName=core.trx" --results-directory test-results
       - name: Renderizado (BR-02, LY-01) con Direct3D WARP
         run: dotnet test tests/Trazo.Rendering.Tests -c Release --logger "trx;LogFileName=rendering.trx" --results-directory test-results

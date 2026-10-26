@@ -105,11 +105,16 @@ public sealed partial class MainWindow : Window
 
     private async Task ImportAsync()
     {
-        var file = await OpenPicker(".trazo", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync();
+        var file = await OpenPicker(".trazo", ".psd", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync();
         if (file is null) return;
         if (file.FileType.Equals(".trazo", StringComparison.OrdinalIgnoreCase))
         {
             await OpenFileAsync(file.Path);
+            return;
+        }
+        if (file.FileType.Equals(PsdInterop.Extension, StringComparison.OrdinalIgnoreCase))
+        {
+            await ImportPsdAsync(file.Path);
             return;
         }
         try
@@ -130,6 +135,36 @@ public sealed partial class MainWindow : Window
         {
             Log.Error("Importación fallida", e);
             ShowMessage("No se pudo importar la imagen", InfoBarSeverity.Error);
+        }
+    }
+
+    /// <summary>EX-01: abre un PSD como documento nuevo y avisa de lo que no se pudo conservar igual.</summary>
+    internal async Task ImportPsdAsync(string path)
+    {
+        try
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            var psd = await Task.Run(() =>
+            {
+                using var stream = File.OpenRead(path);
+                return Core.IO.Psd.Read(stream);
+            });
+            var (doc, warnings) = PsdInterop.FromPsd(Device, psd, name);
+            doc.FilePath = ProjectStore.NewPath(doc.Name);
+            doc.IsDirty = true;
+            ShowStudio(doc);
+            await Studio.SaveAsync();
+            if (warnings.Count > 0) ShowMessage("PSD importado. " + string.Join(" ", warnings), InfoBarSeverity.Warning);
+        }
+        catch (InvalidDataException e)
+        {
+            Log.Info("PSD no válido: " + e.Message);
+            ShowMessage(e.Message, InfoBarSeverity.Error);
+        }
+        catch (Exception e)
+        {
+            Log.Error("Importación PSD fallida", e);
+            ShowMessage("No se pudo importar el PSD", InfoBarSeverity.Error);
         }
     }
 

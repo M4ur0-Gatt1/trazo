@@ -1,0 +1,10 @@
+{
+  "name": "trazo-psd-interop",
+  "private": true,
+  "description": "EX-01.8: verificación cruzada del PSD de Trazo con una implementación independiente (ag-psd).",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "ag-psd": "31.0.3"
+  }
+}
