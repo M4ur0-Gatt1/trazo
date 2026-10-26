@@ -75,7 +75,7 @@ jobs:
           TRAZO_STORE_PUBLISHER: ${{ vars.TRAZO_STORE_PUBLISHER }}
           TRAZO_STORE_PUBLISHER_NAME: ${{ vars.TRAZO_STORE_PUBLISHER_NAME }}
         run: ./tools/build-msix.ps1 -Version $env:GITHUB_REF_NAME.TrimStart('v')
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: store-msixbundle
           path: artifacts/msix/*.msixbundle
