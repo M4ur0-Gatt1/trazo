@@ -197,6 +197,7 @@ public sealed partial class StudioView : UserControl
         _engine = new BrushEngine(doc, _ops, _tips, _grains);
         doc.History.Changed += (_, _) => OnDocumentChanged();
         doc.Layers.CollectionChanged += (_, _) => OnDocumentChanged(markDirty: false);
+        StartTimelapse(doc);
         RefreshToolUi();
         RefreshHistoryButtons();
         // el ajuste a pantalla espera a que el lienzo tenga tamaño (ver Canvas_Draw)
@@ -263,6 +264,9 @@ public sealed partial class StudioView : UserControl
         if (_guideEdit) EndGuideEdit();
         _autosave.Stop();
         await SaveAsync();
+        // el último cambio también entra en el time-lapse
+        _timelapse?.Flush();
+        StopTimelapse();
         _doc?.Dispose();
         _doc = null;
         _composition.Dispose();

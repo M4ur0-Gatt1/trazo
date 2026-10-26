@@ -57,6 +57,7 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 - **Asistente de dibujo**: los trazos se pegan a las horizontales y verticales, a los ejes isométricos o a las líneas de los puntos de fuga.
 
 **Archivos**
+- **Time-lapse**: cada obra se graba mientras pintas; se ve en Acciones › Lienzo › Time-lapse y se exporta como vídeo MP4 completo o de 30 segundos ([TL-01](docs/specs/TL-01-timelapse.md)).
 - **En español y en inglés**: sigue el idioma de Windows o se elige en Acciones › Preferencias › Idioma ([I18N-01](docs/specs/I18N-01-english.md)).
 - Galería con autoguardado en `Documentos\Trazo`.
 - Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa (y por máscara) y una miniatura. Abre también los proyectos de la versión web.
@@ -169,7 +170,6 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 - Selecciones guardadas y pluma de selección
 - Grupos anidados
 - Editor de paradas del mapa de degradado, desenfoque de perspectiva y más filtros
-- Grabación en time-lapse
 - Publicación en la Microsoft Store, de pago (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
 
 ## Créditos

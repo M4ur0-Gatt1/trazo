@@ -78,6 +78,7 @@ public sealed partial class StudioView
             DiscardGpuSessions();
             var (scale, offset, rotation) = (_view.Scale, _view.Offset, _view.Rotation);
             var old = _doc;
+            StopTimelapse();
             _doc = null;
             try
             {

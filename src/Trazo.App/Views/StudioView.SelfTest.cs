@@ -43,6 +43,9 @@ public sealed partial class StudioView
             if (!ok) failures++;
         }
 
+        // TL-01.8: la autoprueba graba el time-lapse aunque el usuario lo tenga desactivado (no se guarda la preferencia)
+        var recordWas = _settings.RecordTimelapse;
+        _settings.RecordTimelapse = true;
         try
         {
             var doc = _doc!;
@@ -364,6 +367,29 @@ public sealed partial class StudioView
             using (var final = doc.Flatten())
                 await File.WriteAllBytesAsync(Path.Combine(outDir, "selftest-render.png"), await PaintDocument.EncodePngAsync(final));
 
+            // 10c. Time-lapse (TL-01.8): cinco trazos con una pausa como la de una persona, por el temporizador real;
+            // los cambios seguidos de las pruebas anteriores se agrupan (como debe ser) en pocos fotogramas
+            Check("time-lapse activo para la obra", _timelapse is not null);
+            if (_timelapse is not null)
+            {
+                var before = _timelapse.Captured;
+                for (var k = 0; k < 5; k++)
+                {
+                    Stroke(ToolKind.Brush, "monoline", 6, 1, Colors.Black, Line(20 + k * 40, 985, 50 + k * 40, 985));
+                    await Task.Delay(400);
+                }
+                var captured = _timelapse.Captured - before;
+                for (var k = 0; k < 5; k++) doc.History.Undo();
+                await Task.Delay(400);
+                await _timelapse.ReleaseAsync();
+                using var tl = TimelapseReader.Open(_timelapse.Path);
+                Check($"time-lapse: un fotograma por trazo con pausa ({captured} de 5; {tl.Frames.Count} en total)", captured >= 4 && tl.Frames.Count >= captured);
+                var mp4 = Path.Combine(outDir, "selftest-timelapse.mp4");
+                await using (var fs = File.Create(mp4))
+                    await TimelapseVideo.ExportAsync(doc.Device, tl, TimelapseSchedule.Short(tl.Frames.Count), fs);
+                Check("time-lapse exportado a MP4", new FileInfo(mp4).Length > 10_000);
+            }
+
             // 10b. PSD (EX-01): exportar en la GPU real y volver a importar
             var psdPath = Path.Combine(outDir, "selftest.psd");
             await using (var fs = File.Create(psdPath)) PsdInterop.Write(doc, fs);
@@ -449,6 +475,9 @@ public sealed partial class StudioView
                     }
                     Canvas.Invalidate();
                     break;
+                case "timelapse":
+                    _ = ShowTimelapseAsync();
+                    break;
                 case "about":
                     _ = AboutAsync();
                     break;
@@ -473,6 +502,7 @@ public sealed partial class StudioView
             report.AppendLine("ERROR " + e);
             failures++;
         }
+        _settings.RecordTimelapse = recordWas;
         report.AppendLine(failures == 0 ? "RESULTADO: todo correcto" : $"RESULTADO: {failures} fallos");
         await File.WriteAllTextAsync(Path.Combine(outDir, "selftest.txt"), report.ToString());
         return failures == 0;

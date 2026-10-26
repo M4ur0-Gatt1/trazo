@@ -29,6 +29,7 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | PF-01 | Rendimiento | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/PF-01-performance.md): presupuestos por medición y `tools/Trazo.Benchmarks`. En una Intel Iris Xe con un lienzo de 4K y 20 capas, todas las mediciones cumplen el mínimo de 60 Hz; la composición también cumple el objetivo de 120 Hz. Cachés de autoguardado y de composición con pruebas de equivalencia. Falta la latencia de extremo a extremo con hardware de medida y medir en GPU dedicada y ARM |
 | RC-01 | Recuperación tras fallos | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/RC-01-recovery.md): diario de sesión con aviso al volver a abrir, recuperación tras perder la GPU y copia de emergencia. 7 pruebas de núcleo, 1 WARP, autoprueba y prueba con el proceso real (`tools/crash-test.ps1`). El disparo real de la pérdida de GPU no se puede provocar en pruebas |
 | AD-02 | Curvas, mapa de degradado, equilibrio de color, desenfoque de movimiento y resplandor | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/AD-02-adjustments.md): las curvas, el degradado y el equilibrio se calculan en el núcleo como tablas y la GPU se compara con ellas (± 2 niveles, también con transparencia). 4 pruebas de núcleo, 4 WARP y 7 comprobaciones en la autoprueba. Sin editor de paradas de degradado ni histograma en las curvas |
+| TL-01 | Time-lapse | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/TL-01-timelapse.md): grabación automática junto a la obra, reproductor y vídeo MP4 (completo o de 30 s). 6 pruebas de núcleo (con archivos cortados y bytes cambiados), 3 en el motor (una abre el MP4 con Windows y mira sus fotogramas) y 3 en la autoprueba. Falta medir el coste de grabar en obras muy largas |
 | I18N-01 | Interfaz en inglés | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/I18N-01-english.md): español e inglés, automático según Windows o elegido en Preferencias. 7 pruebas (catálogo completo, sin entradas sobrantes, marcadores iguales y búsqueda de español sin marcar en todo el código) y autoprueba en inglés con capturas revisadas. Falta revisión del inglés por un hablante nativo; instalador y ficha de la Store solo en español |
 | AN-01 | Animación | Media | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Fuera de esta fase |
 
@@ -92,6 +93,10 @@ Los criterios de aceptación están en la [especificación](specs/EX-01-psd.md#3
 ### AD-02 — Ajustes nuevos
 
 Los criterios de aceptación están en la [especificación](specs/AD-02-adjustments.md#3-criterios-de-aceptación) (8). Todos tienen prueba automática o autoprueba.
+
+### TL-01 — Time-lapse
+
+Los criterios de aceptación están en la [especificación](specs/TL-01-timelapse.md#3-criterios-de-aceptación) (8). Todos tienen prueba automática o autoprueba.
 
 ### I18N-01 — Interfaz en inglés
 

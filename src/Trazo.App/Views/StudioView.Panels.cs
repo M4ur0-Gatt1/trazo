@@ -936,6 +936,7 @@ public sealed partial class StudioView
         canvas.Items.Add(sym);
         canvas.Items.Add(Item(T("Guía de dibujo…"), Sync(ShowGuideSheet)));
         canvas.Items.Add(Item(T("Cambiar nombre…"), RenameDocumentAsync));
+        canvas.Items.Add(Item(T("Time-lapse…"), ShowTimelapseAsync));
         canvas.Items.Add(Item(T("Información del lienzo"), async () =>
         {
             var text = F("Dimensiones: {0} × {1} px\nCapas: {2} de {3}\nPasos de historial: {4}\nMemoria del historial: {5} MB\nArchivo: {6}", doc.Width, doc.Height, doc.Layers.Count, doc.MaxLayers, doc.History.UndoCount, doc.History.Bytes / 1024 / 1024, doc.FilePath);
@@ -958,6 +959,7 @@ public sealed partial class StudioView
         prefs.Items.Add(Toggle(T("Rotar con dos dedos"), _settings.RotateGesture, v => _settings.RotateGesture = v));
         prefs.Items.Add(Toggle("QuickShape", _settings.QuickShape, v => _settings.QuickShape = v));
         prefs.Items.Add(Toggle(T("Cursor del pincel"), _settings.BrushCursor, v => _settings.BrushCursor = v));
+        prefs.Items.Add(Toggle(T("Grabar time-lapse"), _settings.RecordTimelapse, v => _settings.RecordTimelapse = v));
         prefs.Items.Add(new MenuFlyoutSeparator());
         prefs.Items.Add(Item(T("Curva de presión y relleno…"), PressureDialogAsync));
         // I18N-01: los idiomas se nombran en su propio idioma; el cambio se aplica al reiniciar

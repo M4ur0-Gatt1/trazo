@@ -57,6 +57,8 @@ public sealed class Settings
     public bool RotateGesture { get; set; } = true;
     public bool QuickShape { get; set; } = true;
     public bool BrushCursor { get; set; } = true;
+    /// <summary>TL-01: grabar el time-lapse mientras se pinta.</summary>
+    public bool RecordTimelapse { get; set; } = true;
     public float PressureGamma { get; set; } = 1;
     public int FillTolerance { get; set; } = 46;
     public bool SmoothTransform { get; set; } = true;

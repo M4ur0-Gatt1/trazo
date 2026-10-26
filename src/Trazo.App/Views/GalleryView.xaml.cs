@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Trazo.App.Services;
 using Trazo.Core.Documents;
+using Trazo.Core.IO;
 using Windows.Storage.Streams;
 using static Trazo.Core.Localization.Tr;
 
@@ -91,7 +92,7 @@ public sealed partial class GalleryView : UserControl
         Add(T("Cambiar nombre…"), () => RenameAsync(item));
         Add(T("Duplicar"), async () =>
         {
-            File.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + T(" copia")));
+            ProjectFiles.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + T(" copia")));
             await RefreshAsync();
         });
         Add(T("Mostrar en el Explorador"), () =>
@@ -109,7 +110,7 @@ public sealed partial class GalleryView : UserControl
         var box = new TextBox { Text = item.Name };
         if (await Dialogs.ShowAsync(XamlRoot, T("Cambiar nombre"), box, T("Aceptar")) != ContentDialogResult.Primary) return;
         var target = ProjectStore.NewPath(box.Text);
-        File.Move(item.Entry.Path, target);
+        ProjectFiles.Move(item.Entry.Path, target);
         await RefreshAsync();
     }
 
@@ -120,6 +121,9 @@ public sealed partial class GalleryView : UserControl
         // StorageDeleteOption.Default envía el archivo a la papelera de reciclaje
         var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(item.Entry.Path);
         await file.DeleteAsync(Windows.Storage.StorageDeleteOption.Default);
+        // su time-lapse también va a la papelera (TL-01.7)
+        if (File.Exists(TimelapseFile.SidecarPath(item.Entry.Path)))
+            await (await Windows.Storage.StorageFile.GetFileFromPathAsync(TimelapseFile.SidecarPath(item.Entry.Path))).DeleteAsync(Windows.Storage.StorageDeleteOption.Default);
         await RefreshAsync();
     }
 
