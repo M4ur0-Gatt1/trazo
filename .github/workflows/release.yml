@@ -51,7 +51,7 @@ jobs:
           $sums = Get-ChildItem artifacts/installer -File | Where-Object Extension -ne '.txt' |
             ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" }
           Set-Content artifacts/installer/SHA256-${{ matrix.arch }}.txt -Value $sums -Encoding ascii
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/installer/*
           prerelease: ${{ contains(github.ref_name, '-') }}
