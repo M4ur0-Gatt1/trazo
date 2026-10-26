@@ -28,6 +28,7 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | EX-01 | Interoperabilidad | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/EX-01-psd.md): PSD con capas, grupos, máscaras, recorte y los 16 modos, en los dos sentidos; PNG y JPEG. 12 pruebas de núcleo (con fuzzing), 3 WARP, autoprueba y verificación cruzada con ag-psd en CI. Falta probar a mano con Photoshop, Procreate y Krita. Sin `.procreate` |
 | PF-01 | Rendimiento | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/PF-01-performance.md): presupuestos por medición y `tools/Trazo.Benchmarks`. En una Intel Iris Xe con un lienzo de 4K y 20 capas, todas las mediciones cumplen el mínimo de 60 Hz; la composición también cumple el objetivo de 120 Hz. Cachés de autoguardado y de composición con pruebas de equivalencia. Falta la latencia de extremo a extremo con hardware de medida y medir en GPU dedicada y ARM |
 | RC-01 | Recuperación tras fallos | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/RC-01-recovery.md): diario de sesión con aviso al volver a abrir, recuperación tras perder la GPU y copia de emergencia. 7 pruebas de núcleo, 1 WARP, autoprueba y prueba con el proceso real (`tools/crash-test.ps1`). El disparo real de la pérdida de GPU no se puede provocar en pruebas |
+| AD-02 | Curvas, mapa de degradado, equilibrio de color, desenfoque de movimiento y resplandor | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/AD-02-adjustments.md): las curvas, el degradado y el equilibrio se calculan en el núcleo como tablas y la GPU se compara con ellas (± 2 niveles, también con transparencia). 4 pruebas de núcleo, 4 WARP y 7 comprobaciones en la autoprueba. Sin editor de paradas de degradado ni histograma en las curvas |
 | I18N-01 | Interfaz en inglés | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/I18N-01-english.md): español e inglés, automático según Windows o elegido en Preferencias. 7 pruebas (catálogo completo, sin entradas sobrantes, marcadores iguales y búsqueda de español sin marcar en todo el código) y autoprueba en inglés con capturas revisadas. Falta revisión del inglés por un hablante nativo; instalador y ficha de la Store solo en español |
 | AN-01 | Animación | Media | 🟡 | ⬜ | ⬜ | ⬜ | ⬜ | Fuera de esta fase |
 
@@ -88,6 +89,10 @@ Los criterios de aceptación están en las especificaciones: [BR-04](specs/BR-04
 
 Los criterios de aceptación están en la [especificación](specs/EX-01-psd.md#3-criterios-de-aceptación) (9). Todos tienen prueba automática.
 
+### AD-02 — Ajustes nuevos
+
+Los criterios de aceptación están en la [especificación](specs/AD-02-adjustments.md#3-criterios-de-aceptación) (8). Todos tienen prueba automática o autoprueba.
+
 ### I18N-01 — Interfaz en inglés
 
 Los criterios de aceptación están en la [especificación](specs/I18N-01-english.md#3-criterios-de-aceptación) (7). Todos tienen prueba automática o autoprueba.
@@ -100,6 +105,7 @@ Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01
 
 | Fecha | Error | Prueba que lo cubre |
 |---|---|---|
+| 2026-10-26 | **Encontrado por las pruebas de AD-02:** la intensidad de «Invertir colores» y «Escala de grises» funcionaba al revés (al 30 % daba un 70 % de efecto): en Direct2D el peso de la mezcla es el de la segunda imagen | `IntermediateIntensityMixesTowardsOriginal` (AD-02.4b) |
 | 2026-10-26 | La extracción automática de textos marcó por error identificadores que no son interfaz: la carpeta `Assets/Legal`, la marca de separador de grupo del PSD (`</Layer group>`) y el bloque PNG `IHDR`. Traducirlos habría roto los avisos legales, los grupos del PSD en inglés y la lectura de `.trazo` | Revisión del diff; `PsdRoundTripPreservesEverything` y `AgPsdReadsTrazoExport` cubren el separador y la autoprueba en inglés abre `.trazo` y PSD |
 | 2026-10-26 | **Encontrado por el fuzzing del PSD:** un número de caracteres enorme en el nombre Unicode (`luni`) se volvía negativo al convertirlo a `int`, pasaba la comprobación de longitud y lanzaba `ArgumentOutOfRangeException` | `MalformedFilesFailCleanly` (EX-01.6) |
 | 2026-10-24 | "Ocultar" y "mostrar" seguidos se fusionaban en un solo paso de historial: deshacer saltaba dos pasos | `EveryOperationUndoesAndRedoesExactly` (HI-01.3) |

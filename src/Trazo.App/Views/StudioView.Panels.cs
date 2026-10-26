@@ -760,7 +760,9 @@ public sealed partial class StudioView
         if (_guideEdit) EndGuideEdit();
         _adjust = new AdjustmentSession(_doc, _doc.ActiveLayer, a);
         SheetBody.Children.Clear();
-        foreach (var p in a.Params)
+        // AD-02: curvas, degradados y equilibrio llevan sus propios controles
+        var custom = AddAdjustmentEditor(_adjust);
+        foreach (var p in custom ? [] : a.Params)
         {
             var s = new Slider { Header = p.Label, Minimum = p.Min, Maximum = p.Max, Value = p.Default, StepFrequency = (p.Max - p.Min) / 400 };
             s.ThumbToolTipValueConverter = new UnitConverter(p.Unit);

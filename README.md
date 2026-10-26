@@ -48,6 +48,7 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 
 **Ajustes y transformación**
 - Tono/saturación/brillo, contraste, exposición, temperatura y matiz, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
+- **Curvas** por canal, **mapa de degradado** con biblioteca (y uno con el color actual), **equilibrio de color** por sombras, medios tonos y luces, **desenfoque de movimiento** y **resplandor** ([AD-02](docs/specs/AD-02-adjustments.md)).
 - **Transformar** en cuatro modos: Libre y Uniforme (asas de esquina, de lado y de giro), **Distorsionar** (perspectiva por las cuatro esquinas) y **Deformar** (malla que se dobla). Modo Magnético, voltear, rotar 90°, ajustar al lienzo e interpolación suave o nítida.
 - **Licuar**: empujar, girar a la derecha o a la izquierda, pellizcar, expandir y reconstruir, con tamaño, presión, cantidad y Restablecer.
 
@@ -167,7 +168,7 @@ La primera versión, una PWA en JavaScript, sigue disponible en <https://m4ur0-g
 
 - Selecciones guardadas y pluma de selección
 - Grupos anidados
-- Curvas, mapa de degradado y más desenfoques
+- Editor de paradas del mapa de degradado, desenfoque de perspectiva y más filtros
 - Grabación en time-lapse
 - Publicación en la Microsoft Store, de pago (el paquete MSIX ya se compila: ver [docs/store](docs/store/README.md))
 

@@ -2,6 +2,11 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
+## Sin publicar
+
+- **Ajustes nuevos (AD-02):** curvas por canal, mapa de degradado (7 degradados, uno con el color actual), equilibrio de color por sombras, medios tonos y luces, desenfoque de movimiento y resplandor.
+- **Corrección:** la intensidad intermedia de «Invertir colores» y «Escala de grises» funcionaba al revés.
+
 ## 1.2.0 — 2026-10-26
 
 - **PSD (EX-01):** exportar e importar con capas, grupos, máscaras, recorte, bloqueo alfa y los 16 modos de fusión. Lee RGB y escala de grises de 8 y 16 bits; avisa de lo que no puede conservar igual (modos sin equivalente, grupos anidados, capas de ajuste). Verificado contra ag-psd, la biblioteca de Photopea.

@@ -10,9 +10,27 @@ namespace Trazo.Rendering;
 
 public sealed record AdjustParam(string Key, string Label, double Min, double Max, double Default, string Unit = "");
 
+/// <summary>Qué controles muestra el ajuste además de sus deslizadores (AD-02).</summary>
+public enum AdjustEditor
+{
+    Sliders,
+    Curves,
+    GradientMap,
+    ColorBalance,
+}
+
+/// <summary>Valores del ajuste: deslizadores por clave, y las curvas o el degradado de los ajustes que los usan.</summary>
+public sealed class AdjustInputs(Dictionary<string, double> values)
+{
+    public Dictionary<string, double> Values { get; } = values;
+    public double this[string key] => Values[key];
+    public ToneCurves Curves { get; set; } = new();
+    public GradientMap Gradient { get; set; } = GradientMap.Library[0];
+}
+
 /// <summary>Ajuste de imagen: parámetros y grafo de efectos de Direct2D.</summary>
 public sealed record Adjustment(string Id, string Name, IReadOnlyList<AdjustParam> Params,
-    Func<ICanvasImage, IReadOnlyDictionary<string, double>, List<IDisposable>, ICanvasImage> Build)
+    Func<ICanvasImage, AdjustInputs, List<IDisposable>, ICanvasImage> Build, AdjustEditor Editor = AdjustEditor.Sliders)
 {
     private static T Own<T>(List<IDisposable> o, T e) where T : IDisposable
     {
@@ -35,10 +53,45 @@ public sealed record Adjustment(string Id, string Name, IReadOnlyList<AdjustPara
 
     private static Matrix5x4 Brightness(float k) => new() { M11 = k, M22 = k, M33 = k, M44 = 1 };
 
-    private static ICanvasImage Mix(ICanvasImage original, ICanvasImage effect, double amount, List<IDisposable> o) =>
-        amount >= 1 ? effect : Own(o, new CrossFadeEffect { Source1 = effect, Source2 = original, CrossFade = (float)amount });
+    /// <summary>
+    /// Mezcla el efecto con el original: 0 = original, 1 = efecto. En Direct2D, CrossFade es el peso de Source2
+    /// (CrossFade = 0 da Source1); antes se pasaba al revés y las intensidades intermedias salían invertidas (AD-02).
+    /// </summary>
+    internal static ICanvasImage Mix(ICanvasImage original, ICanvasImage effect, double amount, List<IDisposable> o) =>
+        amount >= 1 ? effect : amount <= 0 ? original : Own(o, new CrossFadeEffect { Source1 = effect, Source2 = original, CrossFade = (float)(1 - amount) });
 
-    public static readonly IReadOnlyList<Adjustment> All =
+    /// <summary>Aplica tablas de 256 valores (AD-02) al color sin premultiplicar; el alfa no cambia.</summary>
+    public static ICanvasImage Tables(ICanvasImage src, float[] r, float[] g, float[] b, List<IDisposable> o) =>
+        Own(o, new TableTransferEffect { Source = src, RedTable = r, GreenTable = g, BlueTable = b, AlphaDisable = true, ClampOutput = true });
+
+    /// <summary>Luminancia Rec. 709 en los tres canales.</summary>
+    private static ICanvasImage Luma(ICanvasImage src, List<IDisposable> o) => Own(o, new ColorMatrixEffect
+    {
+        Source = src,
+        ColorMatrix = new Matrix5x4
+        {
+            M11 = 0.2126f, M12 = 0.2126f, M13 = 0.2126f,
+            M21 = 0.7152f, M22 = 0.7152f, M23 = 0.7152f,
+            M31 = 0.0722f, M32 = 0.0722f, M33 = 0.0722f,
+            M44 = 1,
+        },
+    });
+
+    private static BalanceShift Shift(AdjustInputs v, string zone) => new((float)v[zone + "0"] / 100, (float)v[zone + "1"] / 100, (float)v[zone + "2"] / 100);
+
+    /// <summary>Parámetros del equilibrio de color: tres ejes por zona (s = sombras, m = medios tonos, h = luces).</summary>
+    private static AdjustParam[] BalanceParams() =>
+    [
+        .. new[] { "s", "m", "h" }.SelectMany(z => new AdjustParam[]
+        {
+            new(z + "0", T("Cian – Rojo"), -100, 100, 0),
+            new(z + "1", T("Magenta – Verde"), -100, 100, 0),
+            new(z + "2", T("Amarillo – Azul"), -100, 100, 0),
+        }),
+    ];
+
+    /// <summary>Se reconstruye en cada acceso para que los nombres sigan el idioma en uso (I18N-01).</summary>
+    public static IReadOnlyList<Adjustment> All =>
     [
         new("hsb", T("Tono, saturación y brillo"),
             [new("h", T("Tono"), -180, 180, 0, "°"), new("s", T("Saturación"), 0, 200, 100, " %"), new("b", T("Brillo"), 0, 200, 100, " %")],
@@ -75,6 +128,38 @@ public sealed record Adjustment(string Id, string Name, IReadOnlyList<AdjustPara
             (src, v, o) => Own(o, new SepiaEffect { Source = src, Intensity = (float)(v["a"] / 100) })),
         new("opacity", T("Opacidad de píxeles"), [new("a", T("Opacidad"), 0, 100, 100, " %")],
             (src, v, o) => Own(o, new OpacityEffect { Source = src, Opacity = (float)(v["a"] / 100) })),
+        // ---------- AD-02 ----------
+        new("curves", T("Curvas"), [],
+            (src, v, o) => v.Curves.IsIdentity ? src : Tables(src, v.Curves.Table(0), v.Curves.Table(1), v.Curves.Table(2), o),
+            AdjustEditor.Curves),
+        new("gradientmap", T("Mapa de degradado"), [new("a", T("Intensidad"), 0, 100, 100, " %")],
+            (src, v, o) => Mix(src, Tables(Luma(src, o), v.Gradient.Table(0), v.Gradient.Table(1), v.Gradient.Table(2), o), v["a"] / 100, o),
+            AdjustEditor.GradientMap),
+        new("balance", T("Equilibrio de color"), BalanceParams(),
+            (src, v, o) =>
+            {
+                var cb = new ColorBalance(Shift(v, "s"), Shift(v, "m"), Shift(v, "h"));
+                return Tables(src, cb.Table(0), cb.Table(1), cb.Table(2), o);
+            },
+            AdjustEditor.ColorBalance),
+        new("motionblur", T("Desenfoque de movimiento"), [new("d", T("Distancia"), 0, 200, 0, T(" px")), new("ang", T("Ángulo"), 0, 360, 0, "°")],
+            (src, v, o) => v["d"] <= 0 ? src : Own(o, new DirectionalBlurEffect
+            {
+                Source = src, BlurAmount = (float)v["d"] / 2, Angle = (float)(v["ang"] * Math.PI / 180),
+                BorderMode = EffectBorderMode.Hard, Optimization = EffectOptimization.Quality,
+            })),
+        new("bloom", T("Resplandor"), [new("t", T("Umbral"), 0, 100, 70, " %"), new("r", T("Tamaño"), 1, 100, 25, T(" px")), new("a", T("Intensidad"), 0, 100, 0, " %")],
+            (src, v, o) =>
+            {
+                if (v["a"] <= 0) return src;
+                var th = (float)(v["t"] / 100);
+                var lights = ToneTable.From(x => th >= 1 ? 0 : (x - th) / (1 - th));
+                var glow = Own(o, new GaussianBlurEffect { Source = Tables(src, lights, lights, lights, o), BlurAmount = (float)v["r"] / 2, BorderMode = EffectBorderMode.Soft });
+                var weak = Own(o, new OpacityEffect { Source = glow, Opacity = (float)(v["a"] / 100) });
+                var lit = Own(o, new BlendEffect { Background = src, Foreground = weak, Mode = BlendEffectMode.Screen });
+                // el resplandor no sale de la forma de la capa
+                return Own(o, new CompositeEffect { Mode = CanvasComposite.DestinationIn, Sources = { lit, src } });
+            }),
     ];
 }
 
@@ -83,19 +168,20 @@ public sealed class AdjustmentSession(PaintDocument doc, Layer layer, Adjustment
 {
     public Layer Layer { get; } = layer;
     public Adjustment Adjustment { get; } = adjustment;
-    public Dictionary<string, double> Values { get; } = adjustment.Params.ToDictionary(p => p.Key, p => p.Default);
+    public AdjustInputs Inputs { get; } = new(adjustment.Params.ToDictionary(p => p.Key, p => p.Default));
+    public Dictionary<string, double> Values => Inputs.Values;
 
     /// <summary>Textura sobre la que actúa el ajuste (la capa o su máscara) y su clave de sustitución.</summary>
     public CanvasRenderTarget Target { get; } = layer.Target;
     public object TargetKey { get; } = layer.TargetKey;
 
     /// <summary>Vista previa: el ajuste solo se ve dentro de la selección, igual que se confirmará.</summary>
-    public ICanvasImage Preview(List<IDisposable> owned) => doc.SelectionBlend(Target, Adjustment.Build(Target, Values, owned), owned);
+    public ICanvasImage Preview(List<IDisposable> owned) => doc.SelectionBlend(Target, Adjustment.Build(Target, Inputs, owned), owned);
 
     public void Apply(LayerOperations ops)
     {
         var owned = new List<IDisposable>();
-        ops.ReplaceWith(Layer, Adjustment.Build(Target, Values, owned), Adjustment.Name);
+        ops.ReplaceWith(Layer, Adjustment.Build(Target, Inputs, owned), Adjustment.Name);
         owned.ForEach(o => o.Dispose());
     }
 }

@@ -130,6 +130,36 @@ public sealed partial class StudioView
             _adjust.Apply(ops);
             _adjust = null;
             Check("ajuste invertir", Pixel(layer, 300, 500).G > 150);
+
+            // 8b. AD-02: curvas, mapa de degradado, equilibrio, desenfoque de movimiento y resplandor, con selección
+            var adjLayer = ops.Add()!;
+            ops.Fill(doc.Layers.IndexOf(adjLayer), Color.FromArgb(255, 100, 100, 100));
+            doc.Selection = Core.Selection.SelectionMask.Rectangle(doc.Width, doc.Height, 0, 0, doc.Width / 2f, doc.Height);
+            int inX = 100, outX = doc.Width - 100;
+            void RunAdjust(string id, Action<AdjustInputs> set)
+            {
+                _adjust = new AdjustmentSession(doc, adjLayer, Adjustment.All.First(a => a.Id == id));
+                set(_adjust.Inputs);
+                _adjust.Apply(ops);
+                _adjust = null;
+            }
+            RunAdjust("curves", i => i.Curves = new Core.Imaging.ToneCurves().With(1, Core.Brushes.DynamicsCurve.From(new(0, 1), new(1, 0))));
+            Check("curvas: invierten el rojo dentro de la selección", Pixel(adjLayer, inX, 500).R == 155 && Pixel(adjLayer, inX, 500).G == 100);
+            Check("curvas: fuera de la selección no cambia", Pixel(adjLayer, outX, 500).R == 100);
+            doc.History.Undo();
+            Check("curvas: se deshacen en un paso", Pixel(adjLayer, inX, 500).R == 100);
+            RunAdjust("gradientmap", i => i.Gradient = Core.Imaging.GradientMap.Library.First(g => g.Stops.Count == 3 && g.Stops[1].Color.R > 200));
+            Check("mapa de degradado colorea", Pixel(adjLayer, inX, 500) is var gm && (gm.R != gm.G || gm.G != gm.B) && Pixel(adjLayer, outX, 500).R == 100);
+            doc.History.Undo();
+            RunAdjust("balance", i => i.Values["m0"] = 100);
+            Check("equilibrio de color: medios tonos hacia el rojo", Pixel(adjLayer, inX, 500).R > 120 && Pixel(adjLayer, inX, 500).B == 100);
+            doc.History.Undo();
+            RunAdjust("motionblur", i => i.Values["d"] = 40);
+            RunAdjust("bloom", i => i.Values["a"] = 100);
+            Check("desenfoque de movimiento y resplandor se aplican", Pixel(adjLayer, outX, 500).R == 100);
+            doc.Selection = null;
+            for (var k = 0; k < 4; k++) doc.History.Undo(); // resplandor, desenfoque, relleno y la capa
+            Check("ajustes AD-02 deshechos", !doc.Layers.Contains(adjLayer));
             var tr = TransformSession.Start(doc, symLayer)!;
             tr.Flip(horizontal: true);
             tr.Apply(ops);
@@ -397,6 +427,27 @@ public sealed partial class StudioView
                     for (var k = 0; k < 6; k++) _liquify.DabAt(new Vector2(1250, 640), 1);
                     BuildLiquifySheet();
                     _hover = _view.ToScreen(new Vector2(1250, 640));
+                    break;
+                case "curves" or "gradient" or "balance":
+                    doc.ActiveIndex = doc.Layers.IndexOf(trLayer);
+                    var id = Environment.GetEnvironmentVariable("TRAZO_SELFTEST_UI") switch { "curves" => "curves", "gradient" => "gradientmap", _ => "balance" };
+                    StartAdjustment(Adjustment.All.First(a => a.Id == id));
+                    if (id == "curves")
+                    {
+                        // curva en S para que la captura muestre el editor y su efecto
+                        _adjust!.Inputs.Curves = new Core.Imaging.ToneCurves().With(0, Core.Brushes.DynamicsCurve.From(new(0, 0), new(0.3f, 0.15f), new(0.7f, 0.9f), new(1, 1)));
+                        SheetBody.Children.Clear();
+                        AddCurvesEditor(_adjust);
+                    }
+                    else if (id == "gradientmap") SheetBody.Children.OfType<Microsoft.UI.Xaml.Controls.GridView>().First().SelectedIndex = 3;
+                    else
+                    {
+                        // el rectángulo de esa capa es negro semitransparente: las sombras son las que lo mueven
+                        _adjust!.Values["s2"] = 70;
+                        SheetBody.Children.Clear();
+                        AddBalanceEditor(_adjust, "s");
+                    }
+                    Canvas.Invalidate();
                     break;
                 case "about":
                     _ = AboutAsync();
