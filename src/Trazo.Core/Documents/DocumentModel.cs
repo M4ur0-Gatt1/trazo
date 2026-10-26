@@ -1,3 +1,4 @@
+using static Trazo.Core.Localization.Tr;
 namespace Trazo.Core.Documents;
 
 public enum BlendMode
@@ -26,40 +27,40 @@ public static class BlendModes
 
     public static string DisplayName(this BlendMode m) => m switch
     {
-        BlendMode.Normal => "Normal",
-        BlendMode.Multiply => "Multiplicar",
-        BlendMode.Darken => "Oscurecer",
-        BlendMode.ColorBurn => "Subexponer color",
-        BlendMode.Screen => "Trama",
-        BlendMode.Lighten => "Aclarar",
-        BlendMode.ColorDodge => "Sobreexponer color",
-        BlendMode.Overlay => "Superponer",
-        BlendMode.SoftLight => "Luz suave",
-        BlendMode.HardLight => "Luz fuerte",
-        BlendMode.Difference => "Diferencia",
-        BlendMode.Exclusion => "Exclusión",
-        BlendMode.Hue => "Tono",
-        BlendMode.Saturation => "Saturación",
-        BlendMode.Color => "Color",
-        _ => "Luminosidad",
+        BlendMode.Normal => T("Normal"),
+        BlendMode.Multiply => T("Multiplicar"),
+        BlendMode.Darken => T("Oscurecer"),
+        BlendMode.ColorBurn => T("Subexponer color"),
+        BlendMode.Screen => T("Trama"),
+        BlendMode.Lighten => T("Aclarar"),
+        BlendMode.ColorDodge => T("Sobreexponer color"),
+        BlendMode.Overlay => T("Superponer"),
+        BlendMode.SoftLight => T("Luz suave"),
+        BlendMode.HardLight => T("Luz fuerte"),
+        BlendMode.Difference => T("Diferencia"),
+        BlendMode.Exclusion => T("Exclusión"),
+        BlendMode.Hue => T("Tono"),
+        BlendMode.Saturation => T("Saturación"),
+        BlendMode.Color => T("Color"),
+        _ => T("Luminosidad"),
     };
 
     public static string ShortName(this BlendMode m) => m switch
     {
         BlendMode.Normal => "N",
         BlendMode.Multiply => "M",
-        BlendMode.Darken => "Os",
-        BlendMode.ColorBurn => "Sc",
-        BlendMode.Screen => "T",
-        BlendMode.Lighten => "A",
-        BlendMode.ColorDodge => "Sb",
-        BlendMode.Overlay => "Su",
-        BlendMode.SoftLight => "Ls",
-        BlendMode.HardLight => "Lf",
+        BlendMode.Darken => T("Os"),
+        BlendMode.ColorBurn => T("Sc"),
+        BlendMode.Screen => T("T"),
+        BlendMode.Lighten => T("A"),
+        BlendMode.ColorDodge => T("Sb"),
+        BlendMode.Overlay => T("Su"),
+        BlendMode.SoftLight => T("Ls"),
+        BlendMode.HardLight => T("Lf"),
         BlendMode.Difference => "D",
         BlendMode.Exclusion => "E",
-        BlendMode.Hue => "To",
-        BlendMode.Saturation => "Sa",
+        BlendMode.Hue => T("To"),
+        BlendMode.Saturation => T("Sa"),
         BlendMode.Color => "C",
         _ => "L",
     };
@@ -90,7 +91,7 @@ public static class BlendModes
 public sealed record LayerProperties
 {
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
-    public string Name { get; init; } = "Capa";
+    public string Name { get; init; } = T("Capa");
     public float Opacity { get; init; } = 1;
     public BlendMode Blend { get; init; } = BlendMode.Normal;
     public bool Visible { get; init; } = true;
@@ -111,16 +112,17 @@ public static class CanvasLimits
     /// <summary>Presupuesto de memoria de vídeo para capas.</summary>
     public const long LayerBudgetBytes = 2L * 1024 * 1024 * 1024;
 
-    public static readonly IReadOnlyList<CanvasPreset> Presets =
+    // propiedad, no campo: los nombres se traducen con el idioma en uso (I18N-01)
+    public static IReadOnlyList<CanvasPreset> Presets =>
     [
-        new("Cuadrado", 2048, 2048),
+        new(T("Cuadrado"), 2048, 2048),
         new("4K", 3840, 2160),
-        new("Full HD", 1920, 1080),
-        new("A4 · 300 ppp", 2480, 3508),
-        new("A3 · 300 ppp", 3508, 4961),
-        new("Carta · 300 ppp", 2550, 3300),
-        new("Historia (9:16)", 1080, 1920),
-        new("Publicación (4:5)", 1080, 1350),
+        new(T("Full HD"), 1920, 1080),
+        new(T("A4 · 300 ppp"), 2480, 3508),
+        new(T("A3 · 300 ppp"), 3508, 4961),
+        new(T("Carta · 300 ppp"), 2550, 3300),
+        new(T("Historia (9:16)"), 1080, 1920),
+        new(T("Publicación (4:5)"), 1080, 1350),
     ];
 
     /// <summary>Ajusta un tamaño pedido a los límites, manteniendo la proporción.</summary>
@@ -144,7 +146,7 @@ public static class CanvasLimits
     {
         var names = existing.ToHashSet();
         var n = 1;
-        while (names.Contains($"Capa {n}")) n++;
-        return $"Capa {n}";
+        while (names.Contains(F("Capa {0}", n))) n++;
+        return F("Capa {0}", n);
     }
 }

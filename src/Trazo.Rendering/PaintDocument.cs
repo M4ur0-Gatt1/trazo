@@ -13,6 +13,7 @@ using Windows.Foundation;
 using Windows.Graphics.DirectX;
 using Windows.Storage.Streams;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -102,8 +103,8 @@ public sealed partial class Layer : ObservableObject, IDisposable
 
     public Layer Duplicate(CanvasDevice device)
     {
-        var l = new Layer(device, (int)Surface.SizeInPixels.Width, (int)Surface.SizeInPixels.Height, Name + " copia");
-        l.Apply(ToProperties() with { Id = l.Id, Name = Name + " copia" });
+        var l = new Layer(device, (int)Surface.SizeInPixels.Width, (int)Surface.SizeInPixels.Height, Name + T(" copia"));
+        l.Apply(ToProperties() with { Id = l.Id, Name = Name + T(" copia") });
         l.Surface.CopyPixelsFromBitmap(Surface);
         if (_mask is not null)
         {
@@ -123,7 +124,7 @@ public sealed partial class Layer : ObservableObject, IDisposable
 /// <summary>Grupo de capas (LY-03): se compone aislado y se aplica con su opacidad y modo.</summary>
 public sealed partial class LayerGroup : ObservableObject
 {
-    private string _name = "Grupo";
+    private string _name = T("Grupo");
     private float _opacity = 1;
     private BlendMode _blend;
     private bool _visible = true;
@@ -217,7 +218,7 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         get => _selection;
         set
         {
-            if (value is not null && (value.Width != Width || value.Height != Height)) throw new ArgumentException("Tamaño de selección incorrecto");
+            if (value is not null && (value.Width != Width || value.Height != Height)) throw new ArgumentException(T("Tamaño de selección incorrecto"));
             _selection = value is { IsEmpty: true } ? null : value;
             _selectionBitmap?.Dispose();
             _selectionBitmap = null;

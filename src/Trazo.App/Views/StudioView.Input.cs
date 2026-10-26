@@ -13,6 +13,7 @@ using Windows.System;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using Windows.UI;
 using Windows.UI.Core;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -119,7 +120,7 @@ public sealed partial class StudioView
                     {
                         _settings.PenOnly = true;
                         _settings.Save();
-                        Window.ShowMessage("Lápiz detectado: el lápiz dibuja y el dedo navega. Puedes cambiarlo en Acciones › Preferencias.");
+                        Window.ShowMessage(T("Lápiz detectado: el lápiz dibuja y el dedo navega. Puedes cambiarlo en Acciones › Preferencias."));
                     }
                 }
                 if (_mode == InputMode.Gesture) EndGesture();
@@ -339,7 +340,7 @@ public sealed partial class StudioView
         if (!ok)
         {
             RestoreTool();
-            Window.ShowMessage("La capa activa está oculta");
+            Window.ShowMessage(T("La capa activa está oculta"));
             return;
         }
         _mode = InputMode.Draw;
@@ -413,8 +414,8 @@ public sealed partial class StudioView
     {
         _recordStrokes = !_recordStrokes;
         Window.ShowMessage(_recordStrokes
-            ? "Grabando trazos para pruebas (Ctrl+Shift+R para parar)"
-            : $"Grabación detenida. Archivos en {RecordingsFolder}");
+            ? T("Grabando trazos para pruebas (Ctrl+Shift+R para parar)")
+            : F("Grabación detenida. Archivos en {0}", RecordingsFolder));
     }
 
     private void SaveRecording()
@@ -424,8 +425,8 @@ public sealed partial class StudioView
         if (samples is null || samples.Count < 2) return;
         var rec = new InputRecording
         {
-            Device = $"{_strokeType}; curva de presión {_settings.PressureGamma:0.00}",
-            Note = $"{Tool} · {BrushFor(Tool).Id} · {ToolState(Tool).Size:0.#} px",
+            Device = F("{0}; curva de presión {1:0.00}", _strokeType, _settings.PressureGamma),
+            Note = F("{0} · {1} · {2:0.#} px", Tool, BrushFor(Tool).Id, ToolState(Tool).Size),
             ViewScale = _view.Scale,
             ViewRotation = _view.Rotation,
             ViewOffsetX = _view.Offset.X,
@@ -477,7 +478,7 @@ public sealed partial class StudioView
         var d = _view.ToDocument(screen);
         var color = CurrentColor;
         if (_engine?.Fill(d.X, d.Y, color, _settings.FillTolerance) == true) PushRecentColor(color);
-        else if (_doc?.ActiveLayer.Visible == false) Window.ShowMessage("La capa activa está oculta");
+        else if (_doc?.ActiveLayer.Visible == false) Window.ShowMessage(T("La capa activa está oculta"));
         Canvas.Invalidate();
     }
 
@@ -684,7 +685,7 @@ public sealed partial class StudioView
             case VirtualKey.E: Tool = ToolKind.Eraser; break;
             case VirtualKey.S: Tool = ToolKind.Smudge; break;
             case VirtualKey.I: _eyedropOnce = true; EyedropperButton.IsChecked = true; break;
-            case VirtualKey.G: _fillOnce = true; Window.ShowMessage("Toca el lienzo para rellenar"); break;
+            case VirtualKey.G: _fillOnce = true; Window.ShowMessage(T("Toca el lienzo para rellenar")); break;
             case VirtualKey.V: StartTransform(); break;
             case VirtualKey.M: if (_selectMode) ExitSelectMode(); else EnterSelectMode(); break;
             case VirtualKey.L: ShowLayersPanel(); break;
@@ -713,6 +714,6 @@ public sealed partial class StudioView
     private async Task SaveAndNotifyAsync()
     {
         await SaveAsync();
-        Window.ShowMessage("Guardado");
+        Window.ShowMessage(T("Guardado"));
     }
 }

@@ -6,6 +6,7 @@ using Trazo.Rendering;
 using Trazo.App.Services;
 using Trazo.Core.IO;
 using Windows.Storage.Pickers;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App;
 
@@ -88,8 +89,8 @@ public sealed partial class MainWindow : Window
             {
                 Log.Error($"Recuperado {path} desde {result.Source}: {result.Problem}");
                 ShowMessage(result.Source == LoadSource.Backup
-                    ? "El archivo estaba dañado y se recuperó la copia anterior. Puede faltar el último trabajo."
-                    : "Se recuperó un guardado interrumpido.", InfoBarSeverity.Warning);
+                    ? T("El archivo estaba dañado y se recuperó la copia anterior. Puede faltar el último trabajo.")
+                    : T("Se recuperó un guardado interrumpido."), InfoBarSeverity.Warning);
                 doc.IsDirty = true; // se vuelve a guardar sano en el archivo principal
             }
             // los archivos del formato web antiguo se guardan como .trazo v2 en la carpeta de proyectos
@@ -99,7 +100,7 @@ public sealed partial class MainWindow : Window
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or FormatException)
         {
             Log.Error($"No se pudo abrir {path}", e);
-            ShowMessage("No se pudo abrir el archivo: " + e.Message, InfoBarSeverity.Error);
+            ShowMessage(T("No se pudo abrir el archivo: ") + e.Message, InfoBarSeverity.Error);
         }
     }
 
@@ -123,7 +124,7 @@ public sealed partial class MainWindow : Window
             using var bmp = await CanvasBitmap.LoadAsync(Device, stream, 96);
             var (w, h) = Core.Documents.CanvasLimits.Fit(bmp.SizeInPixels.Width, bmp.SizeInPixels.Height);
             var doc = PaintDocument.CreateBlank(Device, w, h, Path.GetFileNameWithoutExtension(file.Name));
-            doc.Layers[0].Name = "Imagen";
+            doc.Layers[0].Name = T("Imagen");
             using (var ds = doc.Layers[0].Surface.CreateDrawingSession())
                 ds.DrawImage(bmp, new Windows.Foundation.Rect(0, 0, w, h), bmp.Bounds, 1, CanvasImageInterpolation.HighQualityCubic);
             doc.FilePath = ProjectStore.NewPath(doc.Name);
@@ -134,7 +135,7 @@ public sealed partial class MainWindow : Window
         catch (Exception e)
         {
             Log.Error("Importación fallida", e);
-            ShowMessage("No se pudo importar la imagen", InfoBarSeverity.Error);
+            ShowMessage(T("No se pudo importar la imagen"), InfoBarSeverity.Error);
         }
     }
 
@@ -154,7 +155,7 @@ public sealed partial class MainWindow : Window
             doc.IsDirty = true;
             ShowStudio(doc);
             await Studio.SaveAsync();
-            if (warnings.Count > 0) ShowMessage("PSD importado. " + string.Join(" ", warnings), InfoBarSeverity.Warning);
+            if (warnings.Count > 0) ShowMessage(T("PSD importado. ") + string.Join(" ", warnings), InfoBarSeverity.Warning);
         }
         catch (InvalidDataException e)
         {
@@ -164,7 +165,7 @@ public sealed partial class MainWindow : Window
         catch (Exception e)
         {
             Log.Error("Importación PSD fallida", e);
-            ShowMessage("No se pudo importar el PSD", InfoBarSeverity.Error);
+            ShowMessage(T("No se pudo importar el PSD"), InfoBarSeverity.Error);
         }
     }
 

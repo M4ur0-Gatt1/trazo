@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Core.IO;
 
@@ -82,7 +83,7 @@ public static class ProjectSaver
         }
         catch (Exception e)
         {
-            throw new SaveFailedException(SaveStage.Serialize, "No se pudo preparar el archivo para guardar.", e);
+            throw new SaveFailedException(SaveStage.Serialize, T("No se pudo preparar el archivo para guardar."), e);
         }
 
         var stage = SaveStage.WriteTemporary;
@@ -110,9 +111,9 @@ public static class ProjectSaver
             TryDelete(fs, tmp);
             var message = stage switch
             {
-                SaveStage.WriteTemporary or SaveStage.Flush when IsDiskFull(e) => "No hay espacio suficiente en el disco. El archivo anterior sigue intacto.",
-                SaveStage.Verify => "La copia escrita no superó la verificación. El archivo anterior sigue intacto.",
-                _ => "No se pudo guardar. El archivo anterior sigue intacto.",
+                SaveStage.WriteTemporary or SaveStage.Flush when IsDiskFull(e) => T("No hay espacio suficiente en el disco. El archivo anterior sigue intacto."),
+                SaveStage.Verify => T("La copia escrita no superó la verificación. El archivo anterior sigue intacto."),
+                _ => T("No se pudo guardar. El archivo anterior sigue intacto."),
             };
             throw new SaveFailedException(stage, message, e);
         }
@@ -144,7 +145,7 @@ public static class ProjectSaver
                 problem ??= $"{Path.GetFileName(candidate)}: {e.Message}";
             }
         }
-        throw new InvalidDataException(problem ?? $"No existe {path}");
+        throw new InvalidDataException(problem ?? F("No existe {0}", path));
     }
 
     private static bool SameGuide(Geometry.DrawingGuide? a, Geometry.DrawingGuide? b)
@@ -157,21 +158,21 @@ public static class ProjectSaver
     internal static void Verify(ProjectData expected, ProjectData actual)
     {
         if (actual.Width != expected.Width || actual.Height != expected.Height)
-            throw new InvalidDataException("Dimensiones distintas tras releer");
+            throw new InvalidDataException("Dimensiones distintas tras releer"); // i18n: interno
         if (!actual.Groups.SequenceEqual(expected.Groups))
-            throw new InvalidDataException("Grupos distintos tras releer");
+            throw new InvalidDataException("Grupos distintos tras releer"); // i18n: interno
         if (!SameGuide(expected.Guide, actual.Guide))
-            throw new InvalidDataException("Guía de dibujo distinta tras releer");
+            throw new InvalidDataException("Guía de dibujo distinta tras releer"); // i18n: interno
         if (actual.Layers.Count != expected.Layers.Count)
-            throw new InvalidDataException("Número de capas distinto tras releer");
+            throw new InvalidDataException("Número de capas distinto tras releer"); // i18n: interno
         for (var i = 0; i < actual.Layers.Count; i++)
         {
             if (actual.Layers[i].Properties != expected.Layers[i].Properties)
-                throw new InvalidDataException($"Propiedades distintas en la capa {i + 1}");
+                throw new InvalidDataException($"Propiedades distintas en la capa {i + 1}"); // i18n: interno
             if (!actual.Layers[i].Png.AsSpan().SequenceEqual(expected.Layers[i].Png))
-                throw new InvalidDataException($"Píxeles distintos en la capa {i + 1}");
+                throw new InvalidDataException($"Píxeles distintos en la capa {i + 1}"); // i18n: interno
             if (!(actual.Layers[i].MaskPng ?? []).AsSpan().SequenceEqual(expected.Layers[i].MaskPng ?? []))
-                throw new InvalidDataException($"Máscara distinta en la capa {i + 1}");
+                throw new InvalidDataException($"Máscara distinta en la capa {i + 1}"); // i18n: interno
         }
         ValidateLayers(actual);
     }
@@ -181,13 +182,13 @@ public static class ProjectSaver
     {
         for (var i = 0; i < p.Layers.Count; i++)
         {
-            var (w, h) = PngSize(p.Layers[i].Png) ?? throw new InvalidDataException($"La capa {i + 1} no es un PNG válido");
+            var (w, h) = PngSize(p.Layers[i].Png) ?? throw new InvalidDataException(F("La capa {0} no es un PNG válido", i + 1));
             if (w != p.Width || h != p.Height)
-                throw new InvalidDataException($"La capa {i + 1} mide {w}×{h} y el lienzo {p.Width}×{p.Height}");
+                throw new InvalidDataException(F("La capa {0} mide {1}×{2} y el lienzo {3}×{4}", i + 1, w, h, p.Width, p.Height));
             if (p.Layers[i].MaskPng is { } mask)
             {
-                var (mw, mh) = PngSize(mask) ?? throw new InvalidDataException($"La máscara de la capa {i + 1} no es un PNG válido");
-                if (mw != p.Width || mh != p.Height) throw new InvalidDataException($"La máscara de la capa {i + 1} no mide lo que el lienzo");
+                var (mw, mh) = PngSize(mask) ?? throw new InvalidDataException(F("La máscara de la capa {0} no es un PNG válido", i + 1));
+                if (mw != p.Width || mh != p.Height) throw new InvalidDataException(F("La máscara de la capa {0} no mide lo que el lienzo", i + 1));
             }
         }
     }

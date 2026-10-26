@@ -10,6 +10,7 @@ using Trazo.Core.Imaging;
 using Trazo.Core.Selection;
 using Trazo.Rendering;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -54,7 +55,7 @@ public sealed partial class StudioView
         _selectMode = true;
         SelectButton.IsChecked = true;
         BuildSelectionSheet();
-        OpenSheet("Seleccionar");
+        OpenSheet(T("Seleccionar"));
     }
 
     private void ExitSelectMode()
@@ -103,10 +104,10 @@ public sealed partial class StudioView
             }).ToList());
 
         SheetBody.Children.Add(Choice(
-            [(SelectTool.Automatic, "Automática"), (SelectTool.Freehand, "A mano"), (SelectTool.Rectangle, "Rectángulo"), (SelectTool.Ellipse, "Elipse")],
+            [(SelectTool.Automatic, T("Automática")), (SelectTool.Freehand, T("A mano")), (SelectTool.Rectangle, T("Rectángulo")), (SelectTool.Ellipse, T("Elipse"))],
             () => _selectTool, v => _selectTool = v));
         SheetBody.Children.Add(Choice(
-            [(SelectionCombine.Replace, "Nueva"), (SelectionCombine.Add, "Añadir"), (SelectionCombine.Subtract, "Restar"), (SelectionCombine.Intersect, "Intersecar")],
+            [(SelectionCombine.Replace, T("Nueva")), (SelectionCombine.Add, T("Añadir")), (SelectionCombine.Subtract, T("Restar")), (SelectionCombine.Intersect, T("Intersecar"))],
             () => _selectCombine, v => _selectCombine = v));
 
         Button Action(string text, string tip, Action a)
@@ -118,11 +119,11 @@ public sealed partial class StudioView
         }
         SheetBody.Children.Add(Row(
         [
-            Action("Invertir", "Invertir la selección (Ctrl+Mayús+I)", () => _ops?.InvertSelection()),
-            Action("Copiar y pegar", "Copia lo seleccionado a una capa nueva", () => { if (_ops?.CopySelectionToLayer() is not null) Window.ShowMessage("Selección copiada a una capa nueva"); }),
-            Action("Borrar", "Borra lo seleccionado de la capa activa", () => { if (_doc!.HasSelection) _ops?.Clear(_doc.ActiveIndex); }),
-            Action("Todo", "Seleccionar todo (Ctrl+A)", () => _ops?.SelectAll()),
-            Action("Ninguna", "Deseleccionar (Ctrl+D)", () => _ops?.Deselect()),
+            Action(T("Invertir"), T("Invertir la selección (Ctrl+Mayús+I)"), () => _ops?.InvertSelection()),
+            Action(T("Copiar y pegar"), T("Copia lo seleccionado a una capa nueva"), () => { if (_ops?.CopySelectionToLayer() is not null) Window.ShowMessage(T("Selección copiada a una capa nueva")); }),
+            Action(T("Borrar"), T("Borra lo seleccionado de la capa activa"), () => { if (_doc!.HasSelection) _ops?.Clear(_doc.ActiveIndex); }),
+            Action(T("Todo"), T("Seleccionar todo (Ctrl+A)"), () => _ops?.SelectAll()),
+            Action(T("Ninguna"), T("Deseleccionar (Ctrl+D)"), () => _ops?.Deselect()),
         ], [1, 1.5, 1, 1, 1]));
 
         // umbral de la automática o difuminado, en una sola fila
@@ -130,7 +131,7 @@ public sealed partial class StudioView
             ? new Slider { Minimum = 0, Maximum = 255, Value = _wandTolerance, VerticalAlignment = VerticalAlignment.Center }
             : new Slider { Minimum = 0, Maximum = 100, Value = _featherRadius, VerticalAlignment = VerticalAlignment.Center };
         var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 13, Width = 120 };
-        void Label() => label.Text = _selectTool == SelectTool.Automatic ? $"Umbral {_wandTolerance}" : $"Difuminar {_featherRadius:0} px";
+        void Label() => label.Text = _selectTool == SelectTool.Automatic ? F("Umbral {0}", _wandTolerance) : F("Difuminar {0:0} px", _featherRadius);
         slider.ValueChanged += (_, e) =>
         {
             if (_selectTool == SelectTool.Automatic) _wandTolerance = (int)e.NewValue;
@@ -147,7 +148,7 @@ public sealed partial class StudioView
         bottom.Children.Add(slider);
         if (_selectTool != SelectTool.Automatic)
         {
-            var feather = Action("Difuminar", "Suaviza el borde de la selección", () => _ops?.FeatherSelection(_featherRadius));
+            var feather = Action(T("Difuminar borde"), T("Suaviza el borde de la selección"), () => _ops?.FeatherSelection(_featherRadius));
             Grid.SetColumn(feather, 2);
             bottom.Children.Add(feather);
         }
@@ -202,21 +203,21 @@ public sealed partial class StudioView
                 using (var flat = doc.Flatten()) px = flat.GetPixelBytes();
                 var fill = FloodFill.Compute(px, doc.Width, doc.Height, (int)MathF.Floor(drag.Start.X), (int)MathF.Floor(drag.Start.Y), _wandTolerance);
                 if (fill is not null) shape = SelectionMask.FromFill(fill, doc.Width, doc.Height);
-                label = "Selección automática";
+                label = T("Selección automática");
                 break;
             case SelectTool.Rectangle:
                 if (Vector2.Distance(drag.Start, drag.Current) >= minDrag)
                     shape = SelectionMask.Rectangle(doc.Width, doc.Height, drag.Start.X, drag.Start.Y, drag.Current.X, drag.Current.Y);
-                label = "Selección rectangular";
+                label = T("Selección rectangular");
                 break;
             case SelectTool.Ellipse:
                 if (Vector2.Distance(drag.Start, drag.Current) >= minDrag)
                     shape = SelectionMask.Ellipse(doc.Width, doc.Height, drag.Start.X, drag.Start.Y, drag.Current.X, drag.Current.Y);
-                label = "Selección elíptica";
+                label = T("Selección elíptica");
                 break;
             default:
                 if (drag.Path.Count >= 3) shape = SelectionMask.Polygon(doc.Width, doc.Height, drag.Path);
-                label = "Selección a mano";
+                label = T("Selección a mano");
                 break;
         }
         if (shape is null)

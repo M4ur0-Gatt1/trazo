@@ -1,4 +1,5 @@
 using System.Numerics;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Core.Strokes;
 
@@ -30,10 +31,10 @@ public sealed class QuickShape
 
     public string DisplayName => Kind switch
     {
-        ShapeKind.Line => "Línea",
-        ShapeKind.Circle => "Círculo",
-        ShapeKind.Ellipse => "Elipse",
-        _ => "Polilínea",
+        ShapeKind.Line => T("Línea"),
+        ShapeKind.Circle => T("Círculo"),
+        ShapeKind.Ellipse => T("Elipse"),
+        _ => T("Polilínea"),
     };
 
     /// <summary>Reconoce una forma. <paramref name="viewScale"/> es el zoom actual (px de pantalla por px de documento).</summary>

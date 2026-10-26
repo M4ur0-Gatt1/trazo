@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Core.IO;
 
@@ -150,7 +151,7 @@ public sealed class EmergencySaver
     {
         var dir = Path.GetDirectoryName(documentPath) ?? ".";
         var name = Path.GetFileNameWithoutExtension(documentPath);
-        return Path.Combine(dir, $"{name} (recuperado){TrazoFile.Extension}");
+        return Path.Combine(dir, F("{0} (recuperado){1}", name, TrazoFile.Extension));
     }
 
     /// <summary>Guarda la copia y devuelve su ruta, o null si se guardó otra hace menos de un minuto.</summary>
@@ -158,7 +159,7 @@ public sealed class EmergencySaver
     {
         if (now - _last < MinInterval) return null;
         var path = PathFor(documentPath);
-        ProjectSaver.Save(path, data with { Name = data.Name + " (recuperado)" });
+        ProjectSaver.Save(path, data with { Name = data.Name + T(" (recuperado)") });
         _last = now;
         return path;
     }

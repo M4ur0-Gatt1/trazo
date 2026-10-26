@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using Trazo.Core.Documents;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Core.IO;
 
@@ -133,12 +134,12 @@ public static class Psd
         int s = 0, d = 0;
         while (d < dest.Length)
         {
-            if (s >= src.Length) throw new InvalidDataException("PSD: datos RLE truncados");
+            if (s >= src.Length) throw new InvalidDataException(T("PSD: datos RLE truncados"));
             var n = (sbyte)src[s++];
             if (n >= 0)
             {
                 var count = n + 1;
-                if (s + count > src.Length || d + count > dest.Length) throw new InvalidDataException("PSD: literal RLE fuera de rango");
+                if (s + count > src.Length || d + count > dest.Length) throw new InvalidDataException(T("PSD: literal RLE fuera de rango"));
                 src.Slice(s, count).CopyTo(dest[d..]);
                 s += count;
                 d += count;
@@ -146,7 +147,7 @@ public static class Psd
             else if (n != -128)
             {
                 var count = 1 - n;
-                if (s >= src.Length || d + count > dest.Length) throw new InvalidDataException("PSD: repetición RLE fuera de rango");
+                if (s >= src.Length || d + count > dest.Length) throw new InvalidDataException(T("PSD: repetición RLE fuera de rango"));
                 dest.Slice(d, count).Fill(src[s++]);
                 d += count;
             }
@@ -183,7 +184,7 @@ public static class Psd
                     len++;
                 }
                 end = s.Position;
-                if (len > uint.MaxValue) throw new InvalidDataException("El documento es demasiado grande para PSD (más de 4 GB en una sección).");
+                if (len > uint.MaxValue) throw new InvalidDataException(T("El documento es demasiado grande para PSD (más de 4 GB en una sección)."));
                 s.Position = at;
                 U32(len);
                 s.Position = end;
@@ -229,8 +230,8 @@ public static class Psd
     public static void Write(Stream stream, PsdFile psd)
     {
         if (psd.Width <= 0 || psd.Height <= 0 || psd.Width > MaxSide || psd.Height > MaxSide)
-            throw new ArgumentException("Tamaño de lienzo no válido para PSD.");
-        if (psd.Composite.Length != psd.Width * psd.Height * 4) throw new ArgumentException("La imagen compuesta no tiene el tamaño del lienzo.");
+            throw new ArgumentException(T("Tamaño de lienzo no válido para PSD."));
+        if (psd.Composite.Length != psd.Width * psd.Height * 4) throw new ArgumentException(T("La imagen compuesta no tiene el tamaño del lienzo."));
         var w = new Writer(stream);
         w.Ascii("8BPS");
         w.U16(1);
@@ -253,7 +254,7 @@ public static class Psd
             var channels = new List<(short, byte[])>();
             if (l.Kind == PsdLayerKind.Pixels && l.Width > 0 && l.Height > 0)
             {
-                if (l.Rgba.Length != l.Width * l.Height * 4) throw new ArgumentException($"La capa «{l.Name}» no tiene el tamaño de su rectángulo.");
+                if (l.Rgba.Length != l.Width * l.Height * 4) throw new ArgumentException(F("La capa «{0}» no tiene el tamaño de su rectángulo.", l.Name));
                 var lw = l.Width;
                 var px = l.Rgba;
                 channels.Add((-1, EncodeChannel((x, y) => px[(y * lw + x) * 4 + 3], l.Width, l.Height)));
@@ -371,7 +372,7 @@ public static class Psd
 
         private ReadOnlySpan<byte> Take(int n)
         {
-            if (n < 0 || n > Remaining) throw new InvalidDataException("PSD: el archivo está truncado o dañado");
+            if (n < 0 || n > Remaining) throw new InvalidDataException(T("PSD: el archivo está truncado o dañado"));
             var s = _d.Slice(Pos, n);
             Pos += n;
             return s;
@@ -388,7 +389,7 @@ public static class Psd
         public int Len32()
         {
             var v = U32();
-            if (v > Remaining) throw new InvalidDataException("PSD: una sección dice medir más que el resto del archivo");
+            if (v > Remaining) throw new InvalidDataException(T("PSD: una sección dice medir más que el resto del archivo"));
             return (int)v;
         }
 
@@ -406,26 +407,26 @@ public static class Psd
     public static PsdFile Read(ReadOnlySpan<byte> data)
     {
         var r = new Reader(data);
-        if (r.Remaining < 26 || r.Ascii(4) != "8BPS") throw new InvalidDataException("No es un archivo PSD.");
+        if (r.Remaining < 26 || r.Ascii(4) != "8BPS") throw new InvalidDataException(T("No es un archivo PSD."));
         var version = r.U16();
-        if (version == 2) throw new InvalidDataException("Los archivos PSB (documento grande) no están soportados; guárdalo como PSD.");
-        if (version != 1) throw new InvalidDataException("Versión de PSD desconocida.");
+        if (version == 2) throw new InvalidDataException(T("Los archivos PSB (documento grande) no están soportados; guárdalo como PSD."));
+        if (version != 1) throw new InvalidDataException(T("Versión de PSD desconocida."));
         r.Skip(6);
         var channels = r.U16();
         var height = (int)r.U32();
         var width = (int)r.U32();
         var depth = r.U16();
         var mode = r.U16();
-        if (width <= 0 || height <= 0 || width > MaxSide || height > MaxSide) throw new InvalidDataException("Tamaño de lienzo no válido en el PSD.");
+        if (width <= 0 || height <= 0 || width > MaxSide || height > MaxSide) throw new InvalidDataException(T("Tamaño de lienzo no válido en el PSD."));
         if (mode is not (3 or 1)) throw new InvalidDataException(mode switch
         {
-            4 => "Los PSD en CMYK no están soportados; conviértelo a RGB.",
-            9 => "Los PSD en Lab no están soportados; conviértelo a RGB.",
-            2 => "Los PSD en color indexado no están soportados; conviértelo a RGB.",
-            _ => "Modo de color de PSD no soportado; conviértelo a RGB.",
+            4 => T("Los PSD en CMYK no están soportados; conviértelo a RGB."),
+            9 => T("Los PSD en Lab no están soportados; conviértelo a RGB."),
+            2 => T("Los PSD en color indexado no están soportados; conviértelo a RGB."),
+            _ => T("Modo de color de PSD no soportado; conviértelo a RGB."),
         });
-        if (depth is not (8 or 16)) throw new InvalidDataException(depth == 32 ? "Los PSD de 32 bits no están soportados; conviértelo a 8 o 16 bits." : "Profundidad de PSD no soportada.");
-        if (channels < (mode == 3 ? 3 : 1) || channels > 56) throw new InvalidDataException("Número de canales no válido en el PSD.");
+        if (depth is not (8 or 16)) throw new InvalidDataException(depth == 32 ? T("Los PSD de 32 bits no están soportados; conviértelo a 8 o 16 bits.") : T("Profundidad de PSD no soportada."));
+        if (channels < (mode == 3 ? 3 : 1) || channels > 56) throw new InvalidDataException(T("Número de canales no válido en el PSD."));
         var gray = mode == 1;
         var psd = new PsdFile { Width = width, Height = height, SourceDepth = depth, SourceGrayscale = gray };
         var bpc = depth / 8;
@@ -463,9 +464,9 @@ public static class Psd
 
         // imagen compuesta
         var compression = r.U16();
-        if (compression is 2 or 3) throw new InvalidDataException("Los PSD con compresión ZIP no están soportados; guárdalo con compresión RLE o sin comprimir.");
-        if (compression > 3) throw new InvalidDataException("Compresión de PSD desconocida.");
-        if ((long)channels * MinEncoded(width * bpc, height, compression) > r.Remaining) throw new InvalidDataException("PSD: la imagen compuesta está truncada.");
+        if (compression is 2 or 3) throw new InvalidDataException(T("Los PSD con compresión ZIP no están soportados; guárdalo con compresión RLE o sin comprimir."));
+        if (compression > 3) throw new InvalidDataException(T("Compresión de PSD desconocida."));
+        if ((long)channels * MinEncoded(width * bpc, height, compression) > r.Remaining) throw new InvalidDataException(T("PSD: la imagen compuesta está truncada."));
         // solo color: un canal extra en la imagen compuesta suele ser una selección guardada, no transparencia
         var planes = gray ? 1 : Math.Min(channels, 3);
         var plane = new byte[width * height * bpc];
@@ -517,17 +518,17 @@ public static class Psd
     private static void ReadLayers(ref Reader r, PsdFile psd, int bpc, bool gray)
     {
         var count = Math.Abs(r.I16());
-        if (count > MaxLayers) throw new InvalidDataException("El PSD tiene demasiadas capas.");
+        if (count > MaxLayers) throw new InvalidDataException(T("El PSD tiene demasiadas capas."));
         var records = new List<(PsdLayer Layer, List<(int Id, long Length)> Channels, (int L, int T, int R, int B, byte Def)? MaskRect)>();
         for (var i = 0; i < count; i++)
         {
             var l = new PsdLayer { Top = r.I32(), Left = r.I32(), Bottom = r.I32(), Right = r.I32() };
-            if (l.Width < 0 || l.Height < 0 || l.Width > MaxSide || l.Height > MaxSide) throw new InvalidDataException("Rectángulo de capa no válido en el PSD.");
+            if (l.Width < 0 || l.Height < 0 || l.Width > MaxSide || l.Height > MaxSide) throw new InvalidDataException(T("Rectángulo de capa no válido en el PSD."));
             var nch = r.U16();
-            if (nch > 56) throw new InvalidDataException("Demasiados canales en una capa del PSD.");
+            if (nch > 56) throw new InvalidDataException(T("Demasiados canales en una capa del PSD."));
             var chans = new List<(int, long)>();
             for (var c = 0; c < nch; c++) chans.Add((r.I16(), r.U32()));
-            if (r.Ascii(4) != "8BIM") throw new InvalidDataException("PSD: registro de capa dañado.");
+            if (r.Ascii(4) != "8BIM") throw new InvalidDataException(T("PSD: registro de capa dañado."));
             l.BlendKey = r.Ascii(4);
             l.Opacity = r.U8();
             l.Clipping = r.U8() != 0;
@@ -593,20 +594,20 @@ public static class Psd
         {
             var w = l.Width;
             var h = l.Height;
-            if ((long)w * h * 4 > int.MaxValue) throw new InvalidDataException("Capa demasiado grande en el PSD.");
+            if ((long)w * h * 4 > int.MaxValue) throw new InvalidDataException(T("Capa demasiado grande en el PSD."));
             foreach (var (id, length) in chans)
             {
                 var (cw0, ch0) = id == -2 ? (maskRect is { } mr0 ? (mr0.R - mr0.L, mr0.B - mr0.T) : (0, 0)) : (w, h);
                 if (id < -2 || cw0 == 0 || ch0 == 0) continue;
                 if (2 + MinEncoded(cw0 * bpc, ch0, 1) > length && 2 + MinEncoded(cw0 * bpc, ch0, 0) > length)
-                    throw new InvalidDataException("PSD: datos de canal truncados.");
+                    throw new InvalidDataException(T("PSD: datos de canal truncados."));
             }
             var rgba = new byte[w * h * 4];
             var hasAlpha = false;
             byte[]? maskGray = null;
             foreach (var (id, length) in chans)
             {
-                if (length < 2 || length > r.Remaining) throw new InvalidDataException("PSD: datos de canal truncados.");
+                if (length < 2 || length > r.Remaining) throw new InvalidDataException(T("PSD: datos de canal truncados."));
                 var end = r.Pos + (int)length;
                 var compression = r.U16();
                 var isMask = id == -2;
@@ -617,8 +618,8 @@ public static class Psd
                     r.Pos = end;
                     continue;
                 }
-                if (compression is 2 or 3) throw new InvalidDataException("Los PSD con compresión ZIP no están soportados; guárdalo con compresión RLE o sin comprimir.");
-                if (compression > 3) throw new InvalidDataException("Compresión de PSD desconocida.");
+                if (compression is 2 or 3) throw new InvalidDataException(T("Los PSD con compresión ZIP no están soportados; guárdalo con compresión RLE o sin comprimir."));
+                if (compression > 3) throw new InvalidDataException(T("Compresión de PSD desconocida."));
                 var plane = new byte[cw * chh * bpc];
                 int[]? counts = null;
                 if (compression == 1)
@@ -809,10 +810,10 @@ public static class Psd
             layers = layers.Select(t => t with { Group = t.Group is { } g ? remap[g] : null }).ToList();
             groups = kept;
         }
-        if (skipped > 0) warnings.Add($"{skipped} capas de ajuste o relleno no se importaron.");
-        if (approximated > 0) warnings.Add($"{approximated} modos de fusión sin equivalente se aproximaron.");
-        if (nested > 0) warnings.Add($"{nested} grupos anidados se juntaron en su grupo exterior.");
-        if (passThrough > 0) warnings.Add($"{passThrough} grupos en «Pasar a través» se importaron como grupos normales.");
+        if (skipped > 0) warnings.Add(F("{0} capas de ajuste o relleno no se importaron.", skipped));
+        if (approximated > 0) warnings.Add(F("{0} modos de fusión sin equivalente se aproximaron.", approximated));
+        if (nested > 0) warnings.Add(F("{0} grupos anidados se juntaron en su grupo exterior.", nested));
+        if (passThrough > 0) warnings.Add(F("{0} grupos en «Pasar a través» se importaron como grupos normales.", passThrough));
         return new TrazoStructure(layers, groups, warnings);
     }
 }

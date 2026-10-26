@@ -5,6 +5,8 @@ Las notas de cada versión publicada están en [Releases](https://github.com/M4u
 ## Sin publicar
 
 - **PSD (EX-01):** exportar e importar con capas, grupos, máscaras, recorte, bloqueo alfa y los 16 modos de fusión. Lee RGB y escala de grises de 8 y 16 bits; avisa de lo que no puede conservar igual (modos sin equivalente, grupos anidados, capas de ajuste). Verificado contra ag-psd, la biblioteca de Photopea.
+- **Interfaz en inglés (I18N-01):** español o inglés según el idioma de Windows, o elegido en Acciones › Preferencias › Idioma. Los porcentajes siguen la tipografía de cada idioma y los números, el formato regional de Windows.
+- En Licuar, el deslizador «Ajustar» pasa a llamarse «Cantidad», y el botón de difuminar la selección, «Difuminar borde», para no confundirlo con la herramienta.
 
 ## 1.1.0 — 2026-10-25
 

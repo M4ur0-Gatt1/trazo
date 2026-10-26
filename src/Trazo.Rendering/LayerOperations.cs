@@ -5,6 +5,7 @@ using Trazo.Core.History;
 using Trazo.Core.Selection;
 using Windows.Foundation;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -185,14 +186,14 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         if (doc.Layers.Count >= doc.MaxLayers)
         {
-            Message?.Invoke($"Límite de {doc.MaxLayers} capas para este tamaño de lienzo");
+            Message?.Invoke(F("Límite de {0} capas para este tamaño de lienzo", doc.MaxLayers));
             return null;
         }
         var l = layer ?? doc.CreateLayer();
         var idx = Math.Clamp(at ?? doc.ActiveIndex + 1, 0, doc.Layers.Count);
         var group = GroupRules.GroupForInsert(doc.GroupIds, idx);
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DelegateAction("Nueva capa",
+        doc.History.Execute(new DelegateAction(T("Nueva capa"),
             () => { doc.Layers.Remove(l); doc.ActiveIndex = prev; },
             () => { l.GroupId = group; doc.Layers.Insert(idx, l); doc.ActiveIndex = idx; },
             LayerBytes));
@@ -205,12 +206,12 @@ public sealed class LayerOperations(PaintDocument doc)
         if (doc.Layers.Count <= 1)
         {
             Clear(index);
-            Message?.Invoke("Se vació la única capa");
+            Message?.Invoke(T("Se vació la única capa"));
             return;
         }
         var l = doc.Layers[index];
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DelegateAction("Eliminar capa",
+        doc.History.Execute(new DelegateAction(T("Eliminar capa"),
             () => { doc.Layers.Insert(index, l); doc.ActiveIndex = prev; },
             () => { doc.Layers.Remove(l); doc.ActiveIndex = Math.Max(0, index - 1); }));
         doc.IsDirty = true;
@@ -228,7 +229,7 @@ public sealed class LayerOperations(PaintDocument doc)
         ids.RemoveAt(from);
         ids.Insert(to, oldGroup);
         var newGroup = GroupRules.GroupAfterMove(ids, to, oldGroup);
-        doc.History.Execute(new DelegateAction("Mover capa",
+        doc.History.Execute(new DelegateAction(T("Mover capa"),
             () => { doc.Layers.Move(to, from); layer.GroupId = oldGroup; doc.ActiveIndex = from; },
             () => { doc.Layers.Move(from, to); layer.GroupId = newGroup; doc.ActiveIndex = to; }));
         doc.IsDirty = true;
@@ -247,7 +248,7 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         var (oc, ov) = (doc.Background, doc.BackgroundVisible);
         if (oc == color && ov == visible) return;
-        doc.History.Execute(new DelegateAction("Fondo",
+        doc.History.Execute(new DelegateAction(T("Fondo"),
             () => { doc.Background = oc; doc.BackgroundVisible = ov; },
             () => { doc.Background = color; doc.BackgroundVisible = visible; }));
         doc.IsDirty = true;
@@ -257,7 +258,7 @@ public sealed class LayerOperations(PaintDocument doc)
     public void Clear(int index)
     {
         var layer = doc.Layers[index];
-        PixelOp(layer, layer.EditingMask ? "Restablecer máscara" : "Borrar capa",
+        PixelOp(layer, layer.EditingMask ? T("Restablecer máscara") : T("Borrar capa"),
             ds => ds.Clear(layer.EditingMask ? KnownColors.White : KnownColors.Transparent));
     }
 
@@ -268,12 +269,12 @@ public sealed class LayerOperations(PaintDocument doc)
         if (layer.EditingMask) color = ToMaskGray(color);
         if (!layer.TargetAlphaLock)
         {
-            PixelOp(layer, "Rellenar capa", ds => ds.Clear(color));
+            PixelOp(layer, T("Rellenar capa"), ds => ds.Clear(color));
             return;
         }
         using var solid = new CanvasRenderTarget(doc.Device, doc.Width, doc.Height, 96);
         using (var ds = solid.CreateDrawingSession()) ds.Clear(color);
-        PixelOp(layer, "Rellenar capa", ds =>
+        PixelOp(layer, T("Rellenar capa"), ds =>
             ds.DrawImage(solid, System.Numerics.Vector2.Zero, doc.Bounds, 1, CanvasImageInterpolation.NearestNeighbor, CanvasComposite.SourceAtop));
     }
 
@@ -289,7 +290,7 @@ public sealed class LayerOperations(PaintDocument doc)
         var layer = doc.Layers[index];
         // Direct2D invierte los canales de color sin premultiplicar y conserva el alfa
         using var fx = new InvertEffect { Source = layer.Target };
-        ReplaceWith(layer, fx, layer.EditingMask ? "Invertir máscara" : "Invertir");
+        ReplaceWith(layer, fx, layer.EditingMask ? T("Invertir máscara") : T("Invertir"));
     }
 
     public void MergeDown(int index)
@@ -299,14 +300,14 @@ public sealed class LayerOperations(PaintDocument doc)
         var down = doc.Layers[index - 1];
         if (up.GroupId != down.GroupId)
         {
-            Message?.Invoke("Solo se pueden combinar capas del mismo grupo");
+            Message?.Invoke(T("Solo se pueden combinar capas del mismo grupo"));
             return;
         }
         var before = Clone(down.Surface);
         var beforeMask = down.Mask;
         CanvasRenderTarget? after = null;
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DisposingAction("Combinar abajo", LayerBytes * 2,
+        doc.History.Execute(new DisposingAction(T("Combinar abajo"), LayerBytes * 2,
             () =>
             {
                 down.Surface.CopyPixelsFromBitmap(before);
@@ -370,7 +371,7 @@ public sealed class LayerOperations(PaintDocument doc)
             }
             if (doc.Selection is { } s) doc.Selection = FlipSelection(s, horizontal);
         }
-        doc.History.Execute(new DelegateAction(horizontal ? "Voltear horizontal" : "Voltear vertical", Flip, Flip));
+        doc.History.Execute(new DelegateAction(horizontal ? T("Voltear horizontal") : T("Voltear vertical"), Flip, Flip));
         doc.IsDirty = true;
     }
 
@@ -402,7 +403,7 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         if (layer.HasMask) return;
         var mask = Layer.CreateMask(doc.Device, doc.Width, doc.Height, KnownColors.White);
-        doc.History.Execute(new DelegateAction("Añadir máscara",
+        doc.History.Execute(new DelegateAction(T("Añadir máscara"),
             () => { layer.Mask = null; layer.Touch(); },
             () => { layer.Mask = mask; layer.EditingMask = true; layer.Touch(); },
             LayerBytes));
@@ -413,7 +414,7 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         if (layer.Mask is not { } mask) return;
         var editing = layer.EditingMask;
-        doc.History.Execute(new DelegateAction("Eliminar máscara",
+        doc.History.Execute(new DelegateAction(T("Eliminar máscara"),
             () => { layer.Mask = mask; layer.EditingMask = editing; layer.Touch(); },
             () => { layer.Mask = null; layer.Touch(); }));
         doc.IsDirty = true;
@@ -437,7 +438,7 @@ public sealed class LayerOperations(PaintDocument doc)
             after = Clone(tmp);
         }
         var editing = layer.EditingMask;
-        doc.History.Execute(new DisposingAction("Aplicar máscara", LayerBytes * 2,
+        doc.History.Execute(new DisposingAction(T("Aplicar máscara"), LayerBytes * 2,
             () => { layer.Surface.CopyPixelsFromBitmap(before); layer.Mask = mask; layer.EditingMask = editing; layer.Touch(); },
             () => { layer.Surface.CopyPixelsFromBitmap(after); layer.Mask = null; layer.Touch(); },
             [before, after]));
@@ -461,11 +462,11 @@ public sealed class LayerOperations(PaintDocument doc)
         var layer = doc.Layers[index];
         if (layer.GroupId is not null)
         {
-            Message?.Invoke("La capa ya pertenece a un grupo");
+            Message?.Invoke(T("La capa ya pertenece a un grupo"));
             return null;
         }
         var g = new LayerGroup { Name = NextGroupName() };
-        doc.History.Execute(new DelegateAction("Nuevo grupo",
+        doc.History.Execute(new DelegateAction(T("Nuevo grupo"),
             () => { layer.GroupId = null; doc.Groups.Remove(g); },
             () => { doc.Groups.Add(g); layer.GroupId = g.Id; }));
         doc.IsDirty = true;
@@ -480,19 +481,19 @@ public sealed class LayerOperations(PaintDocument doc)
         var below = doc.Layers[index - 1];
         if (layer.GroupId is not null)
         {
-            Message?.Invoke("La capa ya pertenece a un grupo");
+            Message?.Invoke(T("La capa ya pertenece a un grupo"));
             return;
         }
         if (below.GroupId is { } existing)
         {
-            doc.History.Execute(new DelegateAction("Agrupar",
+            doc.History.Execute(new DelegateAction(T("Agrupar"),
                 () => layer.GroupId = null,
                 () => layer.GroupId = existing));
         }
         else
         {
             var g = new LayerGroup { Name = NextGroupName() };
-            doc.History.Execute(new DelegateAction("Agrupar",
+            doc.History.Execute(new DelegateAction(T("Agrupar"),
                 () => { layer.GroupId = null; below.GroupId = null; doc.Groups.Remove(g); },
                 () => { doc.Groups.Add(g); layer.GroupId = g.Id; below.GroupId = g.Id; }));
         }
@@ -505,7 +506,7 @@ public sealed class LayerOperations(PaintDocument doc)
         if (g is null) return;
         var members = doc.Layers.Where(l => l.GroupId == groupId).ToList();
         var gi = doc.Groups.IndexOf(g);
-        doc.History.Execute(new DelegateAction("Desagrupar",
+        doc.History.Execute(new DelegateAction(T("Desagrupar"),
             () => { doc.Groups.Insert(gi, g); members.ForEach(l => l.GroupId = groupId); },
             () => { members.ForEach(l => l.GroupId = null); doc.Groups.Remove(g); }));
         doc.IsDirty = true;
@@ -517,13 +518,13 @@ public sealed class LayerOperations(PaintDocument doc)
         if (g is null || GroupRules.Range(doc.GroupIds, groupId) is not { } range) return;
         if (range.Last - range.First + 1 == doc.Layers.Count)
         {
-            Message?.Invoke("No se puede eliminar el grupo: contiene todas las capas");
+            Message?.Invoke(T("No se puede eliminar el grupo: contiene todas las capas"));
             return;
         }
         var members = doc.Layers.Skip(range.First).Take(range.Last - range.First + 1).ToList();
         var gi = doc.Groups.IndexOf(g);
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DelegateAction("Eliminar grupo",
+        doc.History.Execute(new DelegateAction(T("Eliminar grupo"),
             () =>
             {
                 doc.Groups.Insert(gi, g);
@@ -558,7 +559,7 @@ public sealed class LayerOperations(PaintDocument doc)
         owned.ForEach(o => o.Dispose());
         var gi = doc.Groups.IndexOf(g);
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DelegateAction("Combinar grupo",
+        doc.History.Execute(new DelegateAction(T("Combinar grupo"),
             () =>
             {
                 doc.Layers.Remove(merged);
@@ -589,8 +590,8 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         var names = doc.Groups.Select(g => g.Name).ToHashSet();
         var n = 1;
-        while (names.Contains($"Grupo {n}")) n++;
-        return $"Grupo {n}";
+        while (names.Contains(F("Grupo {0}", n))) n++;
+        return F("Grupo {0}", n);
     }
 
     // ---------- Selección (SE-01) ----------
@@ -616,15 +617,15 @@ public sealed class LayerOperations(PaintDocument doc)
         SetSelection(result, label);
     }
 
-    public void SelectAll() => SetSelection(SelectionMask.All(doc.Width, doc.Height), "Seleccionar todo");
-    public void Deselect() => SetSelection(null, "Deseleccionar");
+    public void SelectAll() => SetSelection(SelectionMask.All(doc.Width, doc.Height), T("Seleccionar todo"));
+    public void Deselect() => SetSelection(null, T("Deseleccionar"));
 
     public void InvertSelection() =>
-        SetSelection((doc.Selection ?? new SelectionMask(doc.Width, doc.Height)).Invert(), "Invertir selección");
+        SetSelection((doc.Selection ?? new SelectionMask(doc.Width, doc.Height)).Invert(), T("Invertir selección"));
 
     public void FeatherSelection(float radius)
     {
-        if (doc.Selection is { } s && radius > 0) SetSelection(s.Feather(radius), "Difuminar selección");
+        if (doc.Selection is { } s && radius > 0) SetSelection(s.Feather(radius), T("Difuminar selección"));
     }
 
     /// <summary>Selecciona el contenido de la capa: la cobertura es su alfa.</summary>
@@ -636,10 +637,10 @@ public sealed class LayerOperations(PaintDocument doc)
         var mask = new SelectionMask(doc.Width, doc.Height, data);
         if (mask.IsEmpty)
         {
-            Message?.Invoke("La capa está vacía");
+            Message?.Invoke(T("La capa está vacía"));
             return;
         }
-        SetSelection(mask, "Seleccionar contenido");
+        SetSelection(mask, T("Seleccionar contenido"));
     }
 
     /// <summary>Copia lo seleccionado de la capa activa a una capa nueva encima ("Copiar y pegar").</summary>
@@ -647,11 +648,11 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         if (doc.SelectionBitmap is not { } sel)
         {
-            Message?.Invoke("No hay ninguna selección");
+            Message?.Invoke(T("No hay ninguna selección"));
             return null;
         }
         var source = doc.ActiveLayer;
-        var l = doc.CreateLayer(source.Name + " (selección)");
+        var l = doc.CreateLayer(source.Name + T(" (selección)"));
         using (var masked = new CompositeEffect { Mode = CanvasComposite.DestinationIn, Sources = { source.Surface, sel } })
         using (var ds = l.Surface.CreateDrawingSession())
         {

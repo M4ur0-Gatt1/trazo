@@ -3,6 +3,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -29,29 +30,29 @@ public sealed partial class StudioView
         header.Children.Add(new Image { Source = new BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "Logo.png"))), Width = 64, Height = 64 });
         var title = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         title.Children.Add(new TextBlock { Text = "Trazo", FontSize = 24, FontWeight = FontWeights.SemiBold });
-        title.Children.Add(new TextBlock { Text = "Versión " + DisplayVersion, Opacity = 0.7, IsTextSelectionEnabled = true });
+        title.Children.Add(new TextBlock { Text = T("Versión ") + DisplayVersion, Opacity = 0.7, IsTextSelectionEnabled = true });
         header.Children.Add(title);
         content.Children.Add(header);
         content.Children.Add(new TextBlock
         {
-            Text = "Estudio de pintura digital para Windows.\n© 2026 Mauro Gatti · Software libre con licencia MIT.",
+            Text = T("Estudio de pintura digital para Windows.\n© 2026 Mauro Gatti · Software libre con licencia MIT."),
             TextWrapping = TextWrapping.Wrap,
         });
 
         var links = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         void Link(string text, string url) =>
             links.Children.Add(new HyperlinkButton { Content = text, NavigateUri = new Uri(url), Padding = new Thickness(6, 2, 6, 2) });
-        Link("Código y novedades", "https://github.com/M4ur0-Gatt1/trazo");
-        Link("Informar un problema", "https://github.com/M4ur0-Gatt1/trazo/issues/new/choose");
-        Link("Privacidad", "https://m4ur0-gatt1.github.io/trazo/privacidad.html");
+        Link(T("Código y novedades"), "https://github.com/M4ur0-Gatt1/trazo");
+        Link(T("Informar un problema"), "https://github.com/M4ur0-Gatt1/trazo/issues/new/choose");
+        Link(T("Privacidad"), "https://m4ur0-gatt1.github.io/trazo/privacidad.html");
         content.Children.Add(links);
 
         // avisos de terceros, leídos del archivo que acompaña a la app
         var notices = Path.Combine(legal, "THIRD-PARTY-NOTICES.md");
-        var text = File.Exists(notices) ? await File.ReadAllTextAsync(notices) : "No se encontraron los avisos de terceros.";
+        var text = File.Exists(notices) ? await File.ReadAllTextAsync(notices) : T("No se encontraron los avisos de terceros.");
         content.Children.Add(new Expander
         {
-            Header = "Avisos de terceros y licencias",
+            Header = T("Avisos de terceros y licencias"),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Content = new ScrollViewer
@@ -60,14 +61,14 @@ public sealed partial class StudioView
                 Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 12, IsTextSelectionEnabled = true },
             },
         });
-        var logs = new Button { Content = "Abrir la carpeta de registros", Padding = new Thickness(10, 4, 10, 5) };
-        ToolTipService.SetToolTip(logs, "Adjunta el registro más reciente al informar un problema");
+        var logs = new Button { Content = T("Abrir la carpeta de registros"), Padding = new Thickness(10, 4, 10, 5) };
+        ToolTipService.SetToolTip(logs, T("Adjunta el registro más reciente al informar un problema"));
         logs.Click += (_, _) =>
         {
             Directory.CreateDirectory(Services.Log.Folder);
             System.Diagnostics.Process.Start("explorer.exe", Services.Log.Folder);
         };
         content.Children.Add(logs);
-        await Dialogs.ShowAsync(XamlRoot, "Acerca de Trazo", content, "Cerrar", "");
+        await Dialogs.ShowAsync(XamlRoot, T("Acerca de Trazo"), content, T("Cerrar"), "");
     }
 }

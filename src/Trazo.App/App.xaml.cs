@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Trazo.Core.IO;
+using Trazo.Core.Localization;
 
 namespace Trazo.App;
 
@@ -13,6 +14,13 @@ public partial class App : Application
 
     public App()
     {
+        // I18N-01: el idioma se elige antes de crear cualquier vista (TRAZO_LANG=en|es lo fuerza, para pruebas y capturas)
+        Tr.Use(Environment.GetEnvironmentVariable("TRAZO_LANG") switch
+        {
+            "en" => UiLanguage.English,
+            "es" => UiLanguage.Spanish,
+            _ => Services.Settings.Current.Language,
+        });
         InitializeComponent();
         UnhandledException += (_, e) =>
         {

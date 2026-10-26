@@ -15,7 +15,7 @@ public sealed record RecordedSample(double T, float X, float Y, float Pressure, 
 public sealed record InputRecording
 {
     public int Version { get; init; } = 1;
-    public string Device { get; init; } = "sintético";
+    public string Device { get; init; } = "sintético"; // i18n: interno
     public string? Note { get; init; }
     public float ViewScale { get; init; } = 1;
     public float ViewRotation { get; init; }
@@ -37,7 +37,7 @@ public sealed record InputRecording
     }
 
     /// <summary>Crea una grabación a partir de puntos del documento vistos con <paramref name="view"/>.</summary>
-    public static InputRecording FromDocument(IEnumerable<InputPoint> points, ViewTransform view, string device = "sintético") => new()
+    public static InputRecording FromDocument(IEnumerable<InputPoint> points, ViewTransform view, string device = "sintético") => new() // i18n: interno
     {
         Device = device,
         ViewScale = view.Scale,
@@ -54,7 +54,7 @@ public sealed record InputRecording
     public string ToJson() => JsonSerializer.Serialize(this, RecordingJson.Default.InputRecording);
 
     public static InputRecording FromJson(string json) =>
-        JsonSerializer.Deserialize(json, RecordingJson.Default.InputRecording) ?? throw new InvalidDataException("Grabación vacía");
+        JsonSerializer.Deserialize(json, RecordingJson.Default.InputRecording) ?? throw new InvalidDataException("Grabación vacía"); // i18n: interno
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = false)]

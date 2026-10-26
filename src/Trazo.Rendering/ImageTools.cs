@@ -4,6 +4,7 @@ using Microsoft.Graphics.Canvas.Effects;
 using Trazo.Core.Geometry;
 using Trazo.Core.Imaging;
 using Windows.Foundation;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -39,25 +40,25 @@ public sealed record Adjustment(string Id, string Name, IReadOnlyList<AdjustPara
 
     public static readonly IReadOnlyList<Adjustment> All =
     [
-        new("hsb", "Tono, saturación y brillo",
-            [new("h", "Tono", -180, 180, 0, "°"), new("s", "Saturación", 0, 200, 100, " %"), new("b", "Brillo", 0, 200, 100, " %")],
+        new("hsb", T("Tono, saturación y brillo"),
+            [new("h", T("Tono"), -180, 180, 0, "°"), new("s", T("Saturación"), 0, 200, 100, " %"), new("b", T("Brillo"), 0, 200, 100, " %")],
             (src, v, o) =>
             {
                 ICanvasImage img = Own(o, new HueRotationEffect { Source = src, Angle = (float)(v["h"] * Math.PI / 180) });
                 img = Own(o, new ColorMatrixEffect { Source = img, ColorMatrix = Saturation((float)(v["s"] / 100)), ClampOutput = true });
                 return Own(o, new ColorMatrixEffect { Source = img, ColorMatrix = Brightness((float)(v["b"] / 100)), ClampOutput = true });
             }),
-        new("contrast", "Contraste", [new("c", "Contraste", -100, 100, 0, " %")],
+        new("contrast", T("Contraste"), [new("c", T("Contraste"), -100, 100, 0, " %")],
             (src, v, o) => Own(o, new ContrastEffect { Source = src, Contrast = (float)(v["c"] / 100) })),
-        new("exposure", "Exposición", [new("e", "Exposición", -2, 2, 0, " EV")],
+        new("exposure", T("Exposición"), [new("e", T("Exposición"), -2, 2, 0, T(" EV"))],
             (src, v, o) => Own(o, new ExposureEffect { Source = src, Exposure = (float)v["e"] })),
-        new("temperature", "Temperatura y matiz", [new("t", "Temperatura", -100, 100, 0), new("m", "Matiz", -100, 100, 0)],
+        new("temperature", T("Temperatura y matiz"), [new("t", T("Temperatura"), -100, 100, 0), new("m", T("Matiz"), -100, 100, 0)],
             (src, v, o) => Own(o, new TemperatureAndTintEffect { Source = src, Temperature = (float)(v["t"] / 100), Tint = (float)(v["m"] / 100) })),
-        new("blur", "Desenfoque gaussiano", [new("r", "Radio", 0, 100, 0, " px")],
+        new("blur", T("Desenfoque gaussiano"), [new("r", T("Radio"), 0, 100, 0, T(" px"))],
             (src, v, o) => Own(o, new GaussianBlurEffect { Source = src, BlurAmount = (float)v["r"] / 2, BorderMode = EffectBorderMode.Hard, Optimization = EffectOptimization.Quality })),
-        new("sharpen", "Enfocar", [new("a", "Intensidad", 0, 100, 0, " %")],
+        new("sharpen", T("Enfocar"), [new("a", T("Intensidad"), 0, 100, 0, " %")],
             (src, v, o) => Own(o, new SharpenEffect { Source = src, Amount = (float)(v["a"] / 10) })),
-        new("noise", "Ruido", [new("a", "Cantidad", 0, 100, 0, " %")],
+        new("noise", T("Ruido"), [new("a", T("Cantidad"), 0, 100, 0, " %")],
             (src, v, o) =>
             {
                 var turb = Own(o, new TurbulenceEffect { Frequency = new Vector2(0.9f), Octaves = 1, Seed = 7, Size = new Vector2(16384) });
@@ -66,13 +67,13 @@ public sealed record Adjustment(string Id, string Name, IReadOnlyList<AdjustPara
                 var blended = Own(o, new BlendEffect { Background = src, Foreground = weak, Mode = BlendEffectMode.Overlay });
                 return Own(o, new CompositeEffect { Mode = CanvasComposite.DestinationIn, Sources = { blended, src } });
             }),
-        new("invert", "Invertir colores", [new("a", "Intensidad", 0, 100, 100, " %")],
+        new("invert", T("Invertir colores"), [new("a", T("Intensidad"), 0, 100, 100, " %")],
             (src, v, o) => Mix(src, Own(o, new InvertEffect { Source = src }), v["a"] / 100, o)),
-        new("gray", "Escala de grises", [new("a", "Intensidad", 0, 100, 100, " %")],
+        new("gray", T("Escala de grises"), [new("a", T("Intensidad"), 0, 100, 100, " %")],
             (src, v, o) => Mix(src, Own(o, new GrayscaleEffect { Source = src }), v["a"] / 100, o)),
-        new("sepia", "Sepia", [new("a", "Intensidad", 0, 100, 100, " %")],
+        new("sepia", T("Sepia"), [new("a", T("Intensidad"), 0, 100, 100, " %")],
             (src, v, o) => Own(o, new SepiaEffect { Source = src, Intensity = (float)(v["a"] / 100) })),
-        new("opacity", "Opacidad de píxeles", [new("a", "Opacidad", 0, 100, 100, " %")],
+        new("opacity", T("Opacidad de píxeles"), [new("a", T("Opacidad"), 0, 100, 100, " %")],
             (src, v, o) => Own(o, new OpacityEffect { Source = src, Opacity = (float)(v["a"] / 100) })),
     ];
 }
@@ -229,7 +230,7 @@ public sealed class TransformSession : IDisposable
     {
         var owned = new List<IDisposable>();
         // lo movido puede quedar fuera de la selección original: no se recorta
-        ops.ReplaceWith(Layer, Result(owned, MeshCells), "Transformar", clipToSelection: false);
+        ops.ReplaceWith(Layer, Result(owned, MeshCells), T("Transformar"), clipToSelection: false);
         owned.ForEach(o => o.Dispose());
         // la selección se transforma con su contenido
         if (_doc.SelectionBitmap is { } sel && (Matrix != Matrix3x2.Identity || !State.IsAffine))
@@ -258,7 +259,7 @@ public sealed class TransformSession : IDisposable
             var px = moved.GetPixelBytes();
             var mask = new Trazo.Core.Selection.SelectionMask(_doc.Width, _doc.Height);
             for (var i = 0; i < mask.Data.Length; i++) mask.Data[i] = px[i * 4 + 3];
-            ops.SetSelection(mask, "Mover selección");
+            ops.SetSelection(mask, T("Mover selección"));
         }
     }
 

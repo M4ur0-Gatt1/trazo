@@ -49,13 +49,14 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 **Ajustes y transformación**
 - Tono/saturación/brillo, contraste, exposición, temperatura y matiz, desenfoque gaussiano, enfocar, ruido, invertir, escala de grises, sepia y opacidad, todos con vista previa en vivo.
 - **Transformar** en cuatro modos: Libre y Uniforme (asas de esquina, de lado y de giro), **Distorsionar** (perspectiva por las cuatro esquinas) y **Deformar** (malla que se dobla). Modo Magnético, voltear, rotar 90°, ajustar al lienzo e interpolación suave o nítida.
-- **Licuar**: empujar, girar a la derecha o a la izquierda, pellizcar, expandir y reconstruir, con tamaño, presión, Ajustar y Restablecer.
+- **Licuar**: empujar, girar a la derecha o a la izquierda, pellizcar, expandir y reconstruir, con tamaño, presión, cantidad y Restablecer.
 
 **Guías de dibujo**
 - Cuadrícula 2D, isométrica y perspectiva de 1, 2 o 3 puntos de fuga, con tamaño, grosor, opacidad y color. Se guardan con el lienzo.
 - **Asistente de dibujo**: los trazos se pegan a las horizontales y verticales, a los ejes isométricos o a las líneas de los puntos de fuga.
 
 **Archivos**
+- **En español y en inglés**: sigue el idioma de Windows o se elige en Acciones › Preferencias › Idioma ([I18N-01](docs/specs/I18N-01-english.md)).
 - Galería con autoguardado en `Documentos\Trazo`.
 - Formato `.trazo` abierto: un ZIP con `manifest.json`, una PNG por capa (y por máscara) y una miniatura. Abre también los proyectos de la versión web.
 - **PSD** en los dos sentidos, con capas, grupos, máscaras, recorte y modos de fusión: para pasar obras a Photoshop, Procreate, Krita o Photopea y traerlas de vuelta ([EX-01](docs/specs/EX-01-psd.md)).

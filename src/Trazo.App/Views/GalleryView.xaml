@@ -3,6 +3,7 @@
     x:Class="Trazo.App.Views.GalleryView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:t="using:Trazo.App.Services"
     xmlns:local="using:Trazo.App.Views"
     FontFamily="{StaticResource TrazoUiFont}">
 
@@ -16,15 +17,15 @@
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/Logo.png" Width="36" Height="36" />
                 <TextBlock Text="Trazo" Style="{StaticResource WordmarkText}" FontSize="30" VerticalAlignment="Center" />
-                <TextBlock Text="Galería" FontFamily="{StaticResource TrazoDisplayFont}" FontSize="20" FontWeight="Medium" Opacity="0.55" VerticalAlignment="Center" Margin="4,4,0,0" />
+                <TextBlock Text="{t:Loc S='Galería'}" FontFamily="{StaticResource TrazoDisplayFont}" FontSize="20" FontWeight="Medium" Opacity="0.55" VerticalAlignment="Center" Margin="4,4,0,0" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Content="Abrir carpeta" Click="OpenFolder_Click" />
-                <Button Content="Importar…" Click="Import_Click" />
+                <Button Content="{t:Loc S='Abrir carpeta'}" Click="OpenFolder_Click" />
+                <Button Content="{t:Loc S='Importar…'}" Click="Import_Click" />
                 <Button x:Name="NewButton" Style="{StaticResource AccentButtonStyle}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE710;" FontSize="14" />
-                        <TextBlock Text="Nuevo lienzo" />
+                        <TextBlock Text="{t:Loc S='Nuevo lienzo'}" />
                     </StackPanel>
                     <Button.Flyout>
                         <MenuFlyout x:Name="NewMenu" Placement="BottomEdgeAlignedRight" />
@@ -55,8 +56,8 @@
         </GridView>
 
         <StackPanel x:Name="Empty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
-            <TextBlock Text="Todavía no tienes obras." Opacity="0.7" HorizontalAlignment="Center" />
-            <TextBlock Text="Crea un lienzo nuevo o importa una imagen." Opacity="0.5" HorizontalAlignment="Center" />
+            <TextBlock Text="{t:Loc S='Todavía no tienes obras.'}" Opacity="0.7" HorizontalAlignment="Center" />
+            <TextBlock Text="{t:Loc S='Crea un lienzo nuevo o importa una imagen.'}" Opacity="0.5" HorizontalAlignment="Center" />
         </StackPanel>
     </Grid>
 </UserControl>

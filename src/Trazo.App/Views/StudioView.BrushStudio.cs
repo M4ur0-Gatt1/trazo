@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Trazo.Core.Brushes;
 using Windows.Foundation;
 using XCanvas = Microsoft.UI.Xaml.Controls.Canvas;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -127,12 +128,12 @@ public sealed partial class StudioView
             Commit(pts);
         };
 
-        var reset = new Button { Content = "Curva lineal", Padding = new Thickness(8, 3, 8, 4), FontSize = 12 };
+        var reset = new Button { Content = T("Curva lineal"), Padding = new Thickness(8, 3, 8, 4), FontSize = 12 };
         reset.Click += (_, _) => { set(DynamicsCurve.Identity); Redraw(); };
         root.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 8,
-            Children = { reset, new TextBlock { Text = "Doble toque: añadir o quitar un punto", Opacity = 0.6, FontSize = 11, VerticalAlignment = VerticalAlignment.Center } },
+            Children = { reset, new TextBlock { Text = T("Doble toque: añadir o quitar un punto"), Opacity = 0.6, FontSize = 11, VerticalAlignment = VerticalAlignment.Center } },
         });
         Redraw();
         return root;

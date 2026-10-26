@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Numerics;
 using Trazo.Core.Documents;
 using Trazo.Core.Geometry;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Core.IO;
 
@@ -13,7 +14,7 @@ public sealed record LayerData(LayerProperties Properties, byte[] Png, byte[]? M
 /// <summary>Contenido completo de un archivo .trazo.</summary>
 public sealed record ProjectData
 {
-    public string Name { get; init; } = "Sin título";
+    public string Name { get; init; } = T("Sin título");
     public int Width { get; init; }
     public int Height { get; init; }
     public string BackgroundColor { get; init; } = "#ffffff";
@@ -132,16 +133,16 @@ public static class TrazoFile
     private static ProjectData ReadV2(Stream s)
     {
         using var zip = new ZipArchive(s, ZipArchiveMode.Read);
-        var me = zip.GetEntry("manifest.json") ?? throw new InvalidDataException("Falta manifest.json");
+        var me = zip.GetEntry("manifest.json") ?? throw new InvalidDataException(T("Falta manifest.json"));
         var m = JsonSerializer.Deserialize(ReadEntry(me), TrazoJson.Default.ManifestV2)
-                ?? throw new InvalidDataException("Manifiesto vacío");
-        if (m.Format != "trazo") throw new InvalidDataException("No es un archivo .trazo");
-        if (m.Version > CurrentVersion) throw new InvalidDataException($"Archivo de una versión más nueva de Trazo (v{m.Version})");
+                ?? throw new InvalidDataException(T("Manifiesto vacío"));
+        if (m.Format != "trazo") throw new InvalidDataException(T("No es un archivo .trazo"));
+        if (m.Version > CurrentVersion) throw new InvalidDataException(F("Archivo de una versión más nueva de Trazo (v{0})", m.Version));
         var layers = m.Layers.Select(l => new LayerData(
             new LayerProperties
             {
                 Id = l.Id ?? Guid.NewGuid().ToString("N"),
-                Name = l.Name ?? "Capa",
+                Name = l.Name ?? T("Capa"),
                 Opacity = Math.Clamp(l.Opacity, 0, 1),
                 Blend = Enum.TryParse<BlendMode>(l.Blend, out var b) ? b : BlendMode.Normal,
                 Visible = l.Visible,
@@ -149,12 +150,12 @@ public static class TrazoFile
                 Clip = l.Clip,
                 GroupId = string.IsNullOrEmpty(l.GroupId) ? null : l.GroupId,
             },
-            ReadEntry(zip.GetEntry(l.File) ?? throw new InvalidDataException($"Falta {l.File}")),
-            l.Mask is null ? null : ReadEntry(zip.GetEntry(l.Mask) ?? throw new InvalidDataException($"Falta {l.Mask}")))).ToList();
+            ReadEntry(zip.GetEntry(l.File) ?? throw new InvalidDataException(F("Falta {0}", l.File))),
+            l.Mask is null ? null : ReadEntry(zip.GetEntry(l.Mask) ?? throw new InvalidDataException(F("Falta {0}", l.Mask))))).ToList();
         var groups = (m.Groups ?? []).Select(g => new GroupProperties
         {
             Id = g.Id ?? Guid.NewGuid().ToString("N"),
-            Name = g.Name ?? "Grupo",
+            Name = g.Name ?? T("Grupo"),
             Opacity = Math.Clamp(g.Opacity, 0, 1),
             Blend = Enum.TryParse<BlendMode>(g.Blend, out var gb) ? gb : BlendMode.Normal,
             Visible = g.Visible,
@@ -162,7 +163,7 @@ public static class TrazoFile
         }).ToList();
         return Validate(new ProjectData
         {
-            Name = m.Name ?? "Sin título",
+            Name = m.Name ?? T("Sin título"),
             Width = m.Width,
             Height = m.Height,
             BackgroundColor = m.Background?.Color ?? "#ffffff",
@@ -185,13 +186,13 @@ public static class TrazoFile
         }
         catch (JsonException e)
         {
-            throw new InvalidDataException("El archivo no es un proyecto de Trazo válido", e);
+            throw new InvalidDataException(T("El archivo no es un proyecto de Trazo válido"), e);
         }
-        if (m is null || m.Format != "trazo") throw new InvalidDataException("No es un archivo .trazo");
+        if (m is null || m.Format != "trazo") throw new InvalidDataException(T("No es un archivo .trazo"));
         var layers = (m.Layers ?? []).Select(l => new LayerData(
             new LayerProperties
             {
-                Name = l.Name ?? "Capa",
+                Name = l.Name ?? T("Capa"),
                 Opacity = Math.Clamp(l.Opacity ?? 1, 0, 1),
                 Blend = BlendModes.FromCssName(l.Blend),
                 Visible = l.Visible ?? true,
@@ -201,7 +202,7 @@ public static class TrazoFile
             DecodeDataUrl(l.Png))).ToList();
         return Validate(new ProjectData
         {
-            Name = m.Name ?? "Sin título",
+            Name = m.Name ?? T("Sin título"),
             Width = m.Width,
             Height = m.Height,
             BackgroundColor = m.Bg?.Color ?? "#ffffff",
@@ -215,12 +216,12 @@ public static class TrazoFile
     {
         if (p.Width < CanvasLimits.MinSide || p.Height < CanvasLimits.MinSide ||
             p.Width > CanvasLimits.MaxSide || p.Height > CanvasLimits.MaxSide)
-            throw new InvalidDataException($"Tamaño de lienzo no admitido: {p.Width}×{p.Height}");
+            throw new InvalidDataException(F("Tamaño de lienzo no admitido: {0}×{1}", p.Width, p.Height));
         // capas que apuntan a un grupo inexistente quedan fuera de grupo; los grupos deben ser contiguos
         var known = p.Groups.Select(g => g.Id).ToHashSet();
         var layers = p.Layers.Select(l => l.Properties.GroupId is { } gid && !known.Contains(gid) ? l with { Properties = l.Properties with { GroupId = null } } : l).ToList();
         if (!GroupRules.AreContiguous(layers.Select(l => l.Properties.GroupId).ToList()))
-            throw new InvalidDataException("Grupos de capas no contiguos");
+            throw new InvalidDataException(T("Grupos de capas no contiguos"));
         return p with { Layers = layers, ActiveLayer = Math.Clamp(p.ActiveLayer, 0, Math.Max(0, p.Layers.Count - 1)) };
     }
 

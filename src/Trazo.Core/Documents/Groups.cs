@@ -1,10 +1,11 @@
+using static Trazo.Core.Localization.Tr;
 namespace Trazo.Core.Documents;
 
 /// <summary>Propiedades de un grupo de capas (LY-03). Un solo nivel: no hay grupos anidados.</summary>
 public sealed record GroupProperties
 {
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
-    public string Name { get; init; } = "Grupo";
+    public string Name { get; init; } = T("Grupo");
     public float Opacity { get; init; } = 1;
     public BlendMode Blend { get; init; } = BlendMode.Normal;
     public bool Visible { get; init; } = true;

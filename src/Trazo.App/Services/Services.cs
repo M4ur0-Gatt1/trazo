@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using Trazo.Core.Brushes;
 using Trazo.Core.IO;
 using Trazo.Core.Strokes;
+using Trazo.Core.Localization;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Services;
 
@@ -48,6 +50,8 @@ public sealed class Settings
 
     public static Settings Current { get; } = Load();
 
+    /// <summary>Idioma de la interfaz (I18N-01).</summary>
+    public UiLanguage Language { get; set; }
     public bool? PenOnly { get; set; }
     public bool LeftHanded { get; set; }
     public bool RotateGesture { get; set; } = true;
@@ -194,7 +198,7 @@ public static class ProjectStore
     public static string NewPath(string name)
     {
         var safe = string.Concat(name.Select(c => System.IO.Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim();
-        if (safe.Length == 0) safe = "Sin título";
+        if (safe.Length == 0) safe = T("Sin título");
         var path = System.IO.Path.Combine(Folder, safe + TrazoFile.Extension);
         for (var i = 2; File.Exists(path); i++) path = System.IO.Path.Combine(Folder, $"{safe} {i}{TrazoFile.Extension}");
         return path;

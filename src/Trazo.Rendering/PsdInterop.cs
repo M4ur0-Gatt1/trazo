@@ -2,6 +2,7 @@ using Microsoft.Graphics.Canvas;
 using Trazo.Core.Documents;
 using Trazo.Core.IO;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -11,7 +12,7 @@ public static class PsdInterop
     public const string Extension = ".psd";
 
     /// <summary>Nombre de la capa que representa el color de fondo de Trazo en el PSD.</summary>
-    public const string BackgroundLayerName = "Fondo";
+    public static string BackgroundLayerName => T("Fondo");
 
     // ---------- Exportar ----------
 
@@ -88,7 +89,7 @@ public static class PsdInterop
 
     private static PsdLayer Folder(LayerGroup? g) => new()
     {
-        Name = g?.Name ?? "Grupo",
+        Name = g?.Name ?? T("Grupo"),
         Kind = g?.Collapsed == true ? PsdLayerKind.FolderClosed : PsdLayerKind.FolderOpen,
         Opacity = ToByte(g?.Opacity ?? 1),
         Visible = g?.Visible ?? true,
@@ -111,11 +112,11 @@ public static class PsdInterop
     {
         int w = psd.Width, h = psd.Height;
         if (w < CanvasLimits.MinSide || h < CanvasLimits.MinSide || w > CanvasLimits.MaxSide || h > CanvasLimits.MaxSide || (long)w * h > CanvasLimits.MaxArea)
-            throw new InvalidDataException($"El lienzo del PSD ({w} × {h}) no cabe en Trazo: los lados van de {CanvasLimits.MinSide} a {CanvasLimits.MaxSide} píxeles.");
+            throw new InvalidDataException(F("El lienzo del PSD ({0} × {1}) no cabe en Trazo: los lados van de {2} a {3} píxeles.", w, h, CanvasLimits.MinSide, CanvasLimits.MaxSide));
 
         var structure = Psd.ToTrazo(psd);
         var warnings = new List<string>(structure.Warnings);
-        if (psd.SourceDepth == 16) warnings.Add("El archivo era de 16 bits por canal y se importó en 8.");
+        if (psd.SourceDepth == 16) warnings.Add(T("El archivo era de 16 bits por canal y se importó en 8."));
         var doc = new PaintDocument(device, w, h, name);
         var bgra = new byte[w * h * 4];
 
@@ -123,12 +124,12 @@ public static class PsdInterop
         var max = doc.MaxLayers;
         if (layers.Count > max)
         {
-            warnings.Add($"El PSD tiene {layers.Count} capas y en este tamaño Trazo admite {max}: se importó la imagen aplanada.");
+            warnings.Add(F("El PSD tiene {0} capas y en este tamaño Trazo admite {1}: se importó la imagen aplanada.", layers.Count, max));
             layers = [];
         }
         if (layers.Count == 0)
         {
-            var only = doc.CreateLayer("Imagen");
+            var only = doc.CreateLayer(T("Imagen"));
             Psd.ToPremultipliedBgra(psd.Composite, bgra);
             only.Surface.SetPixelBytes(bgra);
             doc.Layers.Add(only);

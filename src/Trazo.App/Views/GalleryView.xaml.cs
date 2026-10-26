@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Trazo.App.Services;
 using Trazo.Core.Documents;
 using Windows.Storage.Streams;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -30,19 +31,19 @@ public sealed partial class GalleryView : UserControl
         foreach (var p in CanvasLimits.Presets)
         {
             var item = new MenuFlyoutItem { Text = $"{p.Name}  ·  {p.Width} × {p.Height}" };
-            item.Click += (_, _) => CreateRequested?.Invoke(p.Width, p.Height, "Sin título");
+            item.Click += (_, _) => CreateRequested?.Invoke(p.Width, p.Height, T("Sin título"));
             NewMenu.Items.Add(item);
         }
-        var screen = new MenuFlyoutItem { Text = "Tamaño de pantalla" };
+        var screen = new MenuFlyoutItem { Text = T("Tamaño de pantalla") };
         screen.Click += (_, _) =>
         {
             var area = Microsoft.UI.Windowing.DisplayArea.Primary.OuterBounds;
             var (w, h) = CanvasLimits.Fit(area.Width, area.Height);
-            CreateRequested?.Invoke(w, h, "Sin título");
+            CreateRequested?.Invoke(w, h, T("Sin título"));
         };
         NewMenu.Items.Insert(0, screen);
         NewMenu.Items.Add(new MenuFlyoutSeparator());
-        var custom = new MenuFlyoutItem { Text = "Tamaño personalizado…" };
+        var custom = new MenuFlyoutItem { Text = T("Tamaño personalizado…") };
         custom.Click += async (_, _) => await CustomSizeAsync();
         NewMenu.Items.Add(custom);
     }
@@ -86,27 +87,27 @@ public sealed partial class GalleryView : UserControl
             mi.Click += async (_, _) => await action();
             menu.Items.Add(mi);
         }
-        Add("Abrir", () => { OpenRequested?.Invoke(item.Entry.Path); return Task.CompletedTask; });
-        Add("Cambiar nombre…", () => RenameAsync(item));
-        Add("Duplicar", async () =>
+        Add(T("Abrir"), () => { OpenRequested?.Invoke(item.Entry.Path); return Task.CompletedTask; });
+        Add(T("Cambiar nombre…"), () => RenameAsync(item));
+        Add(T("Duplicar"), async () =>
         {
-            File.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + " copia"));
+            File.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + T(" copia")));
             await RefreshAsync();
         });
-        Add("Mostrar en el Explorador", () =>
+        Add(T("Mostrar en el Explorador"), () =>
         {
             Process.Start("explorer.exe", $"/select,\"{item.Entry.Path}\"");
             return Task.CompletedTask;
         });
         menu.Items.Add(new MenuFlyoutSeparator());
-        Add("Eliminar", () => DeleteAsync(item));
+        Add(T("Eliminar"), () => DeleteAsync(item));
         menu.ShowAt((FrameworkElement)sender, e.GetPosition((FrameworkElement)sender));
     }
 
     private async Task RenameAsync(GalleryItem item)
     {
         var box = new TextBox { Text = item.Name };
-        if (await Dialogs.ShowAsync(XamlRoot, "Cambiar nombre", box, "Aceptar") != ContentDialogResult.Primary) return;
+        if (await Dialogs.ShowAsync(XamlRoot, T("Cambiar nombre"), box, T("Aceptar")) != ContentDialogResult.Primary) return;
         var target = ProjectStore.NewPath(box.Text);
         File.Move(item.Entry.Path, target);
         await RefreshAsync();
@@ -114,8 +115,8 @@ public sealed partial class GalleryView : UserControl
 
     private async Task DeleteAsync(GalleryItem item)
     {
-        var text = new TextBlock { Text = $"«{item.Name}» se enviará a la papelera de reciclaje.", TextWrapping = TextWrapping.Wrap };
-        if (await Dialogs.ShowAsync(XamlRoot, "Eliminar obra", text, "Eliminar") != ContentDialogResult.Primary) return;
+        var text = new TextBlock { Text = F("«{0}» se enviará a la papelera de reciclaje.", item.Name), TextWrapping = TextWrapping.Wrap };
+        if (await Dialogs.ShowAsync(XamlRoot, T("Eliminar obra"), text, T("Eliminar")) != ContentDialogResult.Primary) return;
         // StorageDeleteOption.Default envía el archivo a la papelera de reciclaje
         var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(item.Entry.Path);
         await file.DeleteAsync(Windows.Storage.StorageDeleteOption.Default);
@@ -124,21 +125,21 @@ public sealed partial class GalleryView : UserControl
 
     private async Task CustomSizeAsync()
     {
-        var name = new TextBox { Header = "Nombre", Text = "Sin título" };
-        var w = new NumberBox { Header = "Ancho (px)", Value = 2048, Minimum = CanvasLimits.MinSide, Maximum = CanvasLimits.MaxSide, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
-        var h = new NumberBox { Header = "Alto (px)", Value = 1536, Minimum = CanvasLimits.MinSide, Maximum = CanvasLimits.MaxSide, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
-        var hint = new TextBlock { Text = $"Máximo {CanvasLimits.MaxSide} px por lado y {CanvasLimits.MaxArea / 1024 / 1024} megapíxeles.", Opacity = 0.6, FontSize = 12 };
+        var name = new TextBox { Header = T("Nombre"), Text = T("Sin título") };
+        var w = new NumberBox { Header = T("Ancho (px)"), Value = 2048, Minimum = CanvasLimits.MinSide, Maximum = CanvasLimits.MaxSide, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
+        var h = new NumberBox { Header = T("Alto (px)"), Value = 1536, Minimum = CanvasLimits.MinSide, Maximum = CanvasLimits.MaxSide, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
+        var hint = new TextBlock { Text = F("Máximo {0} px por lado y {1} megapíxeles.", CanvasLimits.MaxSide, CanvasLimits.MaxArea / 1024 / 1024), Opacity = 0.6, FontSize = 12 };
         var panel = new StackPanel { Spacing = 12, Children = { name, w, h, hint } };
-        if (await Dialogs.ShowAsync(XamlRoot, "Lienzo personalizado", panel, "Crear") != ContentDialogResult.Primary) return;
+        if (await Dialogs.ShowAsync(XamlRoot, T("Lienzo personalizado"), panel, T("Crear")) != ContentDialogResult.Primary) return;
         if (double.IsNaN(w.Value) || double.IsNaN(h.Value)) return;
         var (fw, fh) = CanvasLimits.Fit(w.Value, h.Value);
-        CreateRequested?.Invoke(fw, fh, string.IsNullOrWhiteSpace(name.Text) ? "Sin título" : name.Text.Trim());
+        CreateRequested?.Invoke(fw, fh, string.IsNullOrWhiteSpace(name.Text) ? T("Sin título") : name.Text.Trim());
     }
 }
 
 public static class Dialogs
 {
-    public static async Task<ContentDialogResult> ShowAsync(XamlRoot root, string title, object content, string primary, string close = "Cancelar")
+    public static async Task<ContentDialogResult> ShowAsync(XamlRoot root, string title, object content, string primary, string? close = null)
     {
         var dlg = new ContentDialog
         {
@@ -146,7 +147,7 @@ public static class Dialogs
             Title = title,
             Content = content,
             PrimaryButtonText = primary,
-            CloseButtonText = close,
+            CloseButtonText = close ?? T("Cancelar"),
             DefaultButton = ContentDialogButton.Primary,
             RequestedTheme = ElementTheme.Dark,
         };

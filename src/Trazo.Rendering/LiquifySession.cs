@@ -1,6 +1,7 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Trazo.Core.Imaging;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -122,7 +123,7 @@ public sealed class LiquifySession : IDisposable
     public void Apply(LayerOperations ops)
     {
         if (!HasChanges) return;
-        ops.ReplaceWith(Layer, Result, "Licuar");
+        ops.ReplaceWith(Layer, Result, T("Licuar"));
     }
 
     public void Dispose() => Result.Dispose();

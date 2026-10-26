@@ -8,6 +8,7 @@ using Trazo.Core.Strokes;
 using Windows.Foundation;
 using Windows.Graphics.DirectX;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.Rendering;
 
@@ -354,7 +355,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
             }
         }
         if (!_dirty.IsEmpty)
-            ops.CommitPixels(layer, _dirty, _tool switch { ToolKind.Eraser => "Borrar", ToolKind.Smudge => "Difuminar", _ => "Pintar" });
+            ops.CommitPixels(layer, _dirty, _tool switch { ToolKind.Eraser => T("Borrar"), ToolKind.Smudge => T("Difuminar"), _ => T("Pintar") });
         _layer = null;
         _builder = null;
         _raster?.Dispose();
@@ -422,7 +423,7 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         using (var ds = layer.Target.CreateDrawingSession())
             ds.DrawImage(bmp, new Vector2(b.X, b.Y), new Rect(0, 0, b.Width, b.Height), 1, CanvasImageInterpolation.NearestNeighbor,
                 layer.TargetAlphaLock ? CanvasComposite.SourceAtop : CanvasComposite.SourceOver);
-        ops.CommitPixels(layer, new Rect(b.X, b.Y, b.Width, b.Height), "Relleno");
+        ops.CommitPixels(layer, new Rect(b.X, b.Y, b.Width, b.Height), T("Relleno"));
         return true;
     }
 

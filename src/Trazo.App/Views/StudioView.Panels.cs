@@ -19,6 +19,8 @@ using Trazo.Core.Strokes;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.UI;
+using Trazo.Core.Localization;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -104,7 +106,7 @@ public sealed partial class StudioView
         {
             var b = BrushFor(tool);
             settingsPanel.Children.Clear();
-            settingsPanel.Children.Add(new TextBlock { Text = $"Ajustes de «{b.Name}»", Opacity = 0.7, FontSize = 12, Margin = new Thickness(0, 6, 0, 2) });
+            settingsPanel.Children.Add(new TextBlock { Text = F("Ajustes de «{0}»", b.Name), Opacity = 0.7, FontSize = 12, Margin = new Thickness(0, 6, 0, 2) });
             void Row(string label, double min, double max, double value, Action<float> set)
             {
                 var s = new Slider { Header = label, Minimum = min, Maximum = max, StepFrequency = (max - min) / 100, Value = value };
@@ -119,16 +121,16 @@ public sealed partial class StudioView
                 settingsPanel.Children.Add(s);
             }
             Row("StreamLine", 0, 1, b.StreamLine, v => b.StreamLine = v);
-            Row("Espaciado", 0.01, 2, b.Spacing, v => b.Spacing = v);
-            Row("Flujo", 0.02, 1, b.Flow, v => b.Flow = v);
-            Row("Tamaño a presión mínima", 0, 1, b.MinSizePressure, v => b.MinSizePressure = v);
-            Row("Flujo por presión", 0, 1, b.FlowPressure, v => b.FlowPressure = v);
-            Row("Opacidad por presión", 0, 1, b.OpacityPressure, v => b.OpacityPressure = v);
+            Row(T("Espaciado"), 0.01, 2, b.Spacing, v => b.Spacing = v);
+            Row(T("Flujo"), 0.02, 1, b.Flow, v => b.Flow = v);
+            Row(T("Tamaño a presión mínima"), 0, 1, b.MinSizePressure, v => b.MinSizePressure = v);
+            Row(T("Flujo por presión"), 0, 1, b.FlowPressure, v => b.FlowPressure = v);
+            Row(T("Opacidad por presión"), 0, 1, b.OpacityPressure, v => b.OpacityPressure = v);
 
             // ---- Curvas de presión (BR-06) ----
-            settingsPanel.Children.Add(new TextBlock { Text = "Curvas de presión", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            settingsPanel.Children.Add(new TextBlock { Text = T("Curvas de presión"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
             var curveHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Left };
-            var curveKind = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { "Tamaño", "Flujo", "Opacidad" }, SelectedIndex = 0 };
+            var curveKind = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { T("Tamaño"), T("Flujo"), T("Opacidad") }, SelectedIndex = 0 };
             void ShowCurve()
             {
                 curveHost.Content = curveKind.SelectedIndex switch
@@ -145,42 +147,42 @@ public sealed partial class StudioView
             ShowCurve();
 
             // ---- Mezcla húmeda (BR-04) ----
-            settingsPanel.Children.Add(new TextBlock { Text = "Mezcla húmeda", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
-            Row("Dilución", 0, 1, b.Wet.Dilution, v => b.Wet = b.Wet with { Dilution = v });
-            Row("Carga", 0, 1, b.Wet.Charge, v => b.Wet = b.Wet with { Charge = v });
-            Row("Ataque", 0, 1, b.Wet.Attack, v => b.Wet = b.Wet with { Attack = v });
-            Row("Arrastre", 0, 1, b.Wet.Pull, v => b.Wet = b.Wet with { Pull = v });
-            Row("Variación de tamaño", 0, 1, b.Jitter, v => b.Jitter = v);
-            Row("Dispersión", 0, 2, b.Scatter, v => b.Scatter = v);
+            settingsPanel.Children.Add(new TextBlock { Text = T("Mezcla húmeda"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row(T("Dilución"), 0, 1, b.Wet.Dilution, v => b.Wet = b.Wet with { Dilution = v });
+            Row(T("Carga"), 0, 1, b.Wet.Charge, v => b.Wet = b.Wet with { Charge = v });
+            Row(T("Ataque"), 0, 1, b.Wet.Attack, v => b.Wet = b.Wet with { Attack = v });
+            Row(T("Arrastre"), 0, 1, b.Wet.Pull, v => b.Wet = b.Wet with { Pull = v });
+            Row(T("Variación de tamaño"), 0, 1, b.Jitter, v => b.Jitter = v);
+            Row(T("Dispersión"), 0, 2, b.Scatter, v => b.Scatter = v);
 
             // ---- Grano (BR-03) ----
-            settingsPanel.Children.Add(new TextBlock { Text = "Grano", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
-            var mode = new ComboBox { Header = "Comportamiento", HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { "Sin grano", "En movimiento", "Texturizado" }, SelectedIndex = (int)b.Grain.Mode };
+            settingsPanel.Children.Add(new TextBlock { Text = T("Grano"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            var mode = new ComboBox { Header = T("Comportamiento"), HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = new[] { T("Sin grano"), T("En movimiento"), T("Texturizado") }, SelectedIndex = (int)b.Grain.Mode };
             mode.SelectionChanged += (_, _) => { b.Grain = b.Grain with { Mode = (GrainMode)mode.SelectedIndex }; SaveBrush(); };
             settingsPanel.Children.Add(mode);
-            var kinds = new[] { (GrainKind.Paper, "Papel"), (GrainKind.Canvas, "Lienzo"), (GrainKind.Charcoal, "Carboncillo"), (GrainKind.Noise, "Ruido"), (GrainKind.Sponge, "Esponja") };
-            var kind = new ComboBox { Header = "Textura", HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = kinds.Select(k => k.Item2).ToList(), SelectedIndex = Array.FindIndex(kinds, k => k.Item1 == b.Grain.Kind) };
+            var kinds = new[] { (GrainKind.Paper, T("Papel")), (GrainKind.Canvas, T("Lienzo")), (GrainKind.Charcoal, T("Carboncillo")), (GrainKind.Noise, T("Ruido")), (GrainKind.Sponge, T("Esponja")) };
+            var kind = new ComboBox { Header = T("Textura"), HorizontalAlignment = HorizontalAlignment.Stretch, ItemsSource = kinds.Select(k => k.Item2).ToList(), SelectedIndex = Array.FindIndex(kinds, k => k.Item1 == b.Grain.Kind) };
             kind.SelectionChanged += (_, _) => { b.Grain = b.Grain with { Kind = kinds[kind.SelectedIndex].Item1 }; SaveBrush(); };
             settingsPanel.Children.Add(kind);
-            Row("Profundidad del grano", 0, 1, b.Grain.Depth, v => b.Grain = b.Grain with { Depth = v });
-            Row("Escala del grano", 0.1, 4, b.Grain.Scale, v => b.Grain = b.Grain with { Scale = v });
-            Row("Movimiento (en movimiento)", 0, 1, b.Grain.Movement, v => b.Grain = b.Grain with { Movement = v });
-            Row("Rotación (en movimiento)", -1, 1, b.Grain.Rotation, v => b.Grain = b.Grain with { Rotation = v });
-            Row("Brillo del grano", -1, 1, b.Grain.Brightness, v => b.Grain = b.Grain with { Brightness = v });
-            Row("Contraste del grano", 0, 2, b.Grain.Contrast, v => b.Grain = b.Grain with { Contrast = v });
+            Row(T("Profundidad del grano"), 0, 1, b.Grain.Depth, v => b.Grain = b.Grain with { Depth = v });
+            Row(T("Escala del grano"), 0.1, 4, b.Grain.Scale, v => b.Grain = b.Grain with { Scale = v });
+            Row(T("Movimiento (en movimiento)"), 0, 1, b.Grain.Movement, v => b.Grain = b.Grain with { Movement = v });
+            Row(T("Rotación (en movimiento)"), -1, 1, b.Grain.Rotation, v => b.Grain = b.Grain with { Rotation = v });
+            Row(T("Brillo del grano"), -1, 1, b.Grain.Brightness, v => b.Grain = b.Grain with { Brightness = v });
+            Row(T("Contraste del grano"), 0, 2, b.Grain.Contrast, v => b.Grain = b.Grain with { Contrast = v });
 
             // ---- Afinado (BR-05): longitudes en diámetros del pincel ----
-            settingsPanel.Children.Add(new TextBlock { Text = "Afinado con lápiz", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
-            Row("Inicio (diámetros)", 0, 10, b.PressureTaper.Start, v => b.PressureTaper = b.PressureTaper with { Start = v });
-            Row("Final (diámetros)", 0, 10, b.PressureTaper.End, v => b.PressureTaper = b.PressureTaper with { End = v });
-            Row("Tamaño en la punta", 0, 1, b.PressureTaper.TipSize, v => b.PressureTaper = b.PressureTaper with { TipSize = v });
-            Row("Opacidad en la punta", 0, 1, b.PressureTaper.TipOpacity, v => b.PressureTaper = b.PressureTaper with { TipOpacity = v });
-            Row("Forma (fina ↔ roma)", 0, 1, b.PressureTaper.Shape, v => b.PressureTaper = b.PressureTaper with { Shape = v });
-            settingsPanel.Children.Add(new TextBlock { Text = "Afinado con dedo o ratón", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
-            Row("Inicio (diámetros) ", 0, 10, b.TouchTaper.Start, v => b.TouchTaper = b.TouchTaper with { Start = v });
-            Row("Final (diámetros) ", 0, 10, b.TouchTaper.End, v => b.TouchTaper = b.TouchTaper with { End = v });
-            Row("Tamaño en la punta ", 0, 1, b.TouchTaper.TipSize, v => b.TouchTaper = b.TouchTaper with { TipSize = v });
-            Row("Opacidad en la punta ", 0, 1, b.TouchTaper.TipOpacity, v => b.TouchTaper = b.TouchTaper with { TipOpacity = v });
+            settingsPanel.Children.Add(new TextBlock { Text = T("Afinado con lápiz"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row(T("Inicio (diámetros)"), 0, 10, b.PressureTaper.Start, v => b.PressureTaper = b.PressureTaper with { Start = v });
+            Row(T("Final (diámetros)"), 0, 10, b.PressureTaper.End, v => b.PressureTaper = b.PressureTaper with { End = v });
+            Row(T("Tamaño en la punta"), 0, 1, b.PressureTaper.TipSize, v => b.PressureTaper = b.PressureTaper with { TipSize = v });
+            Row(T("Opacidad en la punta"), 0, 1, b.PressureTaper.TipOpacity, v => b.PressureTaper = b.PressureTaper with { TipOpacity = v });
+            Row(T("Forma (fina ↔ roma)"), 0, 1, b.PressureTaper.Shape, v => b.PressureTaper = b.PressureTaper with { Shape = v });
+            settingsPanel.Children.Add(new TextBlock { Text = T("Afinado con dedo o ratón"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            Row(T("Inicio (diámetros) "), 0, 10, b.TouchTaper.Start, v => b.TouchTaper = b.TouchTaper with { Start = v });
+            Row(T("Final (diámetros) "), 0, 10, b.TouchTaper.End, v => b.TouchTaper = b.TouchTaper with { End = v });
+            Row(T("Tamaño en la punta "), 0, 1, b.TouchTaper.TipSize, v => b.TouchTaper = b.TouchTaper with { TipSize = v });
+            Row(T("Opacidad en la punta "), 0, 1, b.TouchTaper.TipOpacity, v => b.TouchTaper = b.TouchTaper with { TipOpacity = v });
 
             void SaveBrush()
             {
@@ -189,7 +191,7 @@ public sealed partial class StudioView
                 _previews.Remove((b.Id, true));
                 _previews.Remove((b.Id, false));
             }
-            var reset = new Button { Content = "Restablecer pincel", Margin = new Thickness(0, 6, 0, 0) };
+            var reset = new Button { Content = T("Restablecer pincel"), Margin = new Thickness(0, 6, 0, 0) };
             reset.Click += (_, _) =>
             {
                 b.CopySettingsFrom(BrushLibrary.Default(b.Id));
@@ -212,7 +214,7 @@ public sealed partial class StudioView
         RenderList();
         RenderSettings();
 
-        var titles = new Dictionary<ToolKind, string> { [ToolKind.Brush] = "Pintar", [ToolKind.Smudge] = "Difuminar", [ToolKind.Eraser] = "Borrar" };
+        var titles = new Dictionary<ToolKind, string> { [ToolKind.Brush] = T("Pintar"), [ToolKind.Smudge] = T("Difuminar"), [ToolKind.Eraser] = T("Borrar") };
         var body = new Grid { ColumnSpacing = 8, Height = 380 };
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -226,9 +228,9 @@ public sealed partial class StudioView
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Biblioteca de pinceles · " + titles[tool], FontWeight = FontWeights.SemiBold, FontSize = 15 },
+                new TextBlock { Text = T("Biblioteca de pinceles · ") + titles[tool], FontWeight = FontWeights.SemiBold, FontSize = 15 },
                 body,
-                new Expander { Header = "Ajustes del pincel", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                new Expander { Header = T("Ajustes del pincel"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     IsExpanded = showCurves, Content = new ScrollViewer { MaxHeight = 320, Content = settingsPanel } },
             },
         };
@@ -250,10 +252,10 @@ public sealed partial class StudioView
         if (_doc is null) return;
         _layersList = new StackPanel { Spacing = 4 };
         var add = new Button { Content = new FontIcon { Glyph = "", FontSize = 14 }, Padding = new Thickness(10, 6, 10, 6) };
-        ToolTipService.SetToolTip(add, "Nueva capa");
+        ToolTipService.SetToolTip(add, T("Nueva capa"));
         add.Click += (_, _) => _ops?.Add();
         var header = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-        header.Children.Add(new TextBlock { Text = "Capas", FontWeight = FontWeights.SemiBold, FontSize = 16, VerticalAlignment = VerticalAlignment.Center });
+        header.Children.Add(new TextBlock { Text = T("Capas"), FontWeight = FontWeights.SemiBold, FontSize = 16, VerticalAlignment = VerticalAlignment.Center });
         add.HorizontalAlignment = HorizontalAlignment.Right;
         header.Children.Add(add);
         _layersFlyout = new Flyout
@@ -318,10 +320,10 @@ public sealed partial class StudioView
         bgRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         bgRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var swatch = new Button { Width = 64, Height = 48, Background = new SolidColorBrush(doc.Background), CornerRadius = new CornerRadius(6) };
-        ToolTipService.SetToolTip(swatch, "Cambiar el color de fondo");
+        ToolTipService.SetToolTip(swatch, T("Cambiar el color de fondo"));
         swatch.Click += (_, _) => PickBackground(swatch);
         bgRow.Children.Add(swatch);
-        var bgName = new TextBlock { Text = "Color de fondo", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
+        var bgName = new TextBlock { Text = T("Color de fondo"), VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
         Grid.SetColumn(bgName, 1);
         bgRow.Children.Add(bgName);
         var bgVisible = new CheckBox { IsChecked = doc.BackgroundVisible, MinWidth = 0 };
@@ -329,7 +331,7 @@ public sealed partial class StudioView
         Grid.SetColumn(bgVisible, 2);
         bgRow.Children.Add(bgVisible);
         _layersList.Children.Add(bgRow);
-        _layersList.Children.Add(new TextBlock { Text = $"{doc.Layers.Count} de {doc.MaxLayers} capas", FontSize = 11, Opacity = 0.5, Margin = new Thickness(4, 6, 0, 0) });
+        _layersList.Children.Add(new TextBlock { Text = F("{0} de {1} capas", doc.Layers.Count, doc.MaxLayers), FontSize = 11, Opacity = 0.5, Margin = new Thickness(4, 6, 0, 0) });
     }
 
     private Grid LayerRow(int index, bool inGroup, Brush accent, Brush normal)
@@ -369,28 +371,28 @@ public sealed partial class StudioView
                 BorderThickness = new Thickness(editingMask && active ? 2 : 0), BorderBrush = selectedBorder,
                 Opacity = layer.Visible ? 1 : 0.45,
             };
-            ToolTipService.SetToolTip(maskThumb, "Máscara de capa: tócala para pintar en ella");
+            ToolTipService.SetToolTip(maskThumb, T("Máscara de capa: tócala para pintar en ella"));
             Grid.SetColumn(maskThumb, 1);
             row.Children.Add(maskThumb);
         }
         var info = new List<string>();
-        if (editingMask) info.Add("editando máscara");
-        if (layer.AlphaLock) info.Add("α bloqueado");
+        if (editingMask) info.Add(T("editando máscara"));
+        if (layer.AlphaLock) info.Add(T("α bloqueado"));
         if (layer.Clip && index > 0) info.Add("recorte");
-        if (layer.Opacity < 1) info.Add($"{layer.Opacity * 100:0} %");
+        if (layer.Opacity < 1) info.Add(F("{0:0} %", layer.Opacity * 100));
         var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = layer.Visible ? 1 : 0.55 };
         name.Children.Add(new TextBlock { Text = layer.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
         if (info.Count > 0) name.Children.Add(new TextBlock { Text = string.Join(" · ", info), FontSize = 11, Opacity = 0.75, TextTrimming = TextTrimming.CharacterEllipsis });
         Grid.SetColumn(name, 2);
         row.Children.Add(name);
         var blend = new Button { Content = layer.BlendShort, Width = 38, Height = 34, Padding = new Thickness(0), FontWeight = FontWeights.Bold };
-        ToolTipService.SetToolTip(blend, "Opacidad y modo de fusión");
+        ToolTipService.SetToolTip(blend, T("Opacidad y modo de fusión"));
         blend.Click += (_, _) => ShowBlendFlyout(blend, layer);
         Grid.SetColumn(blend, 3);
         row.Children.Add(blend);
         var visible = new CheckBox { IsChecked = layer.Visible, MinWidth = 0, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
-        ToolTipService.SetToolTip(visible, "Visible");
-        visible.Click += (_, _) => _ops?.Set(layer, "visible", visible.IsChecked == true, l => l.Visible, (l, v) => l.Visible = v, "Visibilidad");
+        ToolTipService.SetToolTip(visible, T("Visible"));
+        visible.Click += (_, _) => _ops?.Set(layer, "visible", visible.IsChecked == true, l => l.Visible, (l, v) => l.Visible = v, T("Visibilidad"));
         Grid.SetColumn(visible, 4);
         row.Children.Add(visible);
         row.Tapped += (_, e) =>
@@ -429,7 +431,7 @@ public sealed partial class StudioView
             Content = new FontIcon { Glyph = group.Collapsed ? "" : "", FontSize = 12 },
             Width = 34, Height = 34, Padding = new Thickness(0), Background = new SolidColorBrush(Colors.Transparent), BorderThickness = new Thickness(0),
         };
-        ToolTipService.SetToolTip(chevron, group.Collapsed ? "Expandir grupo" : "Contraer grupo");
+        ToolTipService.SetToolTip(chevron, group.Collapsed ? T("Expandir grupo") : T("Contraer grupo"));
         chevron.Click += (_, _) =>
         {
             group.Collapsed = !group.Collapsed;
@@ -437,8 +439,8 @@ public sealed partial class StudioView
         };
         row.Children.Add(chevron);
         var count = _doc!.Layers.Count(l => l.GroupId == group.Id);
-        var info = new List<string> { count == 1 ? "1 capa" : $"{count} capas" };
-        if (group.Opacity < 1) info.Add($"{group.Opacity * 100:0} %");
+        var info = new List<string> { count == 1 ? T("1 capa") : F("{0} capas", count) };
+        if (group.Opacity < 1) info.Add(F("{0:0} %", group.Opacity * 100));
         var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = group.Visible ? 1 : 0.55, Orientation = Orientation.Horizontal, Spacing = 8 };
         name.Children.Add(new FontIcon { Glyph = "", FontSize = 16 });
         var text = new StackPanel();
@@ -448,13 +450,13 @@ public sealed partial class StudioView
         Grid.SetColumn(name, 1);
         row.Children.Add(name);
         var blend = new Button { Content = group.Blend.ShortName(), Width = 38, Height = 34, Padding = new Thickness(0), FontWeight = FontWeights.Bold };
-        ToolTipService.SetToolTip(blend, "Opacidad y modo de fusión del grupo");
+        ToolTipService.SetToolTip(blend, T("Opacidad y modo de fusión del grupo"));
         blend.Click += (_, _) => ShowGroupBlendFlyout(blend, group);
         Grid.SetColumn(blend, 2);
         row.Children.Add(blend);
         var visible = new CheckBox { IsChecked = group.Visible, MinWidth = 0, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
-        ToolTipService.SetToolTip(visible, "Visible");
-        visible.Click += (_, _) => _ops?.SetGroup(group, visible.IsChecked == true, g => g.Visible, (g, v) => g.Visible = v, "Visibilidad del grupo");
+        ToolTipService.SetToolTip(visible, T("Visible"));
+        visible.Click += (_, _) => _ops?.SetGroup(group, visible.IsChecked == true, g => g.Visible, (g, v) => g.Visible = v, T("Visibilidad del grupo"));
         Grid.SetColumn(visible, 3);
         row.Children.Add(visible);
         row.Tapped += (_, e) =>
@@ -467,10 +469,10 @@ public sealed partial class StudioView
 
     private void ShowGroupBlendFlyout(FrameworkElement anchor, LayerGroup group)
     {
-        var opacity = new Slider { Header = "Opacidad del grupo", Minimum = 0, Maximum = 100, Value = group.Opacity * 100 };
+        var opacity = new Slider { Header = T("Opacidad del grupo"), Minimum = 0, Maximum = 100, Value = group.Opacity * 100 };
         opacity.ValueChanged += (_, e) =>
         {
-            _ops?.SetGroup(group, (float)e.NewValue / 100, g => g.Opacity, (g, v) => g.Opacity = v, "Opacidad del grupo");
+            _ops?.SetGroup(group, (float)e.NewValue / 100, g => g.Opacity, (g, v) => g.Opacity = v, T("Opacidad del grupo"));
             Canvas.Invalidate();
         };
         var modes = new ListView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 360 };
@@ -479,7 +481,7 @@ public sealed partial class StudioView
         modes.SelectionChanged += (_, _) =>
         {
             if (modes.SelectedItem is ListViewItem { Tag: BlendMode m })
-                _ops?.SetGroup(group, m, g => g.Blend, (g, v) => g.Blend = v, "Fusión del grupo");
+                _ops?.SetGroup(group, m, g => g.Blend, (g, v) => g.Blend = v, T("Fusión del grupo"));
             Canvas.Invalidate();
         };
         new Flyout { Content = new StackPanel { Width = 260, Spacing = 8, Children = { opacity, modes } } }.ShowAt(anchor);
@@ -494,17 +496,17 @@ public sealed partial class StudioView
             mi.Click += (_, _) => { action(); RefreshLayersPanel(); Canvas.Invalidate(); };
             menu.Items.Add(mi);
         }
-        Item("Cambiar nombre…", "", async () =>
+        Item(T("Cambiar nombre…"), "", async () =>
         {
             var box = new TextBox { Text = group.Name };
-            if (await Dialogs.ShowAsync(XamlRoot, "Nombre del grupo", box, "Aceptar") == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
-                _ops!.SetGroup(group, box.Text.Trim(), g => g.Name, (g, v) => g.Name = v, "Renombrar grupo");
+            if (await Dialogs.ShowAsync(XamlRoot, T("Nombre del grupo"), box, T("Aceptar")) == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
+                _ops!.SetGroup(group, box.Text.Trim(), g => g.Name, (g, v) => g.Name = v, T("Renombrar grupo"));
             RefreshLayersPanel();
         });
-        Item("Combinar grupo", "", () => _ops!.MergeGroup(group.Id));
-        Item("Desagrupar", "", () => _ops!.Ungroup(group.Id));
+        Item(T("Combinar grupo"), "", () => _ops!.MergeGroup(group.Id));
+        Item(T("Desagrupar"), "", () => _ops!.Ungroup(group.Id));
         menu.Items.Add(new MenuFlyoutSeparator());
-        Item("Eliminar grupo y sus capas", "", () => _ops!.DeleteGroup(group.Id));
+        Item(T("Eliminar grupo y sus capas"), "", () => _ops!.DeleteGroup(group.Id));
         menu.ShowAt(anchor);
     }
 
@@ -518,7 +520,7 @@ public sealed partial class StudioView
     private void PickBackground(FrameworkElement anchor)
     {
         var picker = new ColorPicker { Color = _doc!.Background, IsAlphaEnabled = false, ColorSpectrumShape = ColorSpectrumShape.Ring, IsMoreButtonVisible = false };
-        var apply = new Button { Content = "Aplicar", Style = (Style)Application.Current.Resources["AccentButtonStyle"], HorizontalAlignment = HorizontalAlignment.Right };
+        var apply = new Button { Content = T("Aplicar"), Style = (Style)Application.Current.Resources["AccentButtonStyle"], HorizontalAlignment = HorizontalAlignment.Right };
         var fly = new Flyout { Content = new StackPanel { Spacing = 8, Children = { picker, apply } } };
         apply.Click += (_, _) =>
         {
@@ -530,10 +532,10 @@ public sealed partial class StudioView
 
     private void ShowBlendFlyout(FrameworkElement anchor, Layer layer)
     {
-        var opacity = new Slider { Header = "Opacidad", Minimum = 0, Maximum = 100, Value = layer.Opacity * 100 };
+        var opacity = new Slider { Header = T("Opacidad"), Minimum = 0, Maximum = 100, Value = layer.Opacity * 100 };
         opacity.ValueChanged += (_, e) =>
         {
-            _ops?.Set(layer, "opacity", (float)e.NewValue / 100, l => l.Opacity, (l, v) => l.Opacity = v, "Opacidad de capa");
+            _ops?.Set(layer, "opacity", (float)e.NewValue / 100, l => l.Opacity, (l, v) => l.Opacity = v, T("Opacidad de capa"));
             Canvas.Invalidate();
         };
         var modes = new ListView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 360 };
@@ -542,7 +544,7 @@ public sealed partial class StudioView
         modes.SelectionChanged += (_, _) =>
         {
             if (modes.SelectedItem is ListViewItem { Tag: BlendMode m })
-                _ops?.Set(layer, "blend", m, l => l.Blend, (l, v) => l.Blend = v, "Modo de fusión");
+                _ops?.Set(layer, "blend", m, l => l.Blend, (l, v) => l.Blend = v, T("Modo de fusión"));
             Canvas.Invalidate();
         };
         new Flyout { Content = new StackPanel { Width = 260, Spacing = 8, Children = { opacity, modes } } }.ShowAt(anchor);
@@ -565,43 +567,43 @@ public sealed partial class StudioView
             mi.Click += (_, _) => { action(mi.IsChecked); RefreshLayersPanel(); Canvas.Invalidate(); };
             menu.Items.Add(mi);
         }
-        Item("Cambiar nombre…", "", async () =>
+        Item(T("Cambiar nombre…"), "", async () =>
         {
             var box = new TextBox { Text = layer.Name };
-            if (await Dialogs.ShowAsync(XamlRoot, "Nombre de la capa", box, "Aceptar") == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
-                _ops!.Set(layer, "name", box.Text.Trim(), l => l.Name, (l, v) => l.Name = v, "Renombrar capa");
+            if (await Dialogs.ShowAsync(XamlRoot, T("Nombre de la capa"), box, T("Aceptar")) == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
+                _ops!.Set(layer, "name", box.Text.Trim(), l => l.Name, (l, v) => l.Name = v, T("Renombrar capa"));
             RefreshLayersPanel();
         });
-        Item("Rellenar con el color actual", "", () => _ops!.Fill(Index(), CurrentColor));
-        Item("Borrar contenido", "", () => _ops!.Clear(Index()));
+        Item(T("Rellenar con el color actual"), "", () => _ops!.Fill(Index(), CurrentColor));
+        Item(T("Borrar contenido"), "", () => _ops!.Clear(Index()));
         menu.Items.Add(new MenuFlyoutSeparator());
-        Toggle("Bloqueo alfa", layer.AlphaLock, v => _ops!.Set(layer, "alphaLock", v, l => l.AlphaLock, (l, x) => l.AlphaLock = x, "Bloqueo alfa"));
-        Toggle("Máscara de recorte", layer.Clip, v => _ops!.Set(layer, "clip", v, l => l.Clip, (l, x) => l.Clip = x, "Máscara de recorte"));
+        Toggle(T("Bloqueo alfa"), layer.AlphaLock, v => _ops!.Set(layer, "alphaLock", v, l => l.AlphaLock, (l, x) => l.AlphaLock = x, T("Bloqueo alfa")));
+        Toggle(T("Máscara de recorte"), layer.Clip, v => _ops!.Set(layer, "clip", v, l => l.Clip, (l, x) => l.Clip = x, T("Máscara de recorte")));
         menu.Items.Add(new MenuFlyoutSeparator());
-        if (!layer.HasMask) Item("Máscara de capa", "\uE7B8", () => _ops!.AddMask(layer));
+        if (!layer.HasMask) Item(T("Máscara de capa"), "\uE7B8", () => _ops!.AddMask(layer));
         else
         {
-            Toggle("Pintar en la máscara", layer.EditingMask, v => layer.EditingMask = v);
-            Item("Invertir máscara", "\uE746", () => _ops!.InvertMask(layer));
-            Item("Aplicar máscara", "\uE73E", () => _ops!.ApplyMask(layer));
-            Item("Eliminar máscara", "\uE74D", () => _ops!.DeleteMask(layer));
+            Toggle(T("Pintar en la máscara"), layer.EditingMask, v => layer.EditingMask = v);
+            Item(T("Invertir máscara"), "\uE746", () => _ops!.InvertMask(layer));
+            Item(T("Aplicar máscara"), "\uE73E", () => _ops!.ApplyMask(layer));
+            Item(T("Eliminar máscara"), "\uE74D", () => _ops!.DeleteMask(layer));
         }
-        Item("Seleccionar contenido", "\uE8B3", () => _ops!.SelectLayerContent(layer));
+        Item(T("Seleccionar contenido"), "\uE8B3", () => _ops!.SelectLayerContent(layer));
         if (layer.GroupId is null)
         {
-            Item("Nuevo grupo con esta capa", "\uE8B7", () => _ops!.CreateGroup(Index()));
-            Item("Agrupar con la de abajo", "\uE8B7", () => _ops!.GroupWithBelow(Index()), Index() > 0);
+            Item(T("Nuevo grupo con esta capa"), "\uE8B7", () => _ops!.CreateGroup(Index()));
+            Item(T("Agrupar con la de abajo"), "\uE8B7", () => _ops!.GroupWithBelow(Index()), Index() > 0);
         }
         menu.Items.Add(new MenuFlyoutSeparator());
-        Item("Invertir", "", () => _ops!.Invert(Index()));
-        Item("Transformar", "", StartTransform);
-        Item("Duplicar", "", () => _ops!.Duplicate(Index()));
-        Item("Combinar hacia abajo", "", () => _ops!.MergeDown(Index()), Index() > 0);
-        Item("Subir", "", () => _ops!.Move(Index(), Index() + 1), Index() < doc.Layers.Count - 1);
-        Item("Bajar", "", () => _ops!.Move(Index(), Index() - 1), Index() > 0);
-        Item("Exportar capa como PNG…", "", async () => await ExportBitmapAsync(layer.Surface, layer.Name, CanvasBitmapFileFormat.Png));
+        Item(T("Invertir"), "", () => _ops!.Invert(Index()));
+        Item(T("Transformar"), "", StartTransform);
+        Item(T("Duplicar"), "", () => _ops!.Duplicate(Index()));
+        Item(T("Combinar hacia abajo"), "", () => _ops!.MergeDown(Index()), Index() > 0);
+        Item(T("Subir"), "", () => _ops!.Move(Index(), Index() + 1), Index() < doc.Layers.Count - 1);
+        Item(T("Bajar"), "", () => _ops!.Move(Index(), Index() - 1), Index() > 0);
+        Item(T("Exportar capa como PNG…"), "", async () => await ExportBitmapAsync(layer.Surface, layer.Name, CanvasBitmapFileFormat.Png));
         menu.Items.Add(new MenuFlyoutSeparator());
-        Item("Eliminar", "", () => _ops!.Remove(Index()));
+        Item(T("Eliminar"), "", () => _ops!.Remove(Index()));
         menu.ShowAt(anchor);
     }
 
@@ -651,7 +653,7 @@ public sealed partial class StudioView
                 b.Click += (_, _) => picker.Color = PaintDocument.ToColor(rgba);
                 if (onRemove is not null)
                 {
-                    ToolTipService.SetToolTip(b, "Clic derecho para quitar");
+                    ToolTipService.SetToolTip(b, T("Clic derecho para quitar"));
                     b.RightTapped += (_, _) => onRemove(hex);
                 }
                 panel.Children.Add(b);
@@ -664,7 +666,7 @@ public sealed partial class StudioView
         {
             custom.Children.Clear();
             custom.Children.Add(Swatches(_settings.Palette, hex => { _settings.Palette.Remove(hex); _settings.Save(); RenderCustom(); }).Panel);
-            var add = new Button { Content = "Añadir color actual", Margin = new Thickness(0, 4, 0, 0) };
+            var add = new Button { Content = T("Añadir color actual"), Margin = new Thickness(0, 4, 0, 0) };
             add.Click += (_, _) =>
             {
                 var hex = PaintDocument.ToRgba(CurrentColor).ToHex();
@@ -680,12 +682,12 @@ public sealed partial class StudioView
         content.Children.Add(picker);
         if (_settings.RecentColors.Count > 0)
         {
-            content.Children.Add(new TextBlock { Text = "Historial", Opacity = 0.6, FontSize = 12 });
+            content.Children.Add(new TextBlock { Text = T("Historial"), Opacity = 0.6, FontSize = 12 });
             content.Children.Add(Swatches(_settings.RecentColors).Panel);
         }
-        content.Children.Add(new TextBlock { Text = "Paleta", Opacity = 0.6, FontSize = 12 });
+        content.Children.Add(new TextBlock { Text = T("Paleta"), Opacity = 0.6, FontSize = 12 });
         content.Children.Add(Swatches(DefaultPalette).Panel);
-        content.Children.Add(new TextBlock { Text = "Mi paleta", Opacity = 0.6, FontSize = 12 });
+        content.Children.Add(new TextBlock { Text = T("Mi paleta"), Opacity = 0.6, FontSize = 12 });
         content.Children.Add(custom);
         new Flyout { Content = new ScrollViewer { MaxHeight = 720, Content = content }, Placement = FlyoutPlacementMode.BottomEdgeAlignedRight }.ShowAt(ColorButton);
     }
@@ -736,7 +738,7 @@ public sealed partial class StudioView
 
     private void BuildAdjustMenu()
     {
-        var liquify = new MenuFlyoutItem { Text = "Licuar" };
+        var liquify = new MenuFlyoutItem { Text = T("Licuar") };
         liquify.Click += (_, _) => StartLiquify();
         AdjustMenu.Items.Add(liquify);
         AdjustMenu.Items.Add(new MenuFlyoutSeparator());
@@ -751,7 +753,7 @@ public sealed partial class StudioView
     private void StartAdjustment(Adjustment a)
     {
         if (_doc is null || _transform is not null) return;
-        if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); return; }
+        if (!_doc.ActiveLayer.Visible) { Window.ShowMessage(T("La capa activa está oculta")); return; }
         CancelInput();
         if (_selectMode) ExitSelectMode();
         if (_liquify is not null) ApplyLiquify();
@@ -835,12 +837,12 @@ public sealed partial class StudioView
         if (_liquify is not null) ApplyLiquify();
         if (_guideEdit) EndGuideEdit();
         if (_doc is null || _transform is not null || _adjust is not null) { TransformButton.IsChecked = _transform is not null; return; }
-        if (!_doc.ActiveLayer.Visible) { Window.ShowMessage("La capa activa está oculta"); TransformButton.IsChecked = false; return; }
+        if (!_doc.ActiveLayer.Visible) { Window.ShowMessage(T("La capa activa está oculta")); TransformButton.IsChecked = false; return; }
         CancelInput();
         _transform = TransformSession.Start(_doc, _doc.ActiveLayer);
         if (_transform is null)
         {
-            Window.ShowMessage("La capa está vacía");
+            Window.ShowMessage(T("La capa está vacía"));
             TransformButton.IsChecked = false;
             return;
         }
@@ -849,7 +851,7 @@ public sealed partial class StudioView
         _transform.SetMode(mode);
         TransformButton.IsChecked = true;
         BuildTransformSheet();
-        OpenSheet("Transformar");
+        OpenSheet(T("Transformar"));
     }
 
     private void ApplyTransform()
@@ -895,7 +897,7 @@ public sealed partial class StudioView
                 catch (Exception ex)
                 {
                     Services.Log.Error(text, ex);
-                    Window.ShowMessage("Error: " + ex.Message, InfoBarSeverity.Error);
+                    Window.ShowMessage(T("Error: ") + ex.Message, InfoBarSeverity.Error);
                 }
                 Canvas.Invalidate();
             };
@@ -909,58 +911,73 @@ public sealed partial class StudioView
             return t;
         }
 
-        var add = Sub("Añadir", "");
-        add.Items.Add(Item("Insertar una foto…", InsertPhotoAsync, ""));
-        add.Items.Add(Item("Pegar imagen", PasteImageAsync, ""));
-        add.Items.Add(Item("Añadir texto…", AddTextAsync, ""));
-        add.Items.Add(Item("Nueva capa", Sync(() => _ops!.Add()), ""));
+        var add = Sub(T("Añadir"), "");
+        add.Items.Add(Item(T("Insertar una foto…"), InsertPhotoAsync, ""));
+        add.Items.Add(Item(T("Pegar imagen"), PasteImageAsync, ""));
+        add.Items.Add(Item(T("Añadir texto…"), AddTextAsync, ""));
+        add.Items.Add(Item(T("Nueva capa"), Sync(() => _ops!.Add()), ""));
         menu.Items.Add(add);
 
-        var canvas = Sub("Lienzo", "");
-        canvas.Items.Add(Item("Voltear horizontalmente", Sync(() => _ops!.FlipCanvas(true))));
-        canvas.Items.Add(Item("Voltear verticalmente", Sync(() => _ops!.FlipCanvas(false))));
-        canvas.Items.Add(Item("Ajustar a la pantalla", Sync(FitToScreen)));
-        canvas.Items.Add(Item("Tamaño real (100 %)", Sync(ShowActualSize)));
+        var canvas = Sub(T("Lienzo"), "");
+        canvas.Items.Add(Item(T("Voltear horizontalmente"), Sync(() => _ops!.FlipCanvas(true))));
+        canvas.Items.Add(Item(T("Voltear verticalmente"), Sync(() => _ops!.FlipCanvas(false))));
+        canvas.Items.Add(Item(T("Ajustar a la pantalla"), Sync(FitToScreen)));
+        canvas.Items.Add(Item(T("Tamaño real (100 %)"), Sync(ShowActualSize)));
         canvas.Items.Add(new MenuFlyoutSeparator());
-        var sym = Sub("Guía de simetría", "");
-        foreach (var (mode, label) in new[] { (SymmetryMode.None, "Ninguna"), (SymmetryMode.Vertical, "Vertical"), (SymmetryMode.Horizontal, "Horizontal"), (SymmetryMode.Quadrant, "Cuadrante"), (SymmetryMode.Radial, "Radial") })
+        var sym = Sub(T("Guía de simetría"), "");
+        foreach (var (mode, label) in new[] { (SymmetryMode.None, T("Ninguna")), (SymmetryMode.Vertical, T("Vertical")), (SymmetryMode.Horizontal, T("Horizontal")), (SymmetryMode.Quadrant, T("Cuadrante")), (SymmetryMode.Radial, T("Radial")) })
         {
             var r = new RadioMenuFlyoutItem { Text = label, GroupName = "sym", IsChecked = _settings.Symmetry == mode };
             r.Click += (_, _) => { _settings.Symmetry = mode; _settings.Save(); Canvas.Invalidate(); };
             sym.Items.Add(r);
         }
         canvas.Items.Add(sym);
-        canvas.Items.Add(Item("Guía de dibujo…", Sync(ShowGuideSheet)));
-        canvas.Items.Add(Item("Cambiar nombre…", RenameDocumentAsync));
-        canvas.Items.Add(Item("Información del lienzo", async () =>
+        canvas.Items.Add(Item(T("Guía de dibujo…"), Sync(ShowGuideSheet)));
+        canvas.Items.Add(Item(T("Cambiar nombre…"), RenameDocumentAsync));
+        canvas.Items.Add(Item(T("Información del lienzo"), async () =>
         {
-            var text = $"Dimensiones: {doc.Width} × {doc.Height} px\nCapas: {doc.Layers.Count} de {doc.MaxLayers}\nPasos de historial: {doc.History.UndoCount}\nMemoria del historial: {doc.History.Bytes / 1024 / 1024} MB\nArchivo: {doc.FilePath}";
-            await Dialogs.ShowAsync(XamlRoot, doc.Name, new TextBlock { Text = text, IsTextSelectionEnabled = true, TextWrapping = TextWrapping.Wrap }, "Cerrar", "");
+            var text = F("Dimensiones: {0} × {1} px\nCapas: {2} de {3}\nPasos de historial: {4}\nMemoria del historial: {5} MB\nArchivo: {6}", doc.Width, doc.Height, doc.Layers.Count, doc.MaxLayers, doc.History.UndoCount, doc.History.Bytes / 1024 / 1024, doc.FilePath);
+            await Dialogs.ShowAsync(XamlRoot, doc.Name, new TextBlock { Text = text, IsTextSelectionEnabled = true, TextWrapping = TextWrapping.Wrap }, T("Cerrar"), "");
         }));
         menu.Items.Add(canvas);
 
-        var share = Sub("Compartir", "");
-        share.Items.Add(Item("PNG…", async () => { using var f = doc.Flatten(); await ExportBitmapAsync(f, doc.Name, CanvasBitmapFileFormat.Png); }));
-        share.Items.Add(Item("PNG transparente…", async () => { using var f = doc.Flatten(includeBackground: false); await ExportBitmapAsync(f, doc.Name, CanvasBitmapFileFormat.Png); }));
-        share.Items.Add(Item("JPEG…", ExportJpegAsync));
-        share.Items.Add(Item("Capas como PNG…", ExportLayersAsync));
-        share.Items.Add(Item("PSD (Photoshop)…", ExportPsdAsync));
-        share.Items.Add(Item("Proyecto .trazo…", ExportProjectAsync));
+        var share = Sub(T("Compartir"), "");
+        share.Items.Add(Item(T("PNG…"), async () => { using var f = doc.Flatten(); await ExportBitmapAsync(f, doc.Name, CanvasBitmapFileFormat.Png); }));
+        share.Items.Add(Item(T("PNG transparente…"), async () => { using var f = doc.Flatten(includeBackground: false); await ExportBitmapAsync(f, doc.Name, CanvasBitmapFileFormat.Png); }));
+        share.Items.Add(Item(T("JPEG…"), ExportJpegAsync));
+        share.Items.Add(Item(T("Capas como PNG…"), ExportLayersAsync));
+        share.Items.Add(Item(T("PSD (Photoshop)…"), ExportPsdAsync));
+        share.Items.Add(Item(T("Proyecto .trazo…"), ExportProjectAsync));
         menu.Items.Add(share);
 
-        var prefs = Sub("Preferencias", "");
-        prefs.Items.Add(Toggle("Solo lápiz (el dedo navega)", PenOnly, v => _settings.PenOnly = v));
-        prefs.Items.Add(Toggle("Interfaz para zurdos", _settings.LeftHanded, v => _settings.LeftHanded = v));
-        prefs.Items.Add(Toggle("Rotar con dos dedos", _settings.RotateGesture, v => _settings.RotateGesture = v));
+        var prefs = Sub(T("Preferencias"), "");
+        prefs.Items.Add(Toggle(T("Solo lápiz (el dedo navega)"), PenOnly, v => _settings.PenOnly = v));
+        prefs.Items.Add(Toggle(T("Interfaz para zurdos"), _settings.LeftHanded, v => _settings.LeftHanded = v));
+        prefs.Items.Add(Toggle(T("Rotar con dos dedos"), _settings.RotateGesture, v => _settings.RotateGesture = v));
         prefs.Items.Add(Toggle("QuickShape", _settings.QuickShape, v => _settings.QuickShape = v));
-        prefs.Items.Add(Toggle("Cursor del pincel", _settings.BrushCursor, v => _settings.BrushCursor = v));
+        prefs.Items.Add(Toggle(T("Cursor del pincel"), _settings.BrushCursor, v => _settings.BrushCursor = v));
         prefs.Items.Add(new MenuFlyoutSeparator());
-        prefs.Items.Add(Item("Curva de presión y relleno…", PressureDialogAsync));
+        prefs.Items.Add(Item(T("Curva de presión y relleno…"), PressureDialogAsync));
+        // I18N-01: los idiomas se nombran en su propio idioma; el cambio se aplica al reiniciar
+        var language = new MenuFlyoutSubItem { Text = T("Idioma") };
+        foreach (var (lang, label) in new[] { (UiLanguage.Automatic, T("Automático (como Windows)")), (UiLanguage.Spanish, "Español"), (UiLanguage.English, "English") })
+        {
+            var r = new RadioMenuFlyoutItem { Text = label, GroupName = "lang", IsChecked = _settings.Language == lang };
+            r.Click += (_, _) =>
+            {
+                if (_settings.Language == lang) return;
+                _settings.Language = lang;
+                _settings.Save();
+                Window.ShowMessage(T("El idioma cambiará la próxima vez que abras Trazo."));
+            };
+            language.Items.Add(r);
+        }
+        prefs.Items.Add(language);
         menu.Items.Add(prefs);
 
         menu.Items.Add(new MenuFlyoutSeparator());
-        menu.Items.Add(Item("Gestos y atajos", HelpAsync, ""));
-        menu.Items.Add(Item("Acerca de Trazo", AboutAsync, ""));
+        menu.Items.Add(Item(T("Gestos y atajos"), HelpAsync, ""));
+        menu.Items.Add(Item(T("Acerca de Trazo"), AboutAsync, ""));
     }
 
     private async Task InsertPhotoAsync()
@@ -977,19 +994,19 @@ public sealed partial class StudioView
         var content = Clipboard.GetContent();
         if (!content.Contains(StandardDataFormats.Bitmap))
         {
-            Window.ShowMessage("No hay ninguna imagen en el portapapeles");
+            Window.ShowMessage(T("No hay ninguna imagen en el portapapeles"));
             return;
         }
         var reference = await content.GetBitmapAsync();
         using var stream = await reference.OpenReadAsync();
         using var bmp = await CanvasBitmap.LoadAsync(_doc!.Device, stream, 96);
-        if (_ops!.AddImage(bmp, "Pegado") is not null) StartTransform();
+        if (_ops!.AddImage(bmp, T("Pegado")) is not null) StartTransform();
     }
 
     private async Task AddTextAsync()
     {
-        var box = new TextBox { AcceptsReturn = true, Height = 120, TextWrapping = TextWrapping.Wrap, PlaceholderText = "Escribe el texto" };
-        if (await Dialogs.ShowAsync(XamlRoot, "Añadir texto", box, "Añadir") != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
+        var box = new TextBox { AcceptsReturn = true, Height = 120, TextWrapping = TextWrapping.Wrap, PlaceholderText = T("Escribe el texto") };
+        if (await Dialogs.ShowAsync(XamlRoot, T("Añadir texto"), box, T("Añadir")) != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
         var doc = _doc!;
         var layer = doc.CreateLayer(box.Text.Trim().Split('\r', '\n')[0] is var first && first.Length > 24 ? first[..24] : first);
         using (var ds = layer.Surface.CreateDrawingSession())
@@ -1001,7 +1018,7 @@ public sealed partial class StudioView
     private async Task RenameDocumentAsync()
     {
         var box = new TextBox { Text = _doc!.Name };
-        if (await Dialogs.ShowAsync(XamlRoot, "Nombre del lienzo", box, "Aceptar") != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
+        if (await Dialogs.ShowAsync(XamlRoot, T("Nombre del lienzo"), box, T("Aceptar")) != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
         var doc = _doc;
         doc.Name = box.Text.Trim();
         if (doc.FilePath is { } old && File.Exists(old))
@@ -1016,11 +1033,11 @@ public sealed partial class StudioView
 
     private async Task ExportBitmapAsync(CanvasBitmap bitmap, string name, CanvasBitmapFileFormat format)
     {
-        var (label, ext) = format == CanvasBitmapFileFormat.Jpeg ? ("Imagen JPEG", ".jpg") : ("Imagen PNG", ".png");
+        var (label, ext) = format == CanvasBitmapFileFormat.Jpeg ? (T("Imagen JPEG"), ".jpg") : (T("Imagen PNG"), ".png");
         var file = await Window.SavePicker(name, label, ext).PickSaveFileAsync();
         if (file is null) return;
         await WriteBitmapAsync(file, bitmap, format);
-        Window.ShowMessage("Exportado: " + file.Name);
+        Window.ShowMessage(T("Exportado: ") + file.Name);
     }
 
     private static async Task WriteBitmapAsync(StorageFile file, CanvasBitmap bitmap, CanvasBitmapFileFormat format)
@@ -1058,14 +1075,14 @@ public sealed partial class StudioView
             var file = await folder.CreateFileAsync($"{doc.Name} - {i + 1:D2} - {safe}.png", CreationCollisionOption.GenerateUniqueName);
             await WriteBitmapAsync(file, l.Surface, CanvasBitmapFileFormat.Png);
         }
-        Window.ShowMessage($"{doc.Layers.Count} capas exportadas");
+        Window.ShowMessage(F("{0} capas exportadas", doc.Layers.Count));
     }
 
     /// <summary>EX-01: capas, grupos, máscaras y modos en un PSD que abren Photoshop, Procreate, Krita y Photopea.</summary>
     private async Task ExportPsdAsync()
     {
         var doc = _doc!;
-        var file = await Window.SavePicker(doc.Name, "Documento de Photoshop", PsdInterop.Extension).PickSaveFileAsync();
+        var file = await Window.SavePicker(doc.Name, T("Documento de Photoshop"), PsdInterop.Extension).PickSaveFileAsync();
         if (file is null) return;
         try
         {
@@ -1075,30 +1092,30 @@ public sealed partial class StudioView
                 using var stream = File.Create(file.Path);
                 Psd.Write(stream, psd);
             });
-            Window.ShowMessage("Exportado: " + file.Name);
+            Window.ShowMessage(T("Exportado: ") + file.Name);
         }
         catch (Exception e)
         {
             Services.Log.Error("Exportación PSD fallida", e);
-            Window.ShowMessage("No se pudo exportar el PSD: " + e.Message, InfoBarSeverity.Error);
+            Window.ShowMessage(T("No se pudo exportar el PSD: ") + e.Message, InfoBarSeverity.Error);
         }
     }
 
     private async Task ExportProjectAsync()
     {
         var doc = _doc!;
-        var file = await Window.SavePicker(doc.Name, "Proyecto de Trazo", TrazoFile.Extension).PickSaveFileAsync();
+        var file = await Window.SavePicker(doc.Name, T("Proyecto de Trazo"), TrazoFile.Extension).PickSaveFileAsync();
         if (file is null) return;
         var data = await doc.ToProjectDataAsync();
         await ProjectSaver.SaveAsync(file.Path, data);
-        Window.ShowMessage("Exportado: " + file.Name);
+        Window.ShowMessage(T("Exportado: ") + file.Name);
     }
 
     private async Task PressureDialogAsync()
     {
-        var gamma = new Slider { Header = "Curva de presión (menor = más sensible)", Minimum = 0.3, Maximum = 2.5, StepFrequency = 0.05, Value = _settings.PressureGamma };
-        var tol = new Slider { Header = "Umbral de relleno", Minimum = 0, Maximum = 255, Value = _settings.FillTolerance };
-        if (await Dialogs.ShowAsync(XamlRoot, "Preferencias del lápiz", new StackPanel { Width = 360, Spacing = 12, Children = { gamma, tol } }, "Guardar") != ContentDialogResult.Primary) return;
+        var gamma = new Slider { Header = T("Curva de presión (menor = más sensible)"), Minimum = 0.3, Maximum = 2.5, StepFrequency = 0.05, Value = _settings.PressureGamma };
+        var tol = new Slider { Header = T("Umbral de relleno"), Minimum = 0, Maximum = 255, Value = _settings.FillTolerance };
+        if (await Dialogs.ShowAsync(XamlRoot, T("Preferencias del lápiz"), new StackPanel { Width = 360, Spacing = 12, Children = { gamma, tol } }, T("Guardar")) != ContentDialogResult.Primary) return;
         _settings.PressureGamma = (float)gamma.Value;
         _settings.FillTolerance = (int)tol.Value;
         _settings.Save();
@@ -1108,15 +1125,15 @@ public sealed partial class StudioView
     {
         string[][] rows =
         [
-            ["Tocar con dos dedos", "Deshacer"], ["Tocar con tres dedos", "Rehacer"], ["Tocar con cuatro dedos", "Ocultar la interfaz"],
-            ["Pellizcar / girar con dos dedos", "Zoom, desplazar y rotar"], ["Pellizco rápido", "Ajustar a la pantalla"],
-            ["Tocar y mantener (dedo)", "Cuentagotas"], ["Mantener al final del trazo", "QuickShape"],
-            ["Arrastrar el círculo de color", "Relleno"], ["Botón lateral del lápiz", "Cuentagotas"], ["Extremo borrador del lápiz", "Borrador"],
-            ["B · E · S", "Pintar · Borrar · Difuminar"], ["[ y ]", "Tamaño del pincel"], ["1 … 9", "Opacidad"],
-            ["I · G · V · X", "Cuentagotas · Relleno · Transformar · Color anterior"], ["L · C", "Capas · Color"],
-            ["Ctrl+Z · Ctrl+Y", "Deshacer · Rehacer"], ["Ctrl+J · Ctrl+E", "Duplicar · Combinar abajo"],
-            ["Espacio + arrastrar · rueda", "Desplazar · Zoom"], ["Alt + rueda · R", "Rotar · Quitar rotación"],
-            ["Ctrl+0 · Ctrl+1", "Ajustar · 100 %"], ["Tab", "Pantalla completa"], ["Ctrl+S", "Guardar"],
+            [T("Tocar con dos dedos"), T("Deshacer")], [T("Tocar con tres dedos"), T("Rehacer")], [T("Tocar con cuatro dedos"), T("Ocultar la interfaz")],
+            [T("Pellizcar / girar con dos dedos"), T("Zoom, desplazar y rotar")], [T("Pellizco rápido"), T("Ajustar a la pantalla")],
+            [T("Tocar y mantener (dedo)"), T("Cuentagotas")], [T("Mantener al final del trazo"), "QuickShape"],
+            [T("Arrastrar el círculo de color"), T("Relleno")], [T("Botón lateral del lápiz"), T("Cuentagotas")], [T("Extremo borrador del lápiz"), T("Borrador")],
+            ["B · E · S", T("Pintar · Borrar · Difuminar")], ["[ y ]", T("Tamaño del pincel")], ["1 … 9", T("Opacidad")],
+            ["I · G · V · X", T("Cuentagotas · Relleno · Transformar · Color anterior")], ["L · C", T("Capas · Color")],
+            ["Ctrl+Z · Ctrl+Y", T("Deshacer · Rehacer")], ["Ctrl+J · Ctrl+E", T("Duplicar · Combinar abajo")],
+            [T("Espacio + arrastrar · rueda"), T("Desplazar · Zoom")], [T("Alt + rueda · R"), T("Rotar · Quitar rotación")],
+            ["Ctrl+0 · Ctrl+1", T("Ajustar · 100 %")], ["Tab", T("Pantalla completa")], ["Ctrl+S", T("Guardar")],
         ];
         var grid = new Grid { ColumnSpacing = 16, RowSpacing = 6 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -1132,6 +1149,6 @@ public sealed partial class StudioView
             grid.Children.Add(a);
             grid.Children.Add(b);
         }
-        await Dialogs.ShowAsync(XamlRoot, "Gestos y atajos", new ScrollViewer { MaxHeight = 520, Content = grid }, "Cerrar", "");
+        await Dialogs.ShowAsync(XamlRoot, T("Gestos y atajos"), new ScrollViewer { MaxHeight = 520, Content = grid }, T("Cerrar"), "");
     }
 }

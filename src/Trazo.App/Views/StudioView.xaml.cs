@@ -16,6 +16,7 @@ using Trazo.Core.IO;
 using Trazo.Core.Strokes;
 using Windows.Foundation;
 using Windows.UI;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -131,7 +132,7 @@ public sealed partial class StudioView : UserControl
         SizeSlider.Value = t * 1000;
         OpacitySlider.Value = Math.Round(st.Opacity * 100);
         SizeLabel.Text = st.Size < 10 ? $"{st.Size:0.0}" : $"{st.Size:0}";
-        OpacityLabel.Text = $"{st.Opacity * 100:0}%";
+        OpacityLabel.Text = F("{0:0} %", st.Opacity * 100);
         _updatingSliders = false;
     }
 
@@ -168,7 +169,7 @@ public sealed partial class StudioView : UserControl
     {
         if (_updatingSliders) return;
         ToolState(Tool).Opacity = (float)e.NewValue / 100;
-        OpacityLabel.Text = $"{e.NewValue:0}%";
+        OpacityLabel.Text = F("{0:0} %", e.NewValue);
         _settings.Save();
     }
 
@@ -245,7 +246,7 @@ public sealed partial class StudioView : UserControl
         {
             doc.IsDirty = true;
             Log.Error("Error al preparar el guardado", e);
-            Window.ShowMessage("No se pudo guardar: " + e.Message + " El archivo anterior sigue intacto.", InfoBarSeverity.Error);
+            Window.ShowMessage(T("No se pudo guardar: ") + e.Message + T(" El archivo anterior sigue intacto."), InfoBarSeverity.Error);
         }
         finally
         {
@@ -276,14 +277,14 @@ public sealed partial class StudioView : UserControl
         if (_doc is null || _transform is not null || _adjust is not null || _liquify is not null) return;
         CancelInput();
         var a = _doc.History.Undo();
-        Window.ShowMessage(a is null ? "Nada que deshacer" : "Deshacer: " + a.Label);
+        Window.ShowMessage(a is null ? T("Nada que deshacer") : T("Deshacer: ") + a.Label);
     }
 
     private void Redo()
     {
         if (_doc is null || _transform is not null || _adjust is not null || _liquify is not null) return;
         var a = _doc.History.Redo();
-        Window.ShowMessage(a is null ? "Nada que rehacer" : "Rehacer: " + a.Label);
+        Window.ShowMessage(a is null ? T("Nada que rehacer") : T("Rehacer: ") + a.Label);
     }
 
     private void Undo_Click(object sender, RoutedEventArgs e) => Undo();
@@ -425,7 +426,7 @@ public sealed partial class StudioView : UserControl
     private void DrawShapeLabel(CanvasDrawingSession ds)
     {
         if (_engine?.Shape is not { } shape) return;
-        var text = shape.DisplayName + " creada";
+        var text = shape.DisplayName + T(" creada");
         using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = CanvasFonts.Ui };
         using var layout = new Microsoft.Graphics.Canvas.Text.CanvasTextLayout(ds, text, fmt, 400, 30);
         var w = (float)layout.LayoutBounds.Width + 28;

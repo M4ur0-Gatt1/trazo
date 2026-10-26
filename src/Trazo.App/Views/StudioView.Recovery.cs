@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Trazo.App.Services;
 using Trazo.Core.IO;
 using Trazo.Rendering;
+using static Trazo.Core.Localization.Tr;
 
 namespace Trazo.App.Views;
 
@@ -90,7 +91,7 @@ public sealed partial class StudioView
 
             if (path is null || !File.Exists(path))
             {
-                Window.ShowMessage("La tarjeta gráfica se reinició y la obra aún no se había guardado.", InfoBarSeverity.Error);
+                Window.ShowMessage(T("La tarjeta gráfica se reinició y la obra aún no se había guardado."), InfoBarSeverity.Error);
                 CloseRequested?.Invoke();
                 return false;
             }
@@ -101,15 +102,15 @@ public sealed partial class StudioView
             _fitPending = false;
             (_view.Scale, _view.Offset, _view.Rotation) = (scale, offset, rotation);
             Canvas.Invalidate();
-            var ago = since is { } s ? $" (hace {Math.Max(1, (int)s.TotalSeconds)} s)" : "";
-            Window.ShowMessage($"La tarjeta gráfica se reinició. Se recuperó la obra hasta el último guardado{ago}.", InfoBarSeverity.Warning);
+            var ago = since is { } s ? F(" (hace {0} s)", Math.Max(1, (int)s.TotalSeconds)) : "";
+            Window.ShowMessage(F("La tarjeta gráfica se reinició. Se recuperó la obra hasta el último guardado{0}.", ago), InfoBarSeverity.Warning);
             Log.Info("Obra recuperada tras perder el dispositivo gráfico");
             return true;
         }
         catch (Exception e)
         {
             Log.Error("No se pudo recuperar la obra tras perder el dispositivo gráfico", e);
-            Window.ShowMessage("No se pudo recuperar la obra tras reiniciarse la tarjeta gráfica. El último guardado sigue en la galería.", InfoBarSeverity.Error);
+            Window.ShowMessage(T("No se pudo recuperar la obra tras reiniciarse la tarjeta gráfica. El último guardado sigue en la galería."), InfoBarSeverity.Error);
             CloseRequested?.Invoke();
             return false;
         }
@@ -175,7 +176,7 @@ public sealed partial class StudioView
             var path = await Task.Run(() => _emergency.TrySave(doc.FilePath, data, DateTimeOffset.Now));
             if (path is null) return;
             Log.Info("Copia de emergencia: " + path);
-            Window.ShowMessage($"Ocurrió un error inesperado. Se guardó una copia de seguridad: «{Path.GetFileNameWithoutExtension(path)}».", InfoBarSeverity.Warning);
+            Window.ShowMessage(F("Ocurrió un error inesperado. Se guardó una copia de seguridad: «{0}».", Path.GetFileNameWithoutExtension(path)), InfoBarSeverity.Warning);
         }
         catch (Exception e)
         {
