@@ -1,50 +1,51 @@
-## Trazo 1.1 — estudio de pintura para Windows
+## Trazo 1.2 — estudio de pintura para Windows · *painting studio for Windows*
 
 Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
-### Descarga
+*Trazo is a GPU painting app for pen and touch on Windows tablets, 2-in-1 laptops and pen displays. **Now in English** — see below.*
 
-| Archivo | Para |
+### Descarga · *Download*
+
+| Archivo · *File* | Para · *For* |
 |---|---|
-| `Trazo-1.1.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) |
-| `Trazo-1.1.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) |
-| `…-portable.zip` | Usar sin instalar: descomprimir y abrir `Trazo.exe` |
+| `Trazo-1.2.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
+| `Trazo-1.2.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
+| `…-portable.zip` | Usar sin instalar · *No install: unzip and open `Trazo.exe`* |
 
-Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador.
+Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador. *Requires Windows 10 version 2004 or later; installs per user, no admin rights.*
 
-### Aviso de Windows SmartScreen
+### Aviso de Windows SmartScreen · *SmartScreen warning*
 
 El instalador **todavía no tiene firma digital**, así que Windows puede mostrar "Windows protegió su PC". Para instalar: **Más información → Ejecutar de todas formas**. Puedes comprobar la integridad del archivo con `SHA256-*.txt`.
 
-### Qué incluye
+*The installer is **not yet code-signed**, so Windows may show "Windows protected your PC". Choose **More info → Run anyway**. You can check the file with `SHA256-*.txt`.*
 
-- **Pinceles:** 21 pinceles con presión e inclinación, StreamLine, grano de papel (en movimiento o texturizado), afinado de extremos, **curvas de presión** para el tamaño, el flujo y la opacidad, y **mezcla húmeda** (dilución, carga, ataque y arrastre del color del lienzo) en el gouache, el óleo y la acuarela.
+### Novedades de la 1.2
+
+- **PSD (Photoshop):** exporta e importa con capas, grupos, máscaras, máscaras de recorte, bloqueo alfa y los 16 modos de fusión. Para pasar tus obras a Photoshop, Procreate, Krita o Photopea y traerlas de vuelta. Exportar: *Acciones › Compartir › PSD (Photoshop)…*; importar: *Importar* en la galería, o *Abrir con → Trazo*. Lee RGB y escala de grises de 8 y 16 bits y te avisa de lo que no puede conservar igual (modos sin equivalente, grupos anidados, capas de ajuste).
+- **Interfaz en inglés:** Trazo sigue el idioma de Windows. Puedes elegirlo en *Acciones › Preferencias › Idioma* (se aplica al volver a abrir).
+- En Licuar, «Ajustar» se llama ahora «Cantidad», y en Seleccionar el botón de suavizar el borde se llama «Difuminar borde».
+
+### What's new in 1.2
+
+- **English interface.** Trazo follows your Windows language; you can also choose it in *Actions › Preferences › Language* (applies the next time you open Trazo).
+- **PSD (Photoshop) import and export** with layers, groups, layer masks, clipping masks, alpha lock and all 16 blend modes — move your artwork to Photoshop, Procreate, Krita or Photopea and back. Export from *Actions › Share › PSD (Photoshop)…*; import with *Import…* in the gallery or *Open with → Trazo*.
+
+### Qué incluye · *What's included*
+
+- **Pinceles:** 21 pinceles con presión e inclinación, StreamLine, grano de papel, afinado de extremos, curvas de presión y mezcla húmeda.
 - **Herramientas:** Pintar, Difuminar y Borrar; QuickShape; simetría; relleno arrastrando el color; cuentagotas.
-- **Capas:** 16 modos de fusión, opacidad, bloqueo alfa, máscara de recorte, **máscaras de capa** y **grupos**.
-- **Selección:** automática, a mano, rectángulo y elipse; añadir, restar, intersecar, invertir, difuminar, copiar y pegar.
-- **Transformar:** libre, uniforme, **distorsionar** (perspectiva) y **deformar** (malla), con modo magnético.
-- **Ajustes:** tono, saturación y brillo, contraste, exposición, temperatura, desenfoque, enfoque, ruido y más, y **Licuar**.
-- **Guías de dibujo:** cuadrícula 2D, isométrica y perspectiva con **Asistente de dibujo**.
-- **Archivos:** formato `.trazo` abierto con guardado verificado y copia de seguridad; exportación a PNG, PNG transparente, JPEG y capas sueltas.
+- **Capas:** 16 modos de fusión, opacidad, bloqueo alfa, máscara de recorte, máscaras de capa y grupos.
+- **Selección, Transformar, Licuar, ajustes de color y guías de dibujo** con Asistente de dibujo.
+- **Archivos:** formato `.trazo` abierto con guardado verificado y copia de seguridad; PSD; exportación a PNG, PNG transparente, JPEG y capas sueltas.
+- **Recuperación:** aviso tras un cierre inesperado, recuperación si se reinicia la tarjeta gráfica y copia de emergencia.
 
-**Novedades de la 1.1**
+### Limitaciones conocidas · *Known limitations*
 
-- **Corrección importante:** en la versión 1.0 instalada con el `.exe`, **«Añadir texto» fallaba** y la etiqueta de QuickShape no se mostraba. Ya funcionan.
-- **No pierdas tu obra:** si Trazo se cierra de forma inesperada, al volver a abrirlo te avisa de qué se conservó y te ofrece abrirlo. Si la tarjeta gráfica se reinicia (por ejemplo, al actualizar su controlador), la obra se recupera sola desde el último guardado. Ante un error inesperado se guarda una copia «(recuperado)» sin tocar tu archivo.
-- **Más rápido con lienzos grandes:** el autoguardado solo guarda las capas que cambiaron (con 20 capas de 4K, de 9 s a medio segundo), la vista no vuelve a componer las capas que no cambian, y Deformar va mucho más fluido.
-- **Acerca de Trazo** (Acciones): versión, licencias y avisos de terceros, y acceso a los registros para informar de un problema.
+- Todavía sin firma digital (SmartScreen avisa). · *Not code-signed yet.*
+- El PSD se verificó con otra implementación (ag-psd, la de Photopea), pero aún no en Photoshop, Procreate ni Krita: si lo pruebas, cuéntanos. · *PSD was verified against ag-psd (Photopea's library) but not yet in Photoshop, Procreate or Krita — feedback welcome.*
+- La traducción al inglés aún no la ha revisado un hablante nativo. · *The English translation hasn't been reviewed by a native speaker yet; corrections welcome.*
+- No se ha probado con todos los modelos de lápiz ni en equipos ARM. · *Not tested with every pen model or on ARM devices.*
+- Sin grupos anidados, selecciones guardadas ni animación. · *No nested groups, saved selections or animation.*
 
-**Novedades de la 1.0**
-
-- **Curvas de presión:** en Ajustes del pincel, una curva editable para el tamaño, otra para el flujo y otra para la opacidad.
-- **Opacidad separada del flujo:** con *Opacidad por presión*, apretar menos limita lo oscuro que llega a ser el trazo aunque pases varias veces; el flujo, en cambio, se acumula.
-- **Mezcla húmeda:** los pinceles de pintura arrastran el color que ya hay en la capa y la pintura se va acabando a lo largo del trazo. El gouache, el óleo y la acuarela la traen activada; puedes ajustarla o desactivarla en Ajustes del pincel.
-
-### Limitaciones conocidas
-
-- Todavía sin firma digital (SmartScreen avisa).
-- No se ha probado con todos los modelos de lápiz ni en equipos ARM: cuéntanos cómo funciona el tuyo.
-- La mezcla húmeda usa el color de la capa activa, no el de las demás capas.
-- Sin selecciones guardadas, grupos anidados, animación ni importación de PSD.
-
-Reporta errores en [Issues](https://github.com/M4ur0-Gatt1/trazo/issues).
+Reporta errores en · *Report issues at* [Issues](https://github.com/M4ur0-Gatt1/trazo/issues).
