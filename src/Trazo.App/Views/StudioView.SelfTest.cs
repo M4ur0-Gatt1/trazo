@@ -390,6 +390,40 @@ public sealed partial class StudioView
                 Check("time-lapse exportado a MP4", new FileInfo(mp4).Length > 10_000);
             }
 
+            // 10d. Panel de color (CO-02): las cuatro pestañas y paletas exportadas e importadas por la app
+            MigratePalettes();
+            var palettesWas = _settings.Palettes.Select(p => new Core.Colors.PaletteData { Id = p.Id, Name = p.Name, Colors = [.. p.Colors] }).ToList();
+            var defaultWas = _settings.DefaultPaletteId;
+            try
+            {
+                for (var t = 0; t < 4; t++)
+                {
+                    ShowColorPanel(t);
+                    await Task.Delay(150);
+                    _colorFlyout?.Hide();
+                }
+                Check("panel de color: las cuatro pestañas se abren", true);
+                var sample = new Core.Colors.Palette("Autoprueba", [new(255, 0, 0), new(0, 128, 255), new(30, 30, 30)]);
+                foreach (var ext in new[] { ".swatches", ".ase" })
+                {
+                    var file = Path.Combine(outDir, "paleta" + ext);
+                    await using (var fs = File.Create(file))
+                        if (ext == ".ase") Core.Colors.PaletteFiles.WriteAse(sample, fs); else Core.Colors.PaletteFiles.WriteSwatches(sample, fs);
+                    var added = await ImportPaletteFileAsync(file);
+                    var colors = added.Count == 1 ? Core.Colors.PaletteSet.ToPalette(added[0]).Colors : [];
+                    Check($"paleta {ext} exportada e importada igual", colors.Count == 3 && colors.Zip(sample.Colors).All(z => Math.Abs(z.First.R - z.Second.R) <= 1 && Math.Abs(z.First.G - z.Second.G) <= 1 && Math.Abs(z.First.B - z.Second.B) <= 1));
+                }
+                var harmony = Core.Colors.ColorHarmony.Colors(Core.Colors.ColorMath.RgbToHsv(new(255, 0, 0)), Core.Colors.HarmonyMode.Complementary);
+                Check("armonía complementaria del rojo es cian", harmony[1].ToRgba() == new Core.Colors.Rgba(0, 255, 255));
+            }
+            finally
+            {
+                // las paletas del usuario quedan como estaban
+                _settings.Palettes = palettesWas;
+                _settings.DefaultPaletteId = defaultWas;
+                _settings.Save();
+            }
+
             // 10b. PSD (EX-01): exportar en la GPU real y volver a importar
             var psdPath = Path.Combine(outDir, "selftest.psd");
             await using (var fs = File.Create(psdPath)) PsdInterop.Write(doc, fs);
@@ -474,6 +508,10 @@ public sealed partial class StudioView
                         AddBalanceEditor(_adjust, "s");
                     }
                     Canvas.Invalidate();
+                    break;
+                case "color" or "value" or "palettes":
+                    CurrentColor = Color.FromArgb(255, 214, 72, 40); // un color vivo para que se vea la armonía
+                    ShowColorPanel(Environment.GetEnvironmentVariable("TRAZO_SELFTEST_UI") switch { "color" => 1, "value" => 2, _ => 3 });
                     break;
                 case "timelapse":
                     _ = ShowTimelapseAsync();

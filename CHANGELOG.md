@@ -5,6 +5,7 @@ Las notas de cada versión publicada están en [Releases](https://github.com/M4u
 ## Sin publicar
 
 - **Ajustes nuevos (AD-02):** curvas por canal, mapa de degradado (7 degradados, uno con el color actual), equilibrio de color por sombras, medios tonos y luces, desenfoque de movimiento y resplandor.
+- **Panel de color (CO-02):** pestañas de disco, armonía, valor y paletas. Varias paletas con nombre, una predeterminada, e importación y exportación de paletas de Procreate (`.swatches`) y de Adobe (`.ase`). La paleta propia anterior se conserva como «Mi paleta».
 - **Time-lapse (TL-01):** cada obra se graba sola mientras pintas (se puede desactivar en Preferencias). Reproductor en Acciones › Lienzo › Time-lapse y exportación a vídeo MP4 completo o de 30 segundos. Al renombrar, duplicar o eliminar una obra en la galería, su time-lapse la acompaña.
 - **Corrección:** la intensidad intermedia de «Invertir colores» y «Escala de grises» funcionaba al revés.
 

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Trazo.Core.Brushes;
 using Trazo.Core.IO;
 using Trazo.Core.Strokes;
+using Trazo.Core.Colors;
 using Trazo.Core.Localization;
 using static Trazo.Core.Localization.Tr;
 
@@ -74,7 +75,13 @@ public sealed class Settings
     public ToolSettings EraserTool { get; set; } = new() { Brush = "softair", Size = 80 };
     public string Color { get; set; } = "#1f1f24";
     public List<string> RecentColors { get; set; } = [];
+    /// <summary>Paleta propia anterior a CO-02: se migra a <see cref="Palettes"/> y se deja vacía.</summary>
     public List<string> Palette { get; set; } = [];
+    /// <summary>CO-02: paletas con nombre y cuál es la predeterminada.</summary>
+    public List<PaletteData> Palettes { get; set; } = [];
+    public string? DefaultPaletteId { get; set; }
+    public int ColorTab { get; set; }
+    public HarmonyMode Harmony { get; set; } = HarmonyMode.Complementary;
     public SymmetryMode Symmetry { get; set; }
     public Dictionary<string, BrushOverride> BrushOverrides { get; set; } = [];
 

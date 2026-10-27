@@ -22,6 +22,7 @@ Columnas: **Inv**estigación · **Esp**ecificación · **Impl**ementación · **
 | TR-01 | Transformar | Crítica | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/TR-01-transform.md): Libre, Uniforme (asas), Distorsionar (homografía) y Deformar (Bézier 4 × 4) dibujados con una malla de 2048 triángulos; Magnético. 8 pruebas de núcleo, 9 WARP, 2 referencias. Sin observación en iPad |
 | LQ-01 | Licuar | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/LQ-01-liquify.md): Empujar, Girar a ambos lados, Pellizcar, Expandir, Reconstruir, Ajustar y Restablecer, con campo compuesto de forma exacta. 15 pruebas de núcleo, 3 WARP, 1 referencia. Faltan Cristales, Borde e impulso |
 | DG-01 | Guías de dibujo y Asistente | Alta | 🟡 | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/DG-01-drawing-guides.md): cuadrícula 2D, isométrica y perspectiva de 1 a 3 puntos, con Asistente; se guarda en el `.trazo`. 8 pruebas de núcleo y 1 WARP |
+| CO-02 | Panel de color | Alta | ✅ | ✅ | ✅ | ✅ | 🟡 | [Especificación](specs/CO-02-color-panel.md): disco, armonía (5 modos), valor (HSB, RGB y hexadecimal) y varias paletas con importación y exportación `.swatches` y `.ase`. 5 pruebas de núcleo (con más de 4000 archivos dañados) y 4 comprobaciones en la autoprueba. Falta probar con paletas reales descargadas de Procreate y de Adobe |
 | CO-01 | Composición y color | Crítica | 🟡 | 🟡 | ✅ | 🟡 | ⬜ | 16 modos de Direct2D. Falta medir la precisión cromática ([ADR-0004](adr/0004-color-and-compositing.md)) |
 | HI-01 | Historial | Crítica | ✅ | ✅ | ✅ | ✅ | 🟡 | Pruebas en el núcleo y en LY-01. Falta cubrir las operaciones interrumpidas |
 | FI-01 | Persistencia y recuperación | Crítica | ✅ | ✅ | ✅ | ✅ | ✅ | [Protocolo](protocols/FI-01.md); fallos inyectados en las 5 etapas del guardado |
@@ -93,6 +94,10 @@ Los criterios de aceptación están en la [especificación](specs/EX-01-psd.md#3
 ### AD-02 — Ajustes nuevos
 
 Los criterios de aceptación están en la [especificación](specs/AD-02-adjustments.md#3-criterios-de-aceptación) (8). Todos tienen prueba automática o autoprueba.
+
+### CO-02 — Panel de color
+
+Los criterios de aceptación están en la [especificación](specs/CO-02-color-panel.md#3-criterios-de-aceptación) (6). Todos tienen prueba automática o autoprueba.
 
 ### TL-01 — Time-lapse
 

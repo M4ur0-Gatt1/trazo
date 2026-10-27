@@ -32,6 +32,7 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 - **QuickShape**: mantén el lápiz quieto al final del trazo y se convierte en línea, círculo, elipse o polilínea, que puedes seguir ajustando.
 - **Simetría** vertical, horizontal, en cuadrante o radial (8 ejes).
 - **Relleno** arrastrando el círculo de color al lienzo, con umbral ajustable.
+- **Panel de color** con disco, **armonía** (complementario, dividido, análogo, triádico y tetrádico), valor (HSB, RGB y hexadecimal) y **paletas** con nombre que se importan y exportan en `.swatches` de Procreate y `.ase` de Adobe ([CO-02](docs/specs/CO-02-color-panel.md)).
 - Cuentagotas al tocar y mantener, con el botón lateral del lápiz, con clic derecho, con Alt+clic o con la tecla I.
 
 **Capas**
