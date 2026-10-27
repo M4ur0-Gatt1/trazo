@@ -93,6 +93,10 @@ public sealed partial class I18N01_LocalizationTests : IDisposable
     [GeneratedRegex(@"[áéíóúñÁÉÍÓÚÑ¿¡«»]|\b(de|del|la|las|el|los|una?|que|con|para|por|sin|capas?|se|no|al|en|hay)\b", RegexOptions.IgnoreCase)]
     private static partial Regex SpanishSignal();
 
+    /// <summary>Literal sin marcar pasado directamente a la interfaz (lista, texto, cabecera, contenido, aviso o ayuda).</summary>
+    [GeneratedRegex(@"(?:\binfo\.Add\(|\bText\s*=\s*|\bHeader\s*=\s*|\bContent\s*=\s*|\bOnContent\s*=\s*|\bOffContent\s*=\s*|ShowMessage\(|SetToolTip\([^,]+,\s*)""([^""\\]*[A-Za-zÁ-úñ]{2,}[^""\\]*)""")]
+    private static partial Regex UiSink();
+
     /// <summary>Textos que se muestran tal cual en cualquier idioma.</summary>
     private static readonly HashSet<string> Untranslated = ["Español", "English", "es", "en", "Trazo", "QuickShape", "StreamLine"];
 
@@ -114,6 +118,10 @@ public sealed partial class I18N01_LocalizationTests : IDisposable
                     if (lit.Marked || Untranslated.Contains(lit.Text)) continue;
                     if (SpanishSignal().IsMatch(lit.Text)) problems.Add($"{Path.GetFileName(f)}:{i + 1} {lit.Text}");
                 }
+                // regresión 2026-10-27: «recorte» no tiene acentos ni palabras frecuentes y se escapaba; todo texto
+                // que va directo a la interfaz tiene que estar marcado, sea la palabra que sea
+                foreach (Match m in UiSink().Matches(code))
+                    if (!Untranslated.Contains(m.Groups[1].Value)) problems.Add($"{Path.GetFileName(f)}:{i + 1} {m.Groups[1].Value} (va a la interfaz)");
             }
         }
         foreach (var f in Files("*.xaml"))

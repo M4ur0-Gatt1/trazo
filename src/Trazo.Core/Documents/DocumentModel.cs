@@ -99,6 +99,8 @@ public sealed record LayerProperties
     public bool Clip { get; init; }
     /// <summary>Grupo al que pertenece (LY-03), o null.</summary>
     public string? GroupId { get; init; }
+    /// <summary>LY-04: el relleno y la selección automática miran solo esta capa. Como mucho una por documento.</summary>
+    public bool Reference { get; init; }
 }
 
 public sealed record CanvasPreset(string Name, int Width, int Height);

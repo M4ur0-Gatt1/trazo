@@ -63,6 +63,7 @@ public static class TrazoFile
                 AlphaLock = l.Properties.AlphaLock,
                 Clip = l.Properties.Clip,
                 GroupId = l.Properties.GroupId,
+                Reference = l.Properties.Reference ? true : null,
                 File = $"layers/{i:D3}.png",
                 Mask = l.MaskPng is null ? null : $"layers/{i:D3}-mask.png",
             }).ToList(),
@@ -149,6 +150,7 @@ public static class TrazoFile
                 AlphaLock = l.AlphaLock,
                 Clip = l.Clip,
                 GroupId = string.IsNullOrEmpty(l.GroupId) ? null : l.GroupId,
+                Reference = l.Reference == true,
             },
             ReadEntry(zip.GetEntry(l.File) ?? throw new InvalidDataException(F("Falta {0}", l.File))),
             l.Mask is null ? null : ReadEntry(zip.GetEntry(l.Mask) ?? throw new InvalidDataException(F("Falta {0}", l.Mask))))).ToList();
@@ -220,6 +222,9 @@ public static class TrazoFile
         // capas que apuntan a un grupo inexistente quedan fuera de grupo; los grupos deben ser contiguos
         var known = p.Groups.Select(g => g.Id).ToHashSet();
         var layers = p.Layers.Select(l => l.Properties.GroupId is { } gid && !known.Contains(gid) ? l with { Properties = l.Properties with { GroupId = null } } : l).ToList();
+        // LY-04: como mucho una capa de referencia (un archivo editado a mano podría traer más)
+        var firstRef = layers.FindIndex(l => l.Properties.Reference);
+        layers = layers.Select((l, i) => l.Properties.Reference && i != firstRef ? l with { Properties = l.Properties with { Reference = false } } : l).ToList();
         if (!GroupRules.AreContiguous(layers.Select(l => l.Properties.GroupId).ToList()))
             throw new InvalidDataException(T("Grupos de capas no contiguos"));
         return p with { Layers = layers, ActiveLayer = Math.Clamp(p.ActiveLayer, 0, Math.Max(0, p.Layers.Count - 1)) };
@@ -300,6 +305,8 @@ internal sealed class LayerV2
     public bool AlphaLock { get; set; }
     public bool Clip { get; set; }
     public string? GroupId { get; set; }
+    /// <summary>LY-04: opcional; solo se escribe cuando es verdadero, y las versiones anteriores lo ignoran.</summary>
+    public bool? Reference { get; set; }
     public string File { get; set; } = "";
     public string? Mask { get; set; }
 }

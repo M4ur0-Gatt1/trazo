@@ -2,7 +2,10 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.3.0 — 2026-10-27
+
+- **Capa de referencia (LY-04):** marca la capa de línea como referencia y el relleno y la selección automática la usan como límite, aunque esté oculta.
+- **Corrección:** la etiqueta «recorte» del panel de capas no se traducía al inglés.
 
 - **Ajustes nuevos (AD-02):** curvas por canal, mapa de degradado (7 degradados, uno con el color actual), equilibrio de color por sombras, medios tonos y luces, desenfoque de movimiento y resplandor.
 - **Panel de color (CO-02):** pestañas de disco, armonía, valor y paletas. Varias paletas con nombre, una predeterminada, e importación y exportación de paletas de Procreate (`.swatches`) y de Adobe (`.ase`). La paleta propia anterior se conserva como «Mi paleta».

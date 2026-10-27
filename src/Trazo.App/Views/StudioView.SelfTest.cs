@@ -163,6 +163,20 @@ public sealed partial class StudioView
             doc.Selection = null;
             for (var k = 0; k < 4; k++) doc.History.Undo(); // resplandor, desenfoque, relleno y la capa
             Check("ajustes AD-02 deshechos", !doc.Layers.Contains(adjLayer));
+
+            // 8c. Capa de referencia (LY-04): círculo en una capa de línea, mancha en otra y relleno en una tercera
+            var refLine = ops.Add()!;
+            using (var ds = refLine.Surface.CreateDrawingSession()) ds.DrawCircle(1300, 820, 90, Colors.Black, 5);
+            var refBlob = ops.Add()!;
+            using (var ds = refBlob.Surface.CreateDrawingSession()) ds.FillRectangle(1280, 800, 40, 40, Color.FromArgb(255, 200, 40, 40));
+            var refPaint = ops.Add()!;
+            doc.ActiveIndex = doc.Layers.IndexOf(refPaint);
+            ops.SetReference(refLine);
+            engine.Fill(1240, 820, Color.FromArgb(255, 40, 120, 220), 46);
+            Check("referencia: el relleno cubre el interior sin frenarse en otra capa", Pixel(refPaint, 1300, 820).A == 255 && Pixel(refPaint, 1240, 820).A == 255);
+            Check("referencia: el relleno no sale de la línea", Pixel(refPaint, 1300, 700).A == 0);
+            for (var k = 0; k < 5; k++) doc.History.Undo(); // relleno, referencia y las tres capas
+            Check("referencia: se deshace", doc.ReferenceLayer is null && !doc.Layers.Contains(refLine));
             var tr = TransformSession.Start(doc, symLayer)!;
             tr.Flip(horizontal: true);
             tr.Apply(ops);

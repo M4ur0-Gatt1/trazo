@@ -8,7 +8,7 @@ Está hecho con **C# / .NET 10**, **WinUI 3** (Windows App SDK 1.8) y **Win2D**:
 
 ## Descargar
 
-**Versión actual: 1.2.0** ([historial](CHANGELOG.md)).
+**Versión actual: 1.3.0** ([historial](CHANGELOG.md)).
 
 Trazo es **gratis** aquí, con el código abierto. Pronto estará también en la **Microsoft Store**, de pago: es la misma app, con instalación sin avisos de SmartScreen y actualizaciones automáticas, y comprarla financia el desarrollo.
 
@@ -40,6 +40,7 @@ Requiere **Windows 10 2004 (19041)** o posterior. No hace falta instalar .NET ap
 - Duplicar, combinar hacia abajo, invertir, rellenar, renombrar y reordenar.
 - Hasta 250 capas, según el tamaño del lienzo y un presupuesto de 2 GB de memoria de vídeo.
 - Color de fondo, que se puede ocultar para exportar con transparencia.
+- **Capa de referencia**: el relleno y la selección automática usan solo la línea de esa capa, para colorear en otra sin que los colores ya puestos frenen el relleno ([LY-04](docs/specs/LY-04-reference-layer.md)).
 
 **Selección y máscaras**
 - **Seleccionar**: automática (por color, con umbral), a mano, rectángulo y elipse; nueva, añadir, restar e intersecar; invertir, difuminar, copiar y pegar y seleccionar el contenido de una capa.

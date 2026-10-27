@@ -378,7 +378,8 @@ public sealed partial class StudioView
         var info = new List<string>();
         if (editingMask) info.Add(T("editando máscara"));
         if (layer.AlphaLock) info.Add(T("α bloqueado"));
-        if (layer.Clip && index > 0) info.Add("recorte");
+        if (layer.Clip && index > 0) info.Add(T("recorte"));
+        if (layer.Reference) info.Add(T("referencia"));
         if (layer.Opacity < 1) info.Add(F("{0:0} %", layer.Opacity * 100));
         var name = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Opacity = layer.Visible ? 1 : 0.55 };
         name.Children.Add(new TextBlock { Text = layer.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
@@ -578,6 +579,7 @@ public sealed partial class StudioView
         Item(T("Borrar contenido"), "", () => _ops!.Clear(Index()));
         menu.Items.Add(new MenuFlyoutSeparator());
         Toggle(T("Bloqueo alfa"), layer.AlphaLock, v => _ops!.Set(layer, "alphaLock", v, l => l.AlphaLock, (l, x) => l.AlphaLock = x, T("Bloqueo alfa")));
+        Toggle(T("Referencia"), layer.Reference, v => _ops!.SetReference(v ? layer : null));
         Toggle(T("Máscara de recorte"), layer.Clip, v => _ops!.Set(layer, "clip", v, l => l.Clip, (l, x) => l.Clip = x, T("Máscara de recorte")));
         menu.Items.Add(new MenuFlyoutSeparator());
         if (!layer.HasMask) Item(T("Máscara de capa"), "\uE7B8", () => _ops!.AddMask(layer));

@@ -411,8 +411,8 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
         if (!layer.Visible) return false;
         int ix = (int)MathF.Floor(x), iy = (int)MathF.Floor(y);
         if (ix < 0 || iy < 0 || ix >= doc.Width || iy >= doc.Height) return false;
-        byte[] pixels;
-        using (var flat = doc.Flatten()) pixels = flat.GetPixelBytes();
+        // LY-04: con capa de referencia, la zona sale de sus píxeles; si no, de la imagen aplanada
+        var pixels = doc.FillSource();
         var mask = FloodFill.Compute(pixels, doc.Width, doc.Height, ix, iy, tolerance);
         if (mask is null) return false;
         if (layer.EditingMask) color = LayerOperations.ToMaskGray(color);

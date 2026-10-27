@@ -1,4 +1,4 @@
-## Trazo 1.2 — estudio de pintura para Windows · *painting studio for Windows*
+## Trazo 1.3 — estudio de pintura para Windows · *painting studio for Windows*
 
 Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
@@ -8,8 +8,8 @@ Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y
 
 | Archivo · *File* | Para · *For* |
 |---|---|
-| `Trazo-1.2.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
-| `Trazo-1.2.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
+| `Trazo-1.3.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
+| `Trazo-1.3.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
 | `…-portable.zip` | Usar sin instalar · *No install: unzip and open `Trazo.exe`* |
 
 Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador. *Requires Windows 10 version 2004 or later; installs per user, no admin rights.*
@@ -20,16 +20,20 @@ El instalador **todavía no tiene firma digital**, así que Windows puede mostra
 
 *The installer is **not yet code-signed**, so Windows may show "Windows protected your PC". Choose **More info → Run anyway**. You can check the file with `SHA256-*.txt`.*
 
-### Novedades de la 1.2
+### Novedades de la 1.3
 
-- **PSD (Photoshop):** exporta e importa con capas, grupos, máscaras, máscaras de recorte, bloqueo alfa y los 16 modos de fusión. Para pasar tus obras a Photoshop, Procreate, Krita o Photopea y traerlas de vuelta. Exportar: *Acciones › Compartir › PSD (Photoshop)…*; importar: *Importar* en la galería, o *Abrir con → Trazo*. Lee RGB y escala de grises de 8 y 16 bits y te avisa de lo que no puede conservar igual (modos sin equivalente, grupos anidados, capas de ajuste).
-- **Interfaz en inglés:** Trazo sigue el idioma de Windows. Puedes elegirlo en *Acciones › Preferencias › Idioma* (se aplica al volver a abrir).
-- En Licuar, «Ajustar» se llama ahora «Cantidad», y en Seleccionar el botón de suavizar el borde se llama «Difuminar borde».
+- **Panel de color nuevo:** pestañas de disco, **armonía** (complementario, dividido, análogo, triádico y tetrádico), valor (HSB, RGB y hexadecimal) y **paletas** con nombre. Importa y exporta paletas de **Procreate (.swatches)** y de **Adobe (.ase)**. Tu paleta anterior se conserva como «Mi paleta».
+- **Time-lapse:** cada obra se graba sola mientras pintas. Míralo en *Acciones › Lienzo › Time-lapse* y expórtalo como vídeo MP4 completo o de 30 segundos. Se puede desactivar en Preferencias.
+- **Ajustes nuevos:** curvas por canal, mapa de degradado, equilibrio de color, desenfoque de movimiento y resplandor.
+- **Capa de referencia:** marca la capa de línea como *Referencia* y el relleno y la selección automática la usan como límite, aunque esté oculta.
+- **Correcciones:** la intensidad intermedia de «Invertir colores» y «Escala de grises» funcionaba al revés; la etiqueta «recorte» no se traducía al inglés.
 
-### What's new in 1.2
+### What's new in 1.3
 
-- **English interface.** Trazo follows your Windows language; you can also choose it in *Actions › Preferences › Language* (applies the next time you open Trazo).
-- **PSD (Photoshop) import and export** with layers, groups, layer masks, clipping masks, alpha lock and all 16 blend modes — move your artwork to Photoshop, Procreate, Krita or Photopea and back. Export from *Actions › Share › PSD (Photoshop)…*; import with *Import…* in the gallery or *Open with → Trazo*.
+- **New color panel** with Disc, **Harmony**, Value and **Palettes** tabs. Import and export **Procreate (.swatches)** and **Adobe (.ase)** palettes.
+- **Time-lapse recording** of every artwork, with a player and MP4 export (full or 30 seconds).
+- **New adjustments:** Curves, Gradient Map, Color Balance, Motion Blur and Bloom.
+- **Reference layer** for fill and automatic selection.
 
 ### Qué incluye · *What's included*
 

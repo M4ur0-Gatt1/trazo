@@ -199,8 +199,8 @@ public sealed partial class StudioView
         switch (_selectTool)
         {
             case SelectTool.Automatic:
-                byte[] px;
-                using (var flat = doc.Flatten()) px = flat.GetPixelBytes();
+                // LY-04: la capa de referencia, si la hay
+                var px = doc.FillSource();
                 var fill = FloodFill.Compute(px, doc.Width, doc.Height, (int)MathF.Floor(drag.Start.X), (int)MathF.Floor(drag.Start.Y), _wandTolerance);
                 if (fill is not null) shape = SelectionMask.FromFill(fill, doc.Width, doc.Height);
                 label = T("Selección automática");

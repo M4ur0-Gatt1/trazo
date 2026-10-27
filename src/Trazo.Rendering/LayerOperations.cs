@@ -244,6 +244,22 @@ public sealed class LayerOperations(PaintDocument doc)
         doc.IsDirty = true;
     }
 
+    /// <summary>
+    /// LY-04: marca <paramref name="layer"/> como capa de referencia (o ninguna con null), quitando la marca a la
+    /// anterior. Un solo paso de deshacer.
+    /// </summary>
+    public void SetReference(Layer? layer)
+    {
+        var old = doc.ReferenceLayer;
+        if (ReferenceEquals(old, layer)) return;
+        void Mark(Layer? on)
+        {
+            foreach (var l in doc.Layers) l.Reference = ReferenceEquals(l, on);
+        }
+        doc.History.Execute(new DelegateAction(layer is null ? T("Quitar referencia") : T("Referencia"), () => Mark(old), () => Mark(layer)));
+        doc.IsDirty = true;
+    }
+
     public void SetBackground(Color color, bool visible)
     {
         var (oc, ov) = (doc.Background, doc.BackgroundVisible);

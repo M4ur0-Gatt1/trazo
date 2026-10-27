@@ -33,6 +33,7 @@ public sealed partial class Layer : ObservableObject, IDisposable
     private CanvasRenderTarget? _mask;
     private bool _editingMask;
     private string? _groupId;
+    private bool _reference;
 
     public Layer(CanvasDevice device, int width, int height, string name)
     {
@@ -51,6 +52,8 @@ public sealed partial class Layer : ObservableObject, IDisposable
     public bool AlphaLock { get => _alphaLock; set => SetProperty(ref _alphaLock, value); }
     public bool Clip { get => _clip; set => SetProperty(ref _clip, value); }
     public string? GroupId { get => _groupId; set => SetProperty(ref _groupId, value); }
+    /// <summary>LY-04: capa de referencia del relleno y la selección automática.</summary>
+    public bool Reference { get => _reference; set => SetProperty(ref _reference, value); }
     public string BlendShort => _blend.ShortName();
 
     /// <summary>Máscara de capa (LY-02): textura opaca en gris, blanco = visible, negro = oculto.</summary>
@@ -93,18 +96,19 @@ public sealed partial class Layer : ObservableObject, IDisposable
 
     public LayerProperties ToProperties() => new()
     {
-        Id = Id, Name = Name, Opacity = Opacity, Blend = Blend, Visible = Visible, AlphaLock = AlphaLock, Clip = Clip, GroupId = GroupId,
+        Id = Id, Name = Name, Opacity = Opacity, Blend = Blend, Visible = Visible, AlphaLock = AlphaLock, Clip = Clip, GroupId = GroupId, Reference = Reference,
     };
 
     public void Apply(LayerProperties p)
     {
-        Name = p.Name; Opacity = p.Opacity; Blend = p.Blend; Visible = p.Visible; AlphaLock = p.AlphaLock; Clip = p.Clip; GroupId = p.GroupId;
+        Name = p.Name; Opacity = p.Opacity; Blend = p.Blend; Visible = p.Visible; AlphaLock = p.AlphaLock; Clip = p.Clip; GroupId = p.GroupId; Reference = p.Reference;
     }
 
     public Layer Duplicate(CanvasDevice device)
     {
         var l = new Layer(device, (int)Surface.SizeInPixels.Width, (int)Surface.SizeInPixels.Height, Name + T(" copia"));
-        l.Apply(ToProperties() with { Id = l.Id, Name = Name + T(" copia") });
+        // la copia nunca es referencia: solo puede haber una (LY-04)
+        l.Apply(ToProperties() with { Id = l.Id, Name = Name + T(" copia"), Reference = false });
         l.Surface.CopyPixelsFromBitmap(Surface);
         if (_mask is not null)
         {
@@ -410,6 +414,20 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         BlendMode.Luminosity => BlendEffectMode.Luminosity,
         _ => BlendEffectMode.Multiply,
     };
+
+    /// <summary>LY-04: la capa de referencia, o null.</summary>
+    public Layer? ReferenceLayer => Layers.FirstOrDefault(l => l.Reference);
+
+    /// <summary>
+    /// Píxeles BGRA sobre los que se calcula la zona del relleno y de la selección automática: los de la capa de
+    /// referencia sola (aunque esté oculta) o, si no hay, la imagen aplanada.
+    /// </summary>
+    public byte[] FillSource()
+    {
+        if (ReferenceLayer is { } r) return r.Surface.GetPixelBytes();
+        using var flat = Flatten();
+        return flat.GetPixelBytes();
+    }
 
     /// <summary>Imagen aplanada del documento.</summary>
     public CanvasRenderTarget Flatten(bool includeBackground = true, IReadOnlyDictionary<object, ICanvasImage>? overrides = null)
