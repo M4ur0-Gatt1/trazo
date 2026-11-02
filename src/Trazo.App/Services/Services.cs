@@ -100,25 +100,53 @@ public sealed class Settings
     }
 
     private CancellationTokenSource? _pending;
+    private readonly object _writeGate = new();
+    private string? _pendingJson;
 
-    /// <summary>Guarda con un pequeño retardo para agrupar cambios seguidos.</summary>
+    /// <summary>
+    /// Guarda con un pequeño retardo para agrupar cambios seguidos. Las preferencias se serializan aquí, en el hilo de
+    /// la interfaz (antes se leían las listas desde otro hilo mientras la interfaz las cambiaba), y se escriben de
+    /// forma atómica (auditoría 2026-11-02).
+    /// </summary>
     public void Save()
     {
+        var json = JsonSerializer.Serialize(this, Options);
+        lock (_writeGate) _pendingJson = json;
         _pending?.Cancel();
         var cts = _pending = new CancellationTokenSource();
         _ = Task.Delay(400, cts.Token).ContinueWith(t =>
         {
-            if (t.IsCanceled) return;
+            if (!t.IsCanceled) WritePending();
+        }, TaskScheduler.Default);
+    }
+
+    /// <summary>Escribe ya lo pendiente (al cerrar la app, para no perder el último cambio).</summary>
+    public void Flush()
+    {
+        _pending?.Cancel();
+        WritePending();
+    }
+
+    private void WritePending()
+    {
+        lock (_writeGate)
+        {
+            if (_pendingJson is not { } json) return;
+            _pendingJson = null;
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-                File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Options));
+                // se escribe aparte y se sustituye de una vez: un cierre a mitad no deja un JSON roto que borraría
+                // paletas y ajustes de pinceles al volver a abrir
+                var tmp = FilePath + ".tmp";
+                File.WriteAllText(tmp, json);
+                File.Move(tmp, FilePath, overwrite: true);
             }
-            catch (IOException e)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 Log.Error("No se pudieron guardar las preferencias", e);
             }
-        }, TaskScheduler.Default);
+        }
     }
 
     public void ApplyBrushOverrides(BrushLibrary lib)
@@ -195,7 +223,7 @@ public static class ProjectStore
                 using var fs = File.OpenRead(file);
                 list.Add(new ProjectEntry(file, System.IO.Path.GetFileNameWithoutExtension(file), File.GetLastWriteTime(file), TrazoFile.ReadThumbnail(fs)));
             }
-            catch (IOException e)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 Log.Error($"No se pudo leer {file}", e);
             }
@@ -203,13 +231,24 @@ public static class ProjectStore
         return list.OrderByDescending(p => p.Modified).ToList();
     });
 
-    /// <summary>Ruta libre en la carpeta de proyectos para un nombre dado.</summary>
-    public static string NewPath(string name)
+    /// <summary>
+    /// Ruta libre en la carpeta de proyectos para un nombre dado. <paramref name="current"/> (la obra que se renombra)
+    /// cuenta como libre: renombrar a su mismo nombre no da «Nombre 2».
+    /// </summary>
+    public static string NewPath(string name, string? current = null)
     {
         var safe = string.Concat(name.Select(c => System.IO.Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim();
         if (safe.Length == 0) safe = T("Sin título");
         var path = System.IO.Path.Combine(Folder, safe + TrazoFile.Extension);
-        for (var i = 2; File.Exists(path); i++) path = System.IO.Path.Combine(Folder, $"{safe} {i}{TrazoFile.Extension}");
+        bool Taken(string p) => File.Exists(p) && !string.Equals(p, current, StringComparison.OrdinalIgnoreCase);
+        for (var i = 2; Taken(path); i++) path = System.IO.Path.Combine(Folder, $"{safe} {i}{TrazoFile.Extension}");
         return path;
+    }
+
+    /// <summary>¿Está el archivo dentro de la carpeta de proyectos? (con separador: «Trazo Archivo» no cuenta)</summary>
+    public static bool Contains(string path)
+    {
+        var folder = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(Folder)) + System.IO.Path.DirectorySeparatorChar;
+        return System.IO.Path.GetFullPath(path).StartsWith(folder, StringComparison.OrdinalIgnoreCase);
     }
 }

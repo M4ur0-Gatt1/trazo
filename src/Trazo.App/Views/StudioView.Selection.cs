@@ -49,8 +49,8 @@ public sealed partial class StudioView
     private void EnterSelectMode()
     {
         if (_doc is null) return;
-        if (_transform is not null) ApplyTransform();
-        if (_adjust is not null) CloseSheet();
+        // antes no se cerraban Licuar ni la guía: se quedaban activas sin hoja (auditoría 2026-11-02)
+        EndOpenTools(keepSelectMode: true);
         CancelInput();
         _selectMode = true;
         SelectButton.IsChecked = true;
@@ -171,7 +171,7 @@ public sealed partial class StudioView
             }
             if (PenOnly) return false;
         }
-        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || _spaceDown)) return false;
+        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || SpaceHeld)) return false;
         var d = _view.ToDocument(c.Position);
         _selDrag = new SelectionDrag { Pointer = c.Id, Start = d, Current = d };
         _selDrag.Path.Add(d);

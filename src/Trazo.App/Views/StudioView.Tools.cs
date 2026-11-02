@@ -253,9 +253,7 @@ public sealed partial class StudioView
     private void StartLiquify()
     {
         if (_doc is null || _liquify is not null) return;
-        if (_selectMode) ExitSelectMode();
-        if (_transform is not null) ApplyTransform();
-        if (_adjust is not null) CloseSheet();
+        EndOpenTools();
         if (!_doc.ActiveLayer.Visible) { Window.ShowMessage(T("La capa activa está oculta")); return; }
         CancelInput();
         _liquify = LiquifySession.Start(_doc, _doc.ActiveLayer);
@@ -314,7 +312,7 @@ public sealed partial class StudioView
             }
             if (PenOnly) return false;
         }
-        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || _spaceDown)) return false;
+        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || SpaceHeld)) return false;
         _liquifyPointer = c.Id;
         _liquifyPos = _view.ToDocument(c.Position);
         _liquifyPressure = type == PointerDeviceType.Pen ? Math.Max(0.05f, pt.Properties.Pressure) : 1;
@@ -371,10 +369,7 @@ public sealed partial class StudioView
     private void ShowGuideSheet()
     {
         if (_doc is null) return;
-        if (_selectMode) ExitSelectMode();
-        if (_transform is not null) ApplyTransform();
-        if (_adjust is not null) CloseSheet();
-        if (_liquify is not null) ApplyLiquify();
+        EndOpenTools();
         _guideEdit = true;
         BuildGuideSheet();
         OpenSheet(T("Guía de dibujo"));
@@ -448,7 +443,7 @@ public sealed partial class StudioView
             _guideDrag = null;
             return false;
         }
-        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || _spaceDown)) return false;
+        if (type == PointerDeviceType.Mouse && (!pt.Properties.IsLeftButtonPressed || SpaceHeld)) return false;
         var g = CurrentGuide;
         var vps = g.VanishingPoints.ToList();
         var r = HitRadius(type);

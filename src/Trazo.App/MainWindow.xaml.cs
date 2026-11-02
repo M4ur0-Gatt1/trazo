@@ -62,12 +62,14 @@ public sealed partial class MainWindow : Window
         return picker;
     }
 
+    internal void SetDocumentTitle(string name) => TitleText.Text = $"{name} — Trazo";
+
     internal void ShowStudio(PaintDocument doc)
     {
         Gallery.Visibility = Visibility.Collapsed;
         Studio.Visibility = Visibility.Visible;
         Studio.Open(doc);
-        TitleText.Text = $"{doc.Name} — Trazo";
+        SetDocumentTitle(doc.Name);
     }
 
     private void CreateDocument(int width, int height, string name)
@@ -79,12 +81,18 @@ public sealed partial class MainWindow : Window
         _ = Studio.SaveAsync();
     }
 
+    private bool _opening;
+
     public async Task OpenFileAsync(string path)
     {
+        // un doble toque en la galería no abre dos copias, y no se abre otra encima de una obra abierta (auditoría 2026-11-02)
+        if (_opening || Studio.Visibility == Visibility.Visible) return;
+        _opening = true;
+        PaintDocument? doc = null;
         try
         {
             var result = await Task.Run(() => ProjectSaver.Load(path));
-            var doc = await PaintDocument.FromProjectDataAsync(Device, result.Project, path);
+            doc = await PaintDocument.FromProjectDataAsync(Device, result.Project, path);
             if (result.Recovered)
             {
                 Log.Error($"Recuperado {path} desde {result.Source}: {result.Problem}");
@@ -94,13 +102,27 @@ public sealed partial class MainWindow : Window
                 doc.IsDirty = true; // se vuelve a guardar sano en el archivo principal
             }
             // los archivos del formato web antiguo se guardan como .trazo v2 en la carpeta de proyectos
-            if (!path.StartsWith(ProjectStore.Folder, StringComparison.OrdinalIgnoreCase)) doc.FilePath = ProjectStore.NewPath(doc.Name);
+            if (!ProjectStore.Contains(path)) doc.FilePath = ProjectStore.NewPath(doc.Name);
+            // en la galería, el nombre de la obra es el de su archivo: tras renombrar o duplicar allí, coinciden
+            else doc.Name = Path.GetFileNameWithoutExtension(path);
             ShowStudio(doc);
+            doc = null;
         }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or FormatException)
         {
             Log.Error($"No se pudo abrir {path}", e);
             ShowMessage(T("No se pudo abrir el archivo: ") + e.Message, InfoBarSeverity.Error);
+        }
+        catch (Exception e)
+        {
+            // GPU sin memoria, imagen que no se puede decodificar…: antes no se avisaba de nada
+            Log.Error($"No se pudo abrir {path}", e);
+            ShowMessage(T("No se pudo abrir el archivo."), InfoBarSeverity.Error);
+        }
+        finally
+        {
+            doc?.Dispose(); // documento a medio crear que no llegó al estudio
+            _opening = false;
         }
     }
 
@@ -185,26 +207,37 @@ public sealed partial class MainWindow : Window
 
     private async Task CloseDocumentAsync()
     {
-        await Studio.CloseAsync();
+        if (!await Studio.CloseAsync()) return;
         Studio.Visibility = Visibility.Collapsed;
         Gallery.Visibility = Visibility.Visible;
         TitleText.Text = "Trazo";
         await Gallery.RefreshAsync();
     }
 
-    private bool _savedBeforeClose;
+    private bool _readyToClose, _closingWindow;
 
-    // Al cerrar con cambios sin guardar, se cancela el cierre, se guarda y se vuelve a cerrar
+    // Al cerrar la ventana se cierra la obra como al volver a la galería (guardado completo, time-lapse incluido) y se
+    // guardan las preferencias pendientes; si el guardado falla y el usuario prefiere seguir, la ventana no se cierra
     private async void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (_savedBeforeClose || !Studio.HasUnsavedChanges)
+        if (_readyToClose)
         {
             App.Journal.End(); // cierre normal: no hay nada que recuperar al volver
             return;
         }
         args.Cancel = true;
-        await Studio.SaveAsync();
-        _savedBeforeClose = true;
-        Close();
+        if (_closingWindow) return; // segundo clic en la X mientras se guarda
+        _closingWindow = true;
+        try
+        {
+            if (!await Studio.CloseAsync()) return;
+            Services.Settings.Current.Flush();
+            _readyToClose = true;
+            Close();
+        }
+        finally
+        {
+            _closingWindow = false;
+        }
     }
 }

@@ -59,10 +59,17 @@ public sealed partial class StudioView : UserControl
         ColorButton.AddHandler(PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(ColorButton_PointerPressed), true);
         ColorButton.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(ColorButton_PointerMoved), true);
         ColorButton.AddHandler(PointerReleasedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(ColorButton_PointerReleased), true);
+        // si el arrastre se interrumpe (otra ventana, captura perdida), el punto de color no se queda flotando
+        ColorButton.PointerCaptureLost += (_, _) => CancelColorDrag();
+        ColorButton.PointerCanceled += (_, _) => CancelColorDrag();
     }
 
     private static MainWindow Window => App.Window!;
-    public bool HasUnsavedChanges => _doc?.IsDirty == true;
+    /// <summary>Hay cambios sin guardar o un guardado a medias (cerrar ahora perdería trabajo).</summary>
+    public bool HasUnsavedChanges => _doc?.IsDirty == true || _saveLock.CurrentCount == 0;
+
+    /// <summary>El último guardado falló (el archivo anterior sigue intacto, pero lo último no está en el disco).</summary>
+    public bool LastSaveFailed { get; private set; }
 
     // ================= Estado de herramientas =================
 
@@ -94,7 +101,8 @@ public sealed partial class StudioView : UserControl
         {
             var hex = PaintDocument.ToRgba(value).ToHex();
             if (hex == _settings.Color) return;
-            _previousColor = _settings.Color;
+            // con el panel abierto, «anterior» es el de antes de abrirlo, no el de mitad de un arrastre (se fija al cerrar)
+            if (!_colorPanelOpen) _previousColor = _settings.Color;
             _settings.Color = hex;
             _settings.Save();
             ColorSwatch.Fill = new SolidColorBrush(value);
@@ -225,27 +233,32 @@ public sealed partial class StudioView : UserControl
 
     public async Task SaveAsync()
     {
-        var doc = _doc;
-        if (doc?.FilePath is null || !doc.IsDirty) return;
+        // primero se espera a un guardado en curso y después se decide: antes se miraba «sucio» fuera del cerrojo,
+        // y cerrar durante un autoguardado liberaba el documento a medio guardar (auditoría 2026-11-02)
         await _saveLock.WaitAsync();
+        var doc = _doc;
         try
         {
+            if (doc?.FilePath is null || !doc.IsDirty) return;
             doc.IsDirty = false;
             var data = await doc.ToProjectDataAsync();
             await ProjectSaver.SaveAsync(doc.FilePath, data);
             _lastSaved = DateTimeOffset.Now;
+            LastSaveFailed = false;
             App.Journal.MarkSaved(_lastSaved.Value, doc.FilePath);
         }
         catch (SaveFailedException e)
         {
             // el archivo anterior sigue intacto: se reintentará en el próximo autoguardado
-            doc.IsDirty = true;
+            doc!.IsDirty = true;
+            LastSaveFailed = true;
             Log.Error($"Guardado fallido en la etapa {e.Stage}", e);
             Window.ShowMessage(e.Message, InfoBarSeverity.Error);
         }
         catch (Exception e)
         {
-            doc.IsDirty = true;
+            doc!.IsDirty = true;
+            LastSaveFailed = true;
             Log.Error("Error al preparar el guardado", e);
             Window.ShowMessage(T("No se pudo guardar: ") + e.Message + T(" El archivo anterior sigue intacto."), InfoBarSeverity.Error);
         }
@@ -255,23 +268,51 @@ public sealed partial class StudioView : UserControl
         }
     }
 
-    public async Task CloseAsync()
+    private bool _closing;
+
+    /// <summary>
+    /// Cierra la obra guardándola. Devuelve false si sigue abierta: ya se estaba cerrando, o el guardado falló y el
+    /// usuario prefirió no perder lo último (antes se cerraba igualmente; auditoría 2026-11-02).
+    /// </summary>
+    public async Task<bool> CloseAsync()
     {
-        CancelInput();
-        if (_transform is not null) ApplyTransform();
-        if (_adjust is not null) CloseSheet();
-        if (_liquify is not null) ApplyLiquify();
-        if (_guideEdit) EndGuideEdit();
-        _autosave.Stop();
-        await SaveAsync();
-        // el último cambio también entra en el time-lapse
-        _timelapse?.Flush();
-        StopTimelapse();
-        _doc?.Dispose();
-        _doc = null;
-        _composition.Dispose();
-        App.Journal.End();
-        Canvas.Invalidate();
+        if (_closing || _doc is null) return _doc is null;
+        _closing = true;
+        try
+        {
+            CancelInput();
+            EndOpenTools();
+            _fillOnce = _eyedropOnce = false;
+            _autosave.Stop();
+            await SaveAsync();
+            if (_doc?.IsDirty == true && LastSaveFailed)
+            {
+                var text = new TextBlock
+                {
+                    Text = T("No se pudo guardar lo último. Si sales ahora, se pierde desde el último guardado; el archivo anterior sigue intacto."),
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                if (await Dialogs.ShowAsync(XamlRoot, T("No se pudo guardar"), text, T("Seguir en la obra"), T("Salir sin guardar")) == ContentDialogResult.Primary)
+                {
+                    _autosave.Start();
+                    return false;
+                }
+            }
+            // el último cambio también entra en el time-lapse
+            _timelapse?.Flush();
+            StopTimelapse();
+            PruneThumbnails(null);
+            _doc?.Dispose();
+            _doc = null;
+            _composition.Dispose();
+            App.Journal.End();
+            Canvas.Invalidate();
+            return true;
+        }
+        finally
+        {
+            _closing = false;
+        }
     }
 
     private void Gallery_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();

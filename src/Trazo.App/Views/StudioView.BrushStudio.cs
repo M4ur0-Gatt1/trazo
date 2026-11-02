@@ -113,6 +113,9 @@ public sealed partial class StudioView
             dragging = -1;
             canvas.ReleasePointerCaptures();
         };
+        // toque que se queda el desplazamiento: se deja de arrastrar el punto
+        canvas.PointerCaptureLost += (_, _) => dragging = -1;
+        canvas.PointerCanceled += (_, _) => dragging = -1;
         canvas.DoubleTapped += (_, e) =>
         {
             var s = e.GetPosition(canvas);

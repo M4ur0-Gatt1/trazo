@@ -92,7 +92,15 @@ public sealed partial class GalleryView : UserControl
         Add(T("Cambiar nombre…"), () => RenameAsync(item));
         Add(T("Duplicar"), async () =>
         {
-            ProjectFiles.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + T(" copia")));
+            try
+            {
+                ProjectFiles.Copy(item.Entry.Path, ProjectStore.NewPath(item.Name + T(" copia")));
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                Log.Error("Duplicar", e);
+                App.Window?.ShowMessage(T("No se pudo duplicar: ") + e.Message, InfoBarSeverity.Error);
+            }
             await RefreshAsync();
         });
         Add(T("Mostrar en el Explorador"), () =>
@@ -109,8 +117,16 @@ public sealed partial class GalleryView : UserControl
     {
         var box = new TextBox { Text = item.Name };
         if (await Dialogs.ShowAsync(XamlRoot, T("Cambiar nombre"), box, T("Aceptar")) != ContentDialogResult.Primary) return;
-        var target = ProjectStore.NewPath(box.Text);
-        ProjectFiles.Move(item.Entry.Path, target);
+        try
+        {
+            var target = ProjectStore.NewPath(box.Text, item.Entry.Path);
+            if (!string.Equals(target, item.Entry.Path, StringComparison.OrdinalIgnoreCase)) ProjectFiles.Move(item.Entry.Path, target);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Cambiar el nombre", e);
+            App.Window?.ShowMessage(T("No se pudo cambiar el nombre: ") + e.Message, InfoBarSeverity.Error);
+        }
         await RefreshAsync();
     }
 

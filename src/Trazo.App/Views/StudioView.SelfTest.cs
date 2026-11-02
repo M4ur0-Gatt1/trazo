@@ -177,6 +177,24 @@ public sealed partial class StudioView
             Check("referencia: el relleno no sale de la línea", Pixel(refPaint, 1300, 700).A == 0);
             for (var k = 0; k < 5; k++) doc.History.Undo(); // relleno, referencia y las tres capas
             Check("referencia: se deshace", doc.ReferenceLayer is null && !doc.Layers.Contains(refLine));
+
+            // 8d. Auditoría 2026-11-02: guardados seguidos y herramientas que se cierran entre sí
+            doc.IsDirty = true;
+            var firstSave = SaveAsync();
+            Check("con un guardado en curso hay cambios sin guardar", HasUnsavedChanges);
+            ops.Fill(doc.ActiveIndex, Colors.Transparent); // otro cambio mientras guarda
+            doc.IsDirty = true;
+            await SaveAsync(); // espera al primero y guarda lo último
+            await firstSave;
+            Check("los guardados seguidos no se pisan y queda todo guardado", !doc.IsDirty && !LastSaveFailed && !HasUnsavedChanges);
+            doc.History.Undo();
+            ShowGuideSheet();
+            StartLiquify();
+            Check("Licuar cierra la edición de la guía", !_guideEdit && _liquify is not null);
+            EnterSelectMode();
+            Check("Seleccionar aplica Licuar en lugar de dejarlo activo sin hoja", _liquify is null && _selectMode);
+            ExitSelectMode();
+            Check("ninguna herramienta queda abierta", !ToolBusy && !_selectMode);
             var tr = TransformSession.Start(doc, symLayer)!;
             tr.Flip(horizontal: true);
             tr.Apply(ops);

@@ -123,8 +123,11 @@ public sealed partial class StudioView
                         Window.ShowMessage(T("Lápiz detectado: el lápiz dibuja y el dedo navega. Puedes cambiarlo en Acciones › Preferencias."));
                     }
                 }
-                if (_mode == InputMode.Gesture) EndGesture();
+                // un gesto que el lápiz interrumpe (la mano apoyada) no cuenta como toque: antes deshacía y el deshacer
+                // borraba el contacto del lápiz, que se quedaba sin dibujar ni soltar (auditoría 2026-11-02)
+                if (_mode == InputMode.Gesture) EndGesture(allowTap: false);
                 if (_mode == InputMode.Draw && _strokeType == PointerDeviceType.Touch) EndDraw(cancel: true);
+                _contacts[c.Id] = c;
                 if (_mode != InputMode.Idle) return;
                 if (_eyedropOnce || pt.Properties.IsBarrelButtonPressed) { StartEyedrop(c); return; }
                 if (_fillOnce) { DoFill(c.Position); return; }
@@ -134,7 +137,7 @@ public sealed partial class StudioView
             case PointerDeviceType.Mouse:
                 if (_mode != InputMode.Idle) return;
                 var props = pt.Properties;
-                if (props.IsMiddleButtonPressed || (props.IsLeftButtonPressed && _spaceDown))
+                if (props.IsMiddleButtonPressed || (props.IsLeftButtonPressed && SpaceHeld))
                 {
                     _pan = (c.Id, c.Position, _view.Offset);
                     _mode = InputMode.Pan;
@@ -584,14 +587,14 @@ public sealed partial class StudioView
         Canvas.Invalidate();
     }
 
-    private void EndGesture()
+    private void EndGesture(bool allowTap = true)
     {
         var g = _gesture;
         _gesture = null;
         _mode = InputMode.Idle;
         if (g is null) return;
         var dur = Now - g.T0;
-        if (dur < 320 && g.Moved < 18)
+        if (allowTap && dur < 320 && g.Moved < 18)
         {
             switch (g.MaxTouches)
             {
@@ -645,6 +648,14 @@ public sealed partial class StudioView
         var handled = true;
         if (ctrl)
         {
+            // con una herramienta abierta (Transformar, un ajuste, Licuar o la guía), los atajos que cambian capas o la
+            // selección se ignoran: actuarían por debajo y la herramienta los desharía o los aplicaría a otra cosa
+            // (auditoría 2026-11-02). Deshacer y rehacer ya se bloquean en Undo y Redo
+            if (ToolBusy && e.Key is VirtualKey.A or VirtualKey.D or VirtualKey.I or VirtualKey.J or VirtualKey.E)
+            {
+                e.Handled = true;
+                return;
+            }
             switch (e.Key)
             {
                 case VirtualKey.Z when shift: Redo(); break;
@@ -677,6 +688,7 @@ public sealed partial class StudioView
         switch (e.Key)
         {
             case VirtualKey.Space: _spaceDown = true; break;
+            case VirtualKey.Delete or VirtualKey.Back or VirtualKey.G when ToolBusy: break;
             case VirtualKey.Escape when _selectMode: ExitSelectMode(); break;
             case VirtualKey.Escape when _liquify is not null: EndLiquify(); break;
             case VirtualKey.Enter when _liquify is not null: ApplyLiquify(); break;
@@ -714,6 +726,31 @@ public sealed partial class StudioView
     private async Task SaveAndNotifyAsync()
     {
         await SaveAsync();
-        Window.ShowMessage(T("Guardado"));
+        // si falló, el aviso de error ya está a la vista: no se tapa con «Guardado»
+        if (!LastSaveFailed) Window.ShowMessage(T("Guardado"));
+    }
+
+    /// <summary>Hay una herramienta con hoja abierta que trabaja sobre una copia de la capa.</summary>
+    private bool ToolBusy => _transform is not null || _adjust is not null || _liquify is not null || _guideEdit;
+
+    /// <summary>Espacio pulsado de verdad: si se suelta con la ventana sin foco, el KeyUp no llega (auditoría 2026-11-02).</summary>
+    private bool SpaceHeld => _spaceDown && (_spaceDown = IsKeyDown(VirtualKey.Space));
+
+    /// <summary>
+    /// Termina las herramientas con hoja abierta: aplica Transformar y Licuar, cierra el ajuste y la edición de la guía
+    /// y sale de seleccionar. Una herramienta nueva empieza siempre desde aquí, así ninguna se queda activa sin hoja.
+    /// </summary>
+    private void EndOpenTools(bool keepSelectMode = false)
+    {
+        if (_selectMode && !keepSelectMode) ExitSelectMode();
+        if (_transform is not null) ApplyTransform();
+        // el ajuste abierto también se aplica, como Transformar y Licuar: cambiar de herramienta no pierde trabajo
+        if (_adjust is not null)
+        {
+            _adjust.Apply(_ops!);
+            CloseSheet();
+        }
+        if (_liquify is not null) ApplyLiquify();
+        if (_guideEdit) EndGuideEdit();
     }
 }

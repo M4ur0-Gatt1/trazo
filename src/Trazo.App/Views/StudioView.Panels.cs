@@ -295,10 +295,18 @@ public sealed partial class StudioView
         return img;
     }
 
+    /// <summary>Miniaturas de capas que ya no están en la obra (eliminadas, o de otra obra): se sueltan (auditoría 2026-11-02).</summary>
+    private void PruneThumbnails(PaintDocument? doc)
+    {
+        foreach (var cache in new[] { _thumbs, _maskThumbs })
+            foreach (var gone in cache.Keys.Where(l => doc is null || !doc.Layers.Contains(l)).ToList()) cache.Remove(gone);
+    }
+
     private void RefreshLayersPanel()
     {
         if (_layersList is null || _doc is null) return;
         var doc = _doc;
+        PruneThumbnails(doc);
         _layersList.Children.Clear();
         var accent = (Brush)Application.Current.Resources["AccentBrushTrazo"];
         var normal = new SolidColorBrush(Color.FromArgb(255, 44, 45, 49));
@@ -657,13 +665,20 @@ public sealed partial class StudioView
         }
     }
 
+    private void CancelColorDrag()
+    {
+        _colorPressed = false;
+        _colorDragged = false;
+        DropDot.Visibility = Visibility.Collapsed;
+    }
+
     private void ColorButton_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
         if (!_colorPressed) return;
         _colorPressed = false;
         ColorButton.ReleasePointerCapture(e.Pointer);
         DropDot.Visibility = Visibility.Collapsed;
-        if (!_colorDragged) return;
+        if (!_colorDragged || ToolBusy) return;
         var p = e.GetCurrentPoint(Canvas).Position;
         if (p.X >= 0 && p.Y >= TopInset && p.X < Canvas.ActualWidth && p.Y < Canvas.ActualHeight)
             DoFill(new Vector2((float)p.X, (float)p.Y));
@@ -959,14 +974,36 @@ public sealed partial class StudioView
         var box = new TextBox { Text = _doc!.Name };
         if (await Dialogs.ShowAsync(XamlRoot, T("Nombre del lienzo"), box, T("Aceptar")) != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
         var doc = _doc;
-        doc.Name = box.Text.Trim();
-        if (doc.FilePath is { } old && File.Exists(old))
+        // con el cerrojo de guardado: un autoguardado en curso no puede volver a crear el archivo viejo
+        await _saveLock.WaitAsync();
+        try
         {
-            var target = Services.ProjectStore.NewPath(doc.Name);
-            File.Move(old, target);
-            doc.FilePath = target;
+            doc.Name = box.Text.Trim();
+            if (doc.FilePath is { } old && File.Exists(old))
+            {
+                var target = Services.ProjectStore.NewPath(doc.Name, old);
+                if (!string.Equals(old, target, StringComparison.OrdinalIgnoreCase))
+                {
+                    // el time-lapse y la copia .bak van con la obra (antes se quedaban en el nombre viejo)
+                    StopTimelapse();
+                    ProjectFiles.Move(old, target);
+                    if (File.Exists(ProjectSaver.BackupPath(old))) File.Move(ProjectSaver.BackupPath(old), ProjectSaver.BackupPath(target), overwrite: true);
+                    doc.FilePath = target;
+                    StartTimelapse(doc);
+                }
+            }
+            doc.IsDirty = true;
         }
-        doc.IsDirty = true;
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Services.Log.Error("Cambiar el nombre de la obra", e);
+            Window.ShowMessage(T("No se pudo cambiar el nombre: ") + e.Message, InfoBarSeverity.Error);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+        Window.SetDocumentTitle(doc.Name);
         await SaveAsync();
     }
 
@@ -975,8 +1012,17 @@ public sealed partial class StudioView
         var (label, ext) = format == CanvasBitmapFileFormat.Jpeg ? (T("Imagen JPEG"), ".jpg") : (T("Imagen PNG"), ".png");
         var file = await Window.SavePicker(name, label, ext).PickSaveFileAsync();
         if (file is null) return;
-        await WriteBitmapAsync(file, bitmap, format);
-        Window.ShowMessage(T("Exportado: ") + file.Name);
+        // se llama desde menús que no esperan la tarea: un error aquí no debe parecer un fallo de la app
+        try
+        {
+            await WriteBitmapAsync(file, bitmap, format);
+            Window.ShowMessage(T("Exportado: ") + file.Name);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
+        {
+            Services.Log.Error("Exportar imagen", e);
+            Window.ShowMessage(T("No se pudo exportar: ") + e.Message, InfoBarSeverity.Error);
+        }
     }
 
     private static async Task WriteBitmapAsync(StorageFile file, CanvasBitmap bitmap, CanvasBitmapFileFormat format)

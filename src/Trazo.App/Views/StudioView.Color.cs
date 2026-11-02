@@ -73,10 +73,18 @@ public sealed partial class StudioView
             content.Children.Add(SwatchGrid(_settings.RecentColors, c => SetColor(c, null)));
         }
         _colorFlyout = new Flyout { Content = new ScrollViewer { MaxHeight = 760, Content = content }, Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+        var before = _settings.Color;
+        _colorPanelOpen = true;
+        _colorFlyout.Closed += (_, _) =>
+        {
+            _colorPanelOpen = false;
+            if (_settings.Color != before) _previousColor = before;
+        };
         _colorFlyout.ShowAt(ColorButton);
     }
 
     private Flyout? _colorFlyout;
+    private bool _colorPanelOpen;
 
     /// <summary>Cuadrícula de muestras; con <paramref name="onRemove"/>, el clic derecho quita el color.</summary>
     private static VariableSizedWrapGrid SwatchGrid(IEnumerable<string> colors, Action<Color> pick, Action<int>? onRemove = null)
@@ -210,6 +218,9 @@ public sealed partial class StudioView
             dragging = false;
             overlay.ReleasePointerCapture(e.Pointer);
         };
+        // si el desplazamiento del panel se queda el toque, el disco deja de arrastrar (antes seguía con el ratón suelto)
+        overlay.PointerCaptureLost += (_, _) => dragging = false;
+        overlay.PointerCanceled += (_, _) => dragging = false;
         brightness.ValueChanged += (_, e) =>
         {
             if (Math.Abs(hsv.V * 100 - e.NewValue) < 0.01) return;
@@ -332,7 +343,8 @@ public sealed partial class StudioView
     private FrameworkElement PalettesPage(Action<Color, object?> set)
     {
         var root = new StackPanel { Spacing = 8 };
-        var current = PaletteSet.Default(_settings.Palettes, _settings.DefaultPaletteId);
+        // la paleta que se estaba mirando sigue a la vista al reabrir el panel (tras nombrar, importar…)
+        var current = _settings.Palettes.FirstOrDefault(p => p.Id == _shownPaletteId) ?? PaletteSet.Default(_settings.Palettes, _settings.DefaultPaletteId);
 
         void Save()
         {
@@ -351,6 +363,7 @@ public sealed partial class StudioView
             {
                 if (combo.SelectedIndex < 0) return;
                 current = _settings.Palettes[combo.SelectedIndex];
+                _shownPaletteId = current.Id;
                 Build();
             };
             root.Children.Add(combo);
@@ -384,18 +397,30 @@ public sealed partial class StudioView
                         Save();
                         return Task.CompletedTask;
                     }, has),
+                    // el panel se reabre después del cambio, no antes (antes mostraba la paleta vieja; auditoría 2026-11-02)
                     B(T("Nueva"), async () =>
                     {
-                        if (await AskName(T("Nueva paleta"), T("Paleta")) is not { } name) return;
-                        current = new PaletteData { Name = name };
-                        _settings.Palettes.Add(current);
-                        Save();
+                        var name = await AskName(T("Nueva paleta"), T("Paleta"));
+                        if (name is not null)
+                        {
+                            current = new PaletteData { Name = name };
+                            _settings.Palettes.Add(current);
+                            _shownPaletteId = current.Id;
+                            _settings.Save();
+                        }
+                        ShowColorPanel(3);
                     }),
                     B(T("Renombrar"), async () =>
                     {
-                        if (current is null || await AskName(T("Renombrar paleta"), current.Name) is not { } name) return;
-                        current.Name = name;
-                        Save();
+                        if (current is null) return;
+                        var target = current;
+                        var name = await AskName(T("Renombrar paleta"), target.Name);
+                        if (name is not null)
+                        {
+                            target.Name = name;
+                            _settings.Save();
+                        }
+                        ShowColorPanel(3);
                     }, has),
                     B(T("Predeterminada"), () =>
                     {
@@ -405,13 +430,20 @@ public sealed partial class StudioView
                     }, has && current!.Id != _settings.DefaultPaletteId),
                     B(T("Importar…"), ImportPalettesAsync),
                     B(T("Exportar…"), () => ExportPaletteAsync(current!), has && current!.Colors.Count > 0),
-                    B(T("Eliminar"), () =>
+                    B(T("Eliminar"), async () =>
                     {
-                        if (current is null) return Task.CompletedTask;
-                        _settings.Palettes.Remove(current);
-                        current = PaletteSet.Default(_settings.Palettes, _settings.DefaultPaletteId);
-                        Save();
-                        return Task.CompletedTask;
+                        if (current is null) return;
+                        var target = current;
+                        // se pide confirmación: no se puede deshacer
+                        _colorFlyout?.Hide();
+                        var text = new TextBlock { Text = F("Se eliminará la paleta «{0}» con sus {1} colores.", target.Name, target.Colors.Count), TextWrapping = TextWrapping.Wrap };
+                        if (await Dialogs.ShowAsync(XamlRoot, T("Eliminar paleta"), text, T("Eliminar")) == ContentDialogResult.Primary)
+                        {
+                            _settings.Palettes.Remove(target);
+                            _shownPaletteId = null;
+                            _settings.Save();
+                        }
+                        ShowColorPanel(3);
                     }, has),
                 },
             });
@@ -422,7 +454,7 @@ public sealed partial class StudioView
             var file = await Window.OpenPicker(".swatches", ".ase").PickSingleFileAsync();
             if (file is null) return;
             var added = await ImportPaletteFileAsync(file.Path);
-            if (added.Count > 0) current = added[0];
+            if (added.Count > 0) _shownPaletteId = added[0].Id;
             _colorFlyout?.Hide();
             ShowColorPanel(3);
         }
@@ -471,21 +503,31 @@ public sealed partial class StudioView
         WinRT.Interop.InitializeWithWindow.Initialize(picker, Window.Handle);
         var file = await picker.PickSaveFileAsync();
         if (file is null) return;
-        await using (var fs = File.Create(file.Path))
+        try
         {
-            var palette = PaletteSet.ToPalette(data);
-            if (file.FileType.Equals(".ase", StringComparison.OrdinalIgnoreCase)) PaletteFiles.WriteAse(palette, fs);
-            else PaletteFiles.WriteSwatches(palette, fs);
+            await using (var fs = File.Create(file.Path))
+            {
+                var palette = PaletteSet.ToPalette(data);
+                if (file.FileType.Equals(".ase", StringComparison.OrdinalIgnoreCase)) PaletteFiles.WriteAse(palette, fs);
+                else PaletteFiles.WriteSwatches(palette, fs);
+            }
+            Window.ShowMessage(T("Exportado: ") + file.Name);
         }
-        Window.ShowMessage(T("Exportado: ") + file.Name);
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Exportar paleta", e);
+            Window.ShowMessage(T("No se pudo exportar: ") + e.Message, InfoBarSeverity.Error);
+        }
     }
 
+    private string? _shownPaletteId;
+
+    /// <summary>Pide un nombre en un diálogo (cierra el panel; quien llama lo vuelve a abrir tras aplicar el cambio).</summary>
     private async Task<string?> AskName(string title, string initial)
     {
         var box = new TextBox { Text = initial, MaxLength = PaletteFiles.MaxName };
         _colorFlyout?.Hide();
         var ok = await Dialogs.ShowAsync(XamlRoot, title, box, T("Aceptar")) == ContentDialogResult.Primary && box.Text.Trim().Length > 0;
-        ShowColorPanel(3);
         return ok ? PaletteFiles.CleanName(box.Text, initial) : null;
     }
 }
