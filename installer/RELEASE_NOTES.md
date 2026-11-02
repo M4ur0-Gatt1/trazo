@@ -1,4 +1,4 @@
-## Trazo 1.3 — estudio de pintura para Windows · *painting studio for Windows*
+## Trazo 1.3.1 — estudio de pintura para Windows · *painting studio for Windows*
 
 Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
@@ -8,8 +8,8 @@ Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y
 
 | Archivo · *File* | Para · *For* |
 |---|---|
-| `Trazo-1.3.0-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
-| `Trazo-1.3.0-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
+| `Trazo-1.3.1-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
+| `Trazo-1.3.1-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
 | `…-portable.zip` | Usar sin instalar · *No install: unzip and open `Trazo.exe`* |
 
 Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador. *Requires Windows 10 version 2004 or later; installs per user, no admin rights.*
@@ -19,6 +19,22 @@ Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no
 El instalador **todavía no tiene firma digital**, así que Windows puede mostrar "Windows protegió su PC". Para instalar: **Más información → Ejecutar de todas formas**. Puedes comprobar la integridad del archivo con `SHA256-*.txt`.
 
 *The installer is **not yet code-signed**, so Windows may show "Windows protected your PC". Choose **More info → Run anyway**. You can check the file with `SHA256-*.txt`.*
+
+### Novedades de la 1.3.1: más fiable
+
+Revisamos todo el código en busca de errores y corregimos 36, cada uno con su prueba. Los que más se notan:
+
+- **No pierdes trabajo al cerrar:** cerrar la obra o la ventana justo mientras se autoguardaba podía perder lo último. Ahora se espera al guardado y, si falla, Trazo pregunta antes de salir.
+- **Archivos dañados o bloqueados:** si una obra está dañada se recupera la copia de seguridad; si otro programa la tiene abierta (antivirus, OneDrive), Trazo avisa en lugar de abrir la copia vieja.
+- **Trazos:** después de usar muchos colores, un pincel podía fallar al empezar el trazo. **Difuminar** ahora se ve mientras arrastras.
+- **Capas:** *Combinar hacia abajo* y *Combinar grupo* ya no cambian la imagen; las capas eliminadas liberan la memoria de la tarjeta gráfica.
+- **Herramientas:** abrir una herramienta cierra la anterior (ninguna se queda activa sin su panel) y los atajos no actúan por debajo de Transformar, un ajuste o Licuar. Cambiar de herramienta aplica el ajuste abierto.
+- **Panel de color:** *Nueva* y *Renombrar* muestran el cambio al momento; *Eliminar paleta* pide confirmación.
+- **PSD:** un archivo malicioso ya no puede hacer que Trazo reserve gigas de memoria.
+
+### What's new in 1.3.1: more reliable
+
+We reviewed the whole codebase and fixed 36 bugs, each with its own test: no more lost work when closing during an autosave, damaged files recover from the backup, a locked file is no longer replaced by the old backup, brushes no longer fail after many colors, smudge shows while dragging, *Merge down* and *Merge group* keep the image unchanged, deleted layers free GPU memory, and tools no longer stay half-open.
 
 ### Novedades de la 1.3
 

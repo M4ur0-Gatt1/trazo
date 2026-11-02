@@ -2,7 +2,7 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.3.1 — 2026-11-02
 
 - **Auditoría completa** del código ([resultados](docs/results/2026-11-02.md)): 36 errores corregidos, cada uno con su prueba. Los más importantes: cerrar durante un autoguardado podía perder lo último; un `.trazo` con el manifiesto dañado no recuperaba la copia; un archivo bloqueado por otro programa abría la copia vieja; un trazo podía fallar tras usar muchos colores; difuminar no se veía hasta levantar el lápiz; combinar hacia abajo y combinar grupo cambiaban la imagen en algunos casos; las capas eliminadas no liberaban la memoria de vídeo.
 - Cambiar de herramienta aplica el ajuste abierto, igual que Transformar y Licuar.
