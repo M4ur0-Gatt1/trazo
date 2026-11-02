@@ -74,9 +74,27 @@ public sealed class TimelapseRecorder : IDisposable
         }
     }
 
+    private (int Width, int Height)? _fileSize;
+
+    private (int Width, int Height)? ExistingSize()
+    {
+        if (!File.Exists(_path)) return null;
+        try
+        {
+            using var r = TimelapseReader.Open(_path);
+            return (r.Width, r.Height);
+        }
+        catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            return null; // dañado: al abrirlo para escribir se aparta y se empieza otro con el tamaño del lienzo
+        }
+    }
+
     private void CaptureFrame()
     {
-        var (w, h) = _writer is { } open ? (open.Width, open.Height) : TimelapseFile.FrameSize(_doc.Width, _doc.Height);
+        // el tamaño lo fija el archivo: si ya existe (otra sesión, o se soltó para el reproductor), el de su cabecera;
+        // antes se tomaba el del lienzo y los fotogramas salían de otro tamaño (auditoría 2026-11-02)
+        var (w, h) = _writer is { } open ? (open.Width, open.Height) : _fileSize ??= ExistingSize() ?? TimelapseFile.FrameSize(_doc.Width, _doc.Height);
         byte[] bgra;
         using (var flat = _doc.Flatten(includeBackground: false))
         using (var frame = new CanvasRenderTarget(_doc.Device, w, h, 96))

@@ -196,7 +196,7 @@ public sealed class LayerOperations(PaintDocument doc)
         doc.History.Execute(new DelegateAction(T("Nueva capa"),
             () => { doc.Layers.Remove(l); doc.ActiveIndex = prev; },
             () => { l.GroupId = group; doc.Layers.Insert(idx, l); doc.ActiveIndex = idx; },
-            LayerBytes));
+            LayerBytes, releaseUndone: l.Dispose));
         doc.IsDirty = true;
         return l;
     }
@@ -211,9 +211,11 @@ public sealed class LayerOperations(PaintDocument doc)
         }
         var l = doc.Layers[index];
         var prev = doc.ActiveIndex;
+        // la capa sigue en el historial: cuenta para el límite de memoria y se libera cuando ya no puede volver
         doc.History.Execute(new DelegateAction(T("Eliminar capa"),
             () => { doc.Layers.Insert(index, l); doc.ActiveIndex = prev; },
-            () => { doc.Layers.Remove(l); doc.ActiveIndex = Math.Max(0, index - 1); }));
+            () => { doc.Layers.Remove(l); doc.ActiveIndex = Math.Max(0, index - 1); },
+            LayerBytes, releaseApplied: l.Dispose));
         doc.IsDirty = true;
     }
 
@@ -309,6 +311,17 @@ public sealed class LayerOperations(PaintDocument doc)
         ReplaceWith(layer, fx, layer.EditingMask ? T("Invertir máscara") : T("Invertir"));
     }
 
+    /// <summary>
+    /// Combina la capa con la de abajo sin cambiar la imagen compuesta (auditoría 2026-11-02: antes la cambiaban la
+    /// opacidad de la capa de abajo y las cadenas de recorte):
+    /// <list type="bullet">
+    /// <item>Recorte sobre su base: la de arriba se pinta encima solo donde hay base, y la base conserva su opacidad.</item>
+    /// <item>Recorte sobre otro recorte: las dos se juntan (con sus opacidades) y siguen recortadas a la misma base.</item>
+    /// <item>Capa normal sobre capa normal: la opacidad de la de abajo pasa a los píxeles y el resultado queda al 100 %.</item>
+    /// </list>
+    /// Una capa normal sobre una de recorte, o sobre una capa oculta, no tiene resultado exacto: se avisa y no se combina.
+    /// Si la de arriba tiene un modo distinto de Normal, se mezcla solo con la de abajo (como en Photoshop y Procreate).
+    /// </summary>
     public void MergeDown(int index)
     {
         if (index <= 0) return;
@@ -319,15 +332,35 @@ public sealed class LayerOperations(PaintDocument doc)
             Message?.Invoke(T("Solo se pueden combinar capas del mismo grupo"));
             return;
         }
+        if (!down.Visible)
+        {
+            Message?.Invoke(T("La capa de abajo está oculta: muéstrala para combinar."));
+            return;
+        }
+        // en una unidad, la primera capa hace de base aunque tenga la marca de recorte
+        bool ActsAsClip(int i) => doc.Layers[i].Clip && i > 0 && doc.Layers[i - 1].GroupId == doc.Layers[i].GroupId;
+        var upClip = ActsAsClip(index);
+        var downClip = ActsAsClip(index - 1);
+        if (downClip && !upClip)
+        {
+            Message?.Invoke(T("No se puede combinar una capa normal con una de recorte: quita el recorte de una de las dos."));
+            return;
+        }
         var before = Clone(down.Surface);
         var beforeMask = down.Mask;
+        var editing = down.EditingMask;
+        var beforeOpacity = down.Opacity;
+        // la opacidad de la de abajo pasa a los píxeles salvo cuando es la base del recorte de la de arriba
+        var bakeOpacity = !(upClip && !downClip);
         CanvasRenderTarget? after = null;
         var prev = doc.ActiveIndex;
-        doc.History.Execute(new DisposingAction(T("Combinar abajo"), LayerBytes * 2,
+        doc.History.Execute(new DelegateAction(T("Combinar abajo"),
             () =>
             {
                 down.Surface.CopyPixelsFromBitmap(before);
                 down.Mask = beforeMask;
+                down.EditingMask = editing;
+                down.Opacity = beforeOpacity;
                 down.Touch();
                 doc.Layers.Insert(doc.Layers.IndexOf(down) + 1, up);
                 doc.ActiveIndex = prev;
@@ -342,12 +375,15 @@ public sealed class LayerOperations(PaintDocument doc)
                     {
                         ds.Clear(KnownColors.Transparent);
                         // la máscara de cada capa se aplica antes de combinar; el resultado no tiene máscara
-                        var bottom = doc.LayerImage(down, null, owned);
+                        ICanvasImage bottom = doc.LayerImage(down, null, owned);
+                        if (bakeOpacity && beforeOpacity < 1) bottom = Own(owned, new OpacityEffect { Source = bottom, Opacity = beforeOpacity });
                         var upImg = doc.LayerImage(up, null, owned);
                         ICanvasImage top = up.Opacity < 1 ? Own(owned, new OpacityEffect { Source = upImg, Opacity = up.Opacity }) : upImg;
-                        ICanvasImage merged = !up.Visible ? bottom
-                            : up.Clip ? Own(owned, new CompositeEffect { Mode = CanvasComposite.SourceAtop, Sources = { bottom, top } })
-                            : up.Blend == BlendMode.Normal ? Own(owned, new CompositeEffect { Sources = { bottom, top } })
+                        ICanvasImage merged = !up.Visible || up.Opacity <= 0 ? bottom
+                            // recorte sobre su base: como se compone la cadena (PaintDocument.ComposeRange)
+                            : upClip && !downClip ? Own(owned, new CompositeEffect { Mode = CanvasComposite.SourceAtop, Sources = { bottom, top } })
+                            // recorte sobre recorte: base ⊕ (abajo ⊕ arriba) da lo mismo que (base ⊕ abajo) ⊕ arriba
+                            : upClip || up.Blend == BlendMode.Normal ? Own(owned, new CompositeEffect { Sources = { bottom, top } })
                             : Own(owned, new BlendEffect { Background = bottom, Foreground = top, Mode = PaintDocument.ToEffect(up.Blend) });
                         ds.DrawImage(merged);
                     }
@@ -356,11 +392,25 @@ public sealed class LayerOperations(PaintDocument doc)
                 }
                 down.Surface.CopyPixelsFromBitmap(after);
                 down.Mask = null;
+                if (bakeOpacity) down.Opacity = 1;
                 down.Touch();
                 doc.Layers.Remove(up);
                 doc.ActiveIndex = doc.Layers.IndexOf(down);
             },
-            [before, () => after]));
+            LayerBytes * 2,
+            // hecha para siempre: la capa de arriba y la máscara de antes ya no volverán
+            releaseApplied: () =>
+            {
+                before.Dispose();
+                after?.Dispose();
+                up.Dispose();
+                beforeMask?.Dispose();
+            },
+            releaseUndone: () =>
+            {
+                before.Dispose();
+                after?.Dispose();
+            }));
         doc.IsDirty = true;
     }
 
@@ -422,7 +472,7 @@ public sealed class LayerOperations(PaintDocument doc)
         doc.History.Execute(new DelegateAction(T("Añadir máscara"),
             () => { layer.Mask = null; layer.Touch(); },
             () => { layer.Mask = mask; layer.EditingMask = true; layer.Touch(); },
-            LayerBytes));
+            LayerBytes, releaseUndone: mask.Dispose));
         doc.IsDirty = true;
     }
 
@@ -432,7 +482,8 @@ public sealed class LayerOperations(PaintDocument doc)
         var editing = layer.EditingMask;
         doc.History.Execute(new DelegateAction(T("Eliminar máscara"),
             () => { layer.Mask = mask; layer.EditingMask = editing; layer.Touch(); },
-            () => { layer.Mask = null; layer.Touch(); }));
+            () => { layer.Mask = null; layer.Touch(); },
+            LayerBytes, releaseApplied: mask.Dispose));
         doc.IsDirty = true;
     }
 
@@ -454,10 +505,12 @@ public sealed class LayerOperations(PaintDocument doc)
             after = Clone(tmp);
         }
         var editing = layer.EditingMask;
-        doc.History.Execute(new DisposingAction(T("Aplicar máscara"), LayerBytes * 2,
+        doc.History.Execute(new DelegateAction(T("Aplicar máscara"),
             () => { layer.Surface.CopyPixelsFromBitmap(before); layer.Mask = mask; layer.EditingMask = editing; layer.Touch(); },
             () => { layer.Surface.CopyPixelsFromBitmap(after); layer.Mask = null; layer.Touch(); },
-            [before, after]));
+            LayerBytes * 3,
+            releaseApplied: () => { before.Dispose(); after.Dispose(); mask.Dispose(); },
+            releaseUndone: () => { before.Dispose(); after.Dispose(); }));
         doc.IsDirty = true;
     }
 
@@ -522,9 +575,10 @@ public sealed class LayerOperations(PaintDocument doc)
         if (g is null) return;
         var members = doc.Layers.Where(l => l.GroupId == groupId).ToList();
         var gi = doc.Groups.IndexOf(g);
+        var dormant = DormantClipAbove(groupId);
         doc.History.Execute(new DelegateAction(T("Desagrupar"),
-            () => { doc.Groups.Insert(gi, g); members.ForEach(l => l.GroupId = groupId); },
-            () => { members.ForEach(l => l.GroupId = null); doc.Groups.Remove(g); }));
+            () => { doc.Groups.Insert(gi, g); members.ForEach(l => l.GroupId = groupId); if (dormant is not null) dormant.Clip = true; },
+            () => { members.ForEach(l => l.GroupId = null); doc.Groups.Remove(g); if (dormant is not null) dormant.Clip = false; }));
         doc.IsDirty = true;
     }
 
@@ -540,19 +594,24 @@ public sealed class LayerOperations(PaintDocument doc)
         var members = doc.Layers.Skip(range.First).Take(range.Last - range.First + 1).ToList();
         var gi = doc.Groups.IndexOf(g);
         var prev = doc.ActiveIndex;
+        var dormant = DormantClipAbove(groupId);
         doc.History.Execute(new DelegateAction(T("Eliminar grupo"),
             () =>
             {
                 doc.Groups.Insert(gi, g);
                 for (var k = 0; k < members.Count; k++) doc.Layers.Insert(range.First + k, members[k]);
+                if (dormant is not null) dormant.Clip = true;
                 doc.ActiveIndex = prev;
             },
             () =>
             {
                 foreach (var l in members) doc.Layers.Remove(l);
                 doc.Groups.Remove(g);
+                if (dormant is not null) dormant.Clip = false;
                 doc.ActiveIndex = Math.Max(0, range.First - 1);
-            }));
+            },
+            LayerBytes * members.Count,
+            releaseApplied: () => members.ForEach(l => l.Dispose())));
         doc.IsDirty = true;
     }
 
@@ -575,12 +634,14 @@ public sealed class LayerOperations(PaintDocument doc)
         owned.ForEach(o => o.Dispose());
         var gi = doc.Groups.IndexOf(g);
         var prev = doc.ActiveIndex;
+        var dormant = DormantClipAbove(groupId);
         doc.History.Execute(new DelegateAction(T("Combinar grupo"),
             () =>
             {
                 doc.Layers.Remove(merged);
                 doc.Groups.Insert(gi, g);
                 for (var k = 0; k < members.Count; k++) doc.Layers.Insert(range.First + k, members[k]);
+                if (dormant is not null) dormant.Clip = true;
                 doc.ActiveIndex = prev;
             },
             () =>
@@ -588,10 +649,25 @@ public sealed class LayerOperations(PaintDocument doc)
                 foreach (var l in members) doc.Layers.Remove(l);
                 doc.Groups.Remove(g);
                 doc.Layers.Insert(range.First, merged);
+                if (dormant is not null) dormant.Clip = false;
                 doc.ActiveIndex = range.First;
             },
-            LayerBytes));
+            LayerBytes * (members.Count + 1),
+            releaseApplied: () => members.ForEach(l => l.Dispose()),
+            releaseUndone: merged.Dispose));
         doc.IsDirty = true;
+    }
+
+    /// <summary>
+    /// Capa suelta con recorte justo encima del grupo. Al empezar una unidad nueva se compone como base (el recorte no
+    /// actúa); si el grupo desaparece pasaría a recortarse con lo de debajo y la imagen cambiaría, así que las
+    /// operaciones que quitan el grupo le quitan la marca en el mismo paso (auditoría 2026-11-02).
+    /// </summary>
+    private Layer? DormantClipAbove(string groupId)
+    {
+        if (GroupRules.Range(doc.GroupIds, groupId) is not { } range) return null;
+        var above = range.Last + 1;
+        return above < doc.Layers.Count && doc.Layers[above] is { Clip: true, GroupId: null } l ? l : null;
     }
 
     public void SetGroup<T>(LayerGroup g, T value, Func<LayerGroup, T> getter, Action<LayerGroup, T> setter, string label)
@@ -691,19 +767,5 @@ public sealed class LayerOperations(PaintDocument doc)
     {
         list.Add(x);
         return x;
-    }
-
-    private sealed class DisposingAction(string label, long bytes, Action undo, Action redo, object[] resources) : IUndoableAction, IDisposable
-    {
-        public string Label { get; } = label;
-        public long Bytes { get; } = bytes;
-        public void Undo() => undo();
-        public void Redo() => redo();
-
-        public void Dispose()
-        {
-            foreach (var r in resources)
-                (r is Func<CanvasRenderTarget?> f ? f() : r as IDisposable)?.Dispose();
-        }
     }
 }

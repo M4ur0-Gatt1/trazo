@@ -35,9 +35,12 @@ public static class TimelapseVideo
         var next = 0;
         var cachedIndex = -1;
         byte[]? cached = null;
+        // el manejador es async void: un error dentro (un fotograma dañado, la GPU perdida) terminaría el proceso. Se
+        // guarda, se corta el vídeo y se relanza al final para quien exporta (auditoría 2026-11-02)
+        Exception? failure = null;
         source.SampleRequested += async (_, e) =>
         {
-            if (next >= schedule.Count || ct.IsCancellationRequested)
+            if (failure is not null || next >= schedule.Count || ct.IsCancellationRequested)
             {
                 e.Request.Sample = null; // fin del vídeo
                 return;
@@ -57,6 +60,11 @@ public static class TimelapseVideo
                 e.Request.Sample = sample;
                 next++;
                 progress?.Report((double)next / schedule.Count);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+                e.Request.Sample = null;
             }
             finally
             {
@@ -80,6 +88,7 @@ public static class TimelapseVideo
             throw new InvalidOperationException($"Windows no puede codificar el vídeo ({prepared.FailureReason}).");
         await prepared.TranscodeAsync().AsTask(ct);
         await ras.FlushAsync();
+        if (failure is not null) throw new InvalidOperationException(failure.Message, failure);
     }
 
     /// <summary>JPEG → BGRA del tamaño del vídeo (los fotogramas de otro tamaño se escalan).</summary>

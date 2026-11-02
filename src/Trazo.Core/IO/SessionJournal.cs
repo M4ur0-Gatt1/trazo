@@ -60,7 +60,7 @@ public sealed class SessionJournal
         {
             File.Delete(FilePath);
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             // si no se puede borrar ahora, el próximo arranque lo verá como de un proceso vivo o lo descartará
         }
@@ -91,7 +91,7 @@ public sealed class SessionJournal
             {
                 entry = JsonSerializer.Deserialize(File.ReadAllText(file), TrazoJson.Default.SessionEntry);
             }
-            catch (Exception e) when (e is JsonException or IOException or NotSupportedException)
+            catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException or NotSupportedException)
             {
                 entry = null;
             }
@@ -114,7 +114,7 @@ public sealed class SessionJournal
         {
             File.Delete(file);
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
         }
     }

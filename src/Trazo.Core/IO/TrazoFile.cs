@@ -111,9 +111,19 @@ public static class TrazoFile
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
         var bytes = buffer.ToArray();
-        if (bytes.Length > 1 && bytes[0] == (byte)'P' && bytes[1] == (byte)'K')
-            return ReadV2(new MemoryStream(bytes));
-        return ReadV1(bytes);
+        try
+        {
+            if (bytes.Length > 1 && bytes[0] == (byte)'P' && bytes[1] == (byte)'K')
+                return ReadV2(new MemoryStream(bytes));
+            return ReadV1(bytes);
+        }
+        // un manifiesto dañado o editado a mano (JSON roto, campos nulos o de otro tipo) es un archivo no válido: así
+        // ProjectSaver.Load prueba la copia .bak en lugar de dejar escapar otra excepción (auditoría 2026-11-02)
+        catch (Exception e) when (e is System.Text.Json.JsonException or ArgumentException or FormatException or NullReferenceException
+                                       or InvalidCastException or KeyNotFoundException or OverflowException or NotSupportedException)
+        {
+            throw new InvalidDataException(T("El archivo no es un proyecto de Trazo válido"), e);
+        }
     }
 
     /// <summary>Lee solo la miniatura (para la galería) sin descomprimir las capas.</summary>
@@ -217,8 +227,11 @@ public static class TrazoFile
     private static ProjectData Validate(ProjectData p)
     {
         if (p.Width < CanvasLimits.MinSide || p.Height < CanvasLimits.MinSide ||
-            p.Width > CanvasLimits.MaxSide || p.Height > CanvasLimits.MaxSide)
+            p.Width > CanvasLimits.MaxSide || p.Height > CanvasLimits.MaxSide || (long)p.Width * p.Height > CanvasLimits.MaxArea)
             throw new InvalidDataException(F("Tamaño de lienzo no admitido: {0}×{1}", p.Width, p.Height));
+        // más capas de las que caben en la memoria de vídeo para ese tamaño: no se intenta abrir
+        if (p.Layers.Count > CanvasLimits.MaxLayers(p.Width, p.Height))
+            throw new InvalidDataException(F("El archivo tiene {0} capas y en este tamaño Trazo admite {1}.", p.Layers.Count, CanvasLimits.MaxLayers(p.Width, p.Height)));
         // capas que apuntan a un grupo inexistente quedan fuera de grupo; los grupos deben ser contiguos
         var known = p.Groups.Select(g => g.Id).ToHashSet();
         var layers = p.Layers.Select(l => l.Properties.GroupId is { } gid && !known.Contains(gid) ? l with { Properties = l.Properties with { GroupId = null } } : l).ToList();
@@ -244,11 +257,22 @@ public static class TrazoFile
         s.Write(data);
     }
 
-    private static byte[] ReadEntry(ZipArchiveEntry e)
+    /// <summary>Tope por entrada: un PNG sin comprimir del lienzo más grande admitido, con margen.</summary>
+    internal const long MaxEntryBytes = CanvasLimits.MaxArea * 4 + 16 * 1024 * 1024;
+
+    /// <summary>Lee una entrada sin pasar de <paramref name="limit"/> bytes, sea lo que sea lo que diga el ZIP (bombas ZIP).</summary>
+    private static byte[] ReadEntry(ZipArchiveEntry e, long limit = MaxEntryBytes)
     {
+        if (e.Length > limit) throw new InvalidDataException(F("Una parte del archivo es demasiado grande: {0}", e.FullName));
         using var s = e.Open();
         using var ms = new MemoryStream();
-        s.CopyTo(ms);
+        var buffer = new byte[81920];
+        int n;
+        while ((n = s.Read(buffer)) > 0)
+        {
+            if (ms.Length + n > limit) throw new InvalidDataException(F("Una parte del archivo es demasiado grande: {0}", e.FullName));
+            ms.Write(buffer, 0, n);
+        }
         return ms.ToArray();
     }
 }

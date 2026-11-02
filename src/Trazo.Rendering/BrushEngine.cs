@@ -19,28 +19,55 @@ public enum ToolKind
     Eraser,
 }
 
-/// <summary>Puntas teñidas por color, generadas una vez y guardadas en la GPU.</summary>
+/// <summary>
+/// Puntas teñidas por color, generadas una vez y guardadas en la GPU. Las blancas (una por forma) no se descartan
+/// nunca; las de color se descartan de una en una, la que lleva más tiempo sin usarse. Antes se vaciaba todo al pasar
+/// de 64 y se liberaba una punta que el trazo en curso acababa de recibir (auditoría 2026-11-02).
+/// </summary>
 public sealed class TipCache(CanvasDevice device)
 {
+    public const int MaxTinted = 64;
+
     private readonly Dictionary<TipShape, byte[]> _masks = [];
-    private readonly Dictionary<(TipShape, Color), CanvasBitmap> _tinted = [];
+    private readonly Dictionary<TipShape, CanvasBitmap> _white = [];
+    private readonly Dictionary<(TipShape, Color), LinkedListNode<((TipShape, Color) Key, CanvasBitmap Bitmap)>> _tinted = [];
+    private readonly LinkedList<((TipShape, Color) Key, CanvasBitmap Bitmap)> _recent = new();
 
     public static readonly Rect TipRect = new(0, 0, TipGenerator.DefaultSize, TipGenerator.DefaultSize);
 
+    /// <summary>Puntas de color guardadas (para pruebas).</summary>
+    public int TintedCount => _tinted.Count;
+
     public CanvasBitmap Get(TipShape shape, Color color)
     {
-        if (_tinted.TryGetValue((shape, color), out var bmp)) return bmp;
-        if (_tinted.Count > 64)
+        if (color == KnownColors.White)
         {
-            foreach (var b in _tinted.Values) b.Dispose();
-            _tinted.Clear();
+            if (!_white.TryGetValue(shape, out var white)) _white[shape] = white = Create(shape, color);
+            return white;
         }
+        if (_tinted.TryGetValue((shape, color), out var node))
+        {
+            _recent.Remove(node);
+            _recent.AddFirst(node);
+            return node.Value.Bitmap;
+        }
+        while (_tinted.Count >= MaxTinted && _recent.Last is { } old)
+        {
+            _recent.RemoveLast();
+            _tinted.Remove(old.Value.Key);
+            old.Value.Bitmap.Dispose();
+        }
+        var bmp = Create(shape, color);
+        _tinted[(shape, color)] = _recent.AddFirst(((shape, color), bmp));
+        return bmp;
+    }
+
+    private CanvasBitmap Create(TipShape shape, Color color)
+    {
         if (!_masks.TryGetValue(shape, out var mask)) _masks[shape] = mask = TipGenerator.Generate(shape);
         var bytes = TipGenerator.Tint(mask, color.R, color.G, color.B);
-        bmp = CanvasBitmap.CreateFromBytes(device, bytes, TipGenerator.DefaultSize, TipGenerator.DefaultSize,
+        return CanvasBitmap.CreateFromBytes(device, bytes, TipGenerator.DefaultSize, TipGenerator.DefaultSize,
             DirectXPixelFormat.B8G8R8A8UIntNormalized, 96, CanvasAlphaMode.Premultiplied);
-        _tinted[(shape, color)] = bmp;
-        return bmp;
     }
 
     /// <summary>Máscara de cobertura de la punta (tamaño × tamaño, 0–255).</summary>
@@ -306,7 +333,11 @@ public sealed class BrushEngine(PaintDocument doc, LayerOperations ops, TipCache
     /// <summary>Imagen de vista previa de la capa con el trazo en curso.</summary>
     public ICanvasImage? Preview(List<IDisposable> owned)
     {
-        if (_layer is null || _tool == ToolKind.Smudge || _buffer is null) return null;
+        if (_layer is null) return null;
+        // difuminar escribe directamente en la capa: la vista previa es la propia capa, así la caché de composición
+        // la vuelve a componer en cada fotograma en lugar de mostrar la imagen de antes del trazo (auditoría 2026-11-02)
+        if (_tool == ToolKind.Smudge) return _layer.Target;
+        if (_buffer is null) return null;
         ICanvasImage stroke = _buffer;
         if (TailActive)
         {

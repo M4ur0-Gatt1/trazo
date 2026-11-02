@@ -369,6 +369,7 @@ public static class Psd
         public int Pos;
 
         public readonly int Remaining => _d.Length - Pos;
+        public readonly int Length => _d.Length;
 
         private ReadOnlySpan<byte> Take(int n)
         {
@@ -469,6 +470,8 @@ public static class Psd
         if ((long)channels * MinEncoded(width * bpc, height, compression) > r.Remaining) throw new InvalidDataException(T("PSD: la imagen compuesta está truncada."));
         // solo color: un canal extra en la imagen compuesta suele ser una selección guardada, no transparencia
         var planes = gray ? 1 : Math.Min(channels, 3);
+        // en 64 bits: 30000 × 30000 × 4 no cabe en un int (auditoría 2026-11-02)
+        if ((long)width * height * 4 > Array.MaxLength) throw new InvalidDataException(T("La imagen del PSD es demasiado grande."));
         var plane = new byte[width * height * bpc];
         var composite = new byte[width * height * 4];
         for (var i = 0; i < width * height; i++) composite[i * 4 + 3] = 255;
@@ -590,11 +593,23 @@ public static class Psd
             records.Add((l, chans, mask));
         }
 
+        // memoria que pueden pedir las capas: proporcional a lo que mide el archivo, para que un PSD pequeño con
+        // rectángulos enormes y sin datos no reserve gigas (auditoría 2026-11-02)
+        var budget = 64L * 1024 * 1024 + 256L * r.Length;
         foreach (var (l, chans, maskRect) in records)
         {
             var w = l.Width;
             var h = l.Height;
             if ((long)w * h * 4 > int.MaxValue) throw new InvalidDataException(T("Capa demasiado grande en el PSD."));
+            if (w * h > 0 && !chans.Any(c => c.Id is >= -1 and <= 3))
+            {
+                // sin canales de color ni de alfa: capa vacía, sin reservar nada
+                l.Right = l.Left;
+                l.Bottom = l.Top;
+                w = h = 0;
+            }
+            budget -= (long)w * h * 4;
+            if (budget < 0) throw new InvalidDataException(T("El PSD declara capas mucho más grandes de lo que ocupa el archivo."));
             foreach (var (id, length) in chans)
             {
                 var (cw0, ch0) = id == -2 ? (maskRect is { } mr0 ? (mr0.R - mr0.L, mr0.B - mr0.T) : (0, 0)) : (w, h);

@@ -471,7 +471,8 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         // de píxeles de la capa o de su máscara); las demás reutilizan su PNG
         var layers = new List<LayerData>();
         var live = new HashSet<Layer>();
-        foreach (var l in Layers)
+        // copia de la lista: el guardado espera a la codificación y, mientras, la interfaz puede añadir o quitar capas
+        foreach (var l in Layers.ToList())
         {
             live.Add(l);
             if (!_pngCache.TryGetValue(l, out var c) || c.Revision != l.Revision || !ReferenceEquals(c.Mask, l.Mask))

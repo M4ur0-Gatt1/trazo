@@ -140,6 +140,14 @@ public static class ProjectSaver
                 ValidateLayers(project);
                 return new LoadResult(project, source, problem);
             }
+            catch (IOException e) when (source == LoadSource.Primary && e is not EndOfStreamException)
+            {
+                // el archivo existe pero no se puede leer (otro programa lo tiene abierto, sin permiso…): no es que
+                // esté dañado. Abrir la copia anterior en silencio y guardarla encima perdería el trabajo más nuevo.
+                throw new IOException(IsSharingViolation(e)
+                    ? T("Otro programa está usando el archivo. Ciérralo y vuelve a intentarlo.")
+                    : e.Message, e);
+            }
             catch (Exception e) when (e is InvalidDataException or IOException or FormatException)
             {
                 problem ??= $"{Path.GetFileName(candidate)}: {e.Message}";
@@ -204,6 +212,8 @@ public static class ProjectSaver
         return w > 0 && h > 0 ? (w, h) : null;
     }
 
+    private static bool IsSharingViolation(IOException e) => (e.HResult & 0xFFFF) is 0x20 or 0x21;
+
     private static bool IsDiskFull(Exception e) => e is IOException io && (io.HResult & 0xFFFF) is 0x70 or 0x27;
 
     private static void TryDelete(IProjectFileSystem fs, string path)
@@ -212,7 +222,7 @@ public static class ProjectSaver
         {
             if (fs.Exists(path)) fs.Delete(path);
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             // si no se puede borrar, se recuperará o sobrescribirá en el próximo guardado
         }

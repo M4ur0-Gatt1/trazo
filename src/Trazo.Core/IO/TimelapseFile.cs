@@ -79,11 +79,11 @@ public readonly record struct TimelapseFrame(long Offset, int Length, int Elapse
 /// <summary>Añade fotogramas al final del archivo, creándolo si no existe y descartando un final incompleto.</summary>
 public sealed class TimelapseWriter : IDisposable
 {
-    private readonly FileStream _s;
+    private readonly Stream _s;
     private readonly int _baseElapsed;
     private readonly DateTime _opened;
 
-    private TimelapseWriter(FileStream s, int w, int h, int count, int baseElapsed, Func<DateTime> clock)
+    private TimelapseWriter(Stream s, int w, int h, int count, int baseElapsed, Func<DateTime> clock)
     {
         _s = s;
         Width = w;
@@ -115,11 +115,7 @@ public sealed class TimelapseWriter : IDisposable
             {
                 try
                 {
-                    var (w, h) = TimelapseFile.ReadHeader(s);
-                    var (frames, end) = TimelapseFile.Scan(s);
-                    s.SetLength(end); // un fotograma a medias se descarta
-                    s.Position = end;
-                    return new TimelapseWriter(s, w, h, frames.Count, frames.Count > 0 ? frames[^1].ElapsedMs : 0, clock);
+                    return Resume(s, clock);
                 }
                 catch (InvalidDataException)
                 {
@@ -129,15 +125,31 @@ public sealed class TimelapseWriter : IDisposable
                     s = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
                 }
             }
-            s.Write(TimelapseFile.Header(width, height));
-            s.Flush();
-            return new TimelapseWriter(s, width, height, 0, 0, clock);
+            return Create(s, width, height, clock);
         }
         catch
         {
             s.Dispose();
             throw;
         }
+    }
+
+    /// <summary>Sigue un time-lapse existente en <paramref name="s"/>, descartando un final incompleto.</summary>
+    internal static TimelapseWriter Resume(Stream s, Func<DateTime> clock)
+    {
+        var (w, h) = TimelapseFile.ReadHeader(s);
+        var (frames, end) = TimelapseFile.Scan(s);
+        s.SetLength(end); // un fotograma a medias se descarta
+        s.Position = end;
+        return new TimelapseWriter(s, w, h, frames.Count, frames.Count > 0 ? frames[^1].ElapsedMs : 0, clock);
+    }
+
+    /// <summary>Empieza un time-lapse vacío en <paramref name="s"/>.</summary>
+    internal static TimelapseWriter Create(Stream s, int width, int height, Func<DateTime>? clock = null)
+    {
+        s.Write(TimelapseFile.Header(width, height));
+        s.Flush();
+        return new TimelapseWriter(s, width, height, 0, 0, clock ?? (() => DateTime.UtcNow));
     }
 
     /// <summary>Añade un fotograma JPEG y lo deja escrito en el disco.</summary>
@@ -147,10 +159,27 @@ public sealed class TimelapseWriter : IDisposable
         var head = new byte[8];
         BinaryPrimitives.WriteInt32LittleEndian(head, jpeg.Length);
         BinaryPrimitives.WriteInt32LittleEndian(head.AsSpan(4), elapsed);
-        _s.Position = _s.Length;
-        _s.Write(head);
-        _s.Write(jpeg);
-        _s.Flush();
+        var end = _s.Length;
+        try
+        {
+            _s.Position = end;
+            _s.Write(head);
+            _s.Write(jpeg);
+            _s.Flush();
+        }
+        catch
+        {
+            // un fotograma a medias desalinearía todos los siguientes: se quita antes de seguir (auditoría 2026-11-02)
+            try
+            {
+                _s.SetLength(end);
+            }
+            catch (IOException)
+            {
+                // si ni eso se puede, al reabrir se descarta el final incompleto
+            }
+            throw;
+        }
         Count++;
     }
 

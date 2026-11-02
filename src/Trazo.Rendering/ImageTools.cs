@@ -240,7 +240,9 @@ public sealed class TransformSession : IDisposable
             using (var lifted = new CompositeEffect { Mode = CanvasComposite.DestinationIn, Sources = { target, sel } })
             using (var ds = source.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(lifted); }
             using (var rest = new CompositeEffect { Mode = CanvasComposite.DestinationOut, Sources = { target, sel } })
-            using (var ds = background.CreateDrawingSession()) { ds.Clear(KnownColors.Transparent); ds.DrawImage(rest); }
+            // en una máscara, lo que se levanta deja blanco (visible), igual que sin selección; antes quedaba transparente,
+            // que la máscara lee como oculto y que Invertir no arreglaba (auditoría 2026-11-02)
+            using (var ds = background.CreateDrawingSession()) { ds.Clear(layer.EditingMask ? KnownColors.White : KnownColors.Transparent); ds.DrawImage(rest); }
         }
         else
         {
@@ -314,6 +316,8 @@ public sealed class TransformSession : IDisposable
 
     public void Apply(LayerOperations ops)
     {
+        // píxeles y selección se mueven juntos: un solo paso de deshacer (antes eran dos; auditoría 2026-11-02)
+        using var step = _doc.History.BeginGroup(T("Transformar"));
         var owned = new List<IDisposable>();
         // lo movido puede quedar fuera de la selección original: no se recorta
         ops.ReplaceWith(Layer, Result(owned, MeshCells), T("Transformar"), clipToSelection: false);
