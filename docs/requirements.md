@@ -114,7 +114,7 @@ Los criterios de aceptación están en las especificaciones: [TR-01](specs/TR-01
 
 ## Errores encontrados por las pruebas (regresiones registradas)
 
-Los 38 errores de la auditoría del 2026-11-02, con su prueba cada uno, están en [results/2026-11-02.md](results/2026-11-02.md).
+Los 36 errores de la auditoría del 2026-11-02, con su prueba cada uno, están en [results/2026-11-02.md](results/2026-11-02.md).
 
 | Fecha | Error | Prueba que lo cubre |
 |---|---|---|
