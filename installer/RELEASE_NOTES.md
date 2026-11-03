@@ -1,4 +1,4 @@
-## Trazo 1.3.1 — estudio de pintura para Windows · *painting studio for Windows*
+## Trazo 1.3.2 — estudio de pintura para Windows · *painting studio for Windows*
 
 Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
@@ -8,8 +8,8 @@ Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y
 
 | Archivo · *File* | Para · *For* |
 |---|---|
-| `Trazo-1.3.1-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
-| `Trazo-1.3.1-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
+| `Trazo-1.3.2-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
+| `Trazo-1.3.2-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
 | `…-portable.zip` | Usar sin instalar · *No install: unzip and open `Trazo.exe`* |
 
 Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador. *Requires Windows 10 version 2004 or later; installs per user, no admin rights.*
@@ -19,6 +19,15 @@ Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no
 El instalador **todavía no tiene firma digital**, así que Windows puede mostrar "Windows protegió su PC". Para instalar: **Más información → Ejecutar de todas formas**. Puedes comprobar la integridad del archivo con `SHA256-*.txt`.
 
 *The installer is **not yet code-signed**, so Windows may show "Windows protected your PC". Choose **More info → Run anyway**. You can check the file with `SHA256-*.txt`.*
+
+### Novedades de la 1.3.2
+
+- **Corrección importante:** si instalabas Trazo «para todos los usuarios» y lo abrías desde la última pantalla del instalador, se ejecutaba como administrador y Windows no dejaba **importar, abrir ni guardar archivos** (sin ningún aviso). El instalador ya no lo abre así, Trazo te avisa si se está ejecutando como administrador, y todas las ventanas de archivos avisan si fallan.
+- Si te pasó con la 1.3.1: cierra Trazo y ábrelo desde el menú Inicio.
+
+### What's new in 1.3.2
+
+- **Important fix:** when installed "for all users" and launched from the installer's last screen, Trazo ran as administrator and Windows blocked **importing, opening and saving files** without any message. The installer no longer launches it that way, Trazo warns if it is running as administrator, and every file dialog reports failures. If this happened to you with 1.3.1, close Trazo and open it from the Start menu.
 
 ### Novedades de la 1.3.1: más fiable
 

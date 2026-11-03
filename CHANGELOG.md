@@ -2,7 +2,7 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.3.2 — 2026-11-02
 
 - **Corrección:** si Trazo se abría desde el instalador tras instalarlo «para todos los usuarios», se ejecutaba como administrador y Windows no dejaba importar, abrir ni guardar archivos con el selector, sin ningún aviso. El instalador ya no lo abre como administrador, Trazo avisa si lo está, y todos los selectores avisan si fallan.
 
