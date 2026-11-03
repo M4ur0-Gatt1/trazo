@@ -195,6 +195,10 @@ public sealed partial class StudioView
             Check("Seleccionar aplica Licuar en lugar de dejarlo activo sin hoja", _liquify is null && _selectMode);
             ExitSelectMode();
             Check("ninguna herramienta queda abierta", !ToolBusy && !_selectMode);
+            // un selector de archivos que Windows impide (app elevada) avisa en lugar de fallar en silencio
+            var picked = await Window.PickAsync<Windows.Storage.StorageFile>(() => throw new System.Runtime.InteropServices.COMException("selector bloqueado (simulado)"));
+            Check("un selector de archivos que falla avisa y no rompe", picked is null);
+            Check("la autoprueba no corre como administrador", !MainWindow.IsElevated);
             var tr = TransformSession.Start(doc, symLayer)!;
             tr.Flip(horizontal: true);
             tr.Apply(ops);

@@ -46,6 +46,43 @@ public sealed partial class MainWindow : Window
         _toastTimer.Start();
     }
 
+    /// <summary>
+    /// Trazo se está ejecutando como administrador (por ejemplo, abierto desde el instalador). Windows no deja usar los
+    /// selectores de archivos en una app de WinUI elevada: fallaban sin avisar al importar, abrir o exportar.
+    /// </summary>
+    public static bool IsElevated { get; } = ComputeElevated();
+
+    private static bool ComputeElevated()
+    {
+        try
+        {
+            using var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+            // con UAC, el grupo de administradores solo cuenta si el proceso está elevado
+            return new System.Security.Principal.WindowsPrincipal(id).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch (System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
+
+    public static string ElevatedMessage => T("Trazo se está ejecutando como administrador y Windows no deja abrir ni guardar archivos así. Ciérralo y vuelve a abrirlo desde el menú Inicio.");
+
+    /// <summary>Abre un selector de archivos; si Windows lo impide, avisa en lugar de fallar en silencio (devuelve null).</summary>
+    public async Task<TResult?> PickAsync<TResult>(Func<Windows.Foundation.IAsyncOperation<TResult>> pick) where TResult : class
+    {
+        try
+        {
+            return await pick();
+        }
+        catch (Exception e)
+        {
+            Log.Error("Selector de archivos", e);
+            ShowMessage(IsElevated ? ElevatedMessage : T("No se pudo abrir el selector de archivos: ") + e.Message, InfoBarSeverity.Error);
+            return null;
+        }
+    }
+
     public FileOpenPicker OpenPicker(params string[] extensions)
     {
         var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.PicturesLibrary, ViewMode = PickerViewMode.Thumbnail };
@@ -128,7 +165,7 @@ public sealed partial class MainWindow : Window
 
     private async Task ImportAsync()
     {
-        var file = await OpenPicker(".trazo", ".psd", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync();
+        var file = await PickAsync(() => OpenPicker(".trazo", ".psd", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync());
         if (file is null) return;
         if (file.FileType.Equals(".trazo", StringComparison.OrdinalIgnoreCase))
         {

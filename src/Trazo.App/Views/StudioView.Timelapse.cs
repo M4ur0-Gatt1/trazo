@@ -152,7 +152,7 @@ public sealed partial class StudioView
             var b = new Button { Content = label };
             b.Click += async (_, _) =>
             {
-                var file = await Window.SavePicker($"{name} {suffix}", T("Vídeo MP4"), ".mp4").PickSaveFileAsync();
+                var file = await Window.PickAsync(() => Window.SavePicker($"{name} {suffix}", T("Vídeo MP4"), ".mp4").PickSaveFileAsync());
                 if (file is null) return;
                 timer.Stop();
                 progress.Visibility = Visibility.Visible;

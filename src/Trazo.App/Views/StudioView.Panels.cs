@@ -936,7 +936,7 @@ public sealed partial class StudioView
 
     private async Task InsertPhotoAsync()
     {
-        var file = await Window.OpenPicker(".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync();
+        var file = await Window.PickAsync(() => Window.OpenPicker(".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp").PickSingleFileAsync());
         if (file is null) return;
         using var stream = await file.OpenReadAsync();
         using var bmp = await CanvasBitmap.LoadAsync(_doc!.Device, stream, 96);
@@ -1010,7 +1010,7 @@ public sealed partial class StudioView
     private async Task ExportBitmapAsync(CanvasBitmap bitmap, string name, CanvasBitmapFileFormat format)
     {
         var (label, ext) = format == CanvasBitmapFileFormat.Jpeg ? (T("Imagen JPEG"), ".jpg") : (T("Imagen PNG"), ".png");
-        var file = await Window.SavePicker(name, label, ext).PickSaveFileAsync();
+        var file = await Window.PickAsync(() => Window.SavePicker(name, label, ext).PickSaveFileAsync());
         if (file is null) return;
         // se llama desde menús que no esperan la tarea: un error aquí no debe parecer un fallo de la app
         try
@@ -1050,7 +1050,7 @@ public sealed partial class StudioView
         var picker = new Windows.Storage.Pickers.FolderPicker();
         picker.FileTypeFilter.Add("*");
         WinRT.Interop.InitializeWithWindow.Initialize(picker, Window.Handle);
-        var folder = await picker.PickSingleFolderAsync();
+        var folder = await Window.PickAsync(() => picker.PickSingleFolderAsync());
         if (folder is null) return;
         var doc = _doc!;
         for (var i = 0; i < doc.Layers.Count; i++)
@@ -1067,7 +1067,7 @@ public sealed partial class StudioView
     private async Task ExportPsdAsync()
     {
         var doc = _doc!;
-        var file = await Window.SavePicker(doc.Name, T("Documento de Photoshop"), PsdInterop.Extension).PickSaveFileAsync();
+        var file = await Window.PickAsync(() => Window.SavePicker(doc.Name, T("Documento de Photoshop"), PsdInterop.Extension).PickSaveFileAsync());
         if (file is null) return;
         try
         {
@@ -1089,7 +1089,7 @@ public sealed partial class StudioView
     private async Task ExportProjectAsync()
     {
         var doc = _doc!;
-        var file = await Window.SavePicker(doc.Name, T("Proyecto de Trazo"), TrazoFile.Extension).PickSaveFileAsync();
+        var file = await Window.PickAsync(() => Window.SavePicker(doc.Name, T("Proyecto de Trazo"), TrazoFile.Extension).PickSaveFileAsync());
         if (file is null) return;
         var data = await doc.ToProjectDataAsync();
         await ProjectSaver.SaveAsync(file.Path, data);

@@ -65,4 +65,6 @@ Root: HKA; Subkey: "Software\Classes\Trazo.Project\DefaultIcon"; ValueType: stri
 Root: HKA; Subkey: "Software\Classes\Trazo.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Trazo.exe"" ""%1"""; Tasks: association
 
 [Run]
-Filename: "{app}\Trazo.exe"; Description: "{cm:LaunchProgram,Trazo}"; Flags: nowait postinstall skipifsilent
+; runasoriginaluser: si la instalación fue para todos los usuarios (como administrador), Trazo no debe heredar la elevación:
+; Windows no deja usar los selectores de archivos en una app de WinUI elevada (no se podía importar ni abrir archivos)
+Filename: "{app}\Trazo.exe"; Description: "{cm:LaunchProgram,Trazo}"; Flags: nowait postinstall skipifsilent runasoriginaluser

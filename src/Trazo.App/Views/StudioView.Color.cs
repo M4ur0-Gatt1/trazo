@@ -451,7 +451,7 @@ public sealed partial class StudioView
 
         async Task ImportPalettesAsync()
         {
-            var file = await Window.OpenPicker(".swatches", ".ase").PickSingleFileAsync();
+            var file = await Window.PickAsync(() => Window.OpenPicker(".swatches", ".ase").PickSingleFileAsync());
             if (file is null) return;
             var added = await ImportPaletteFileAsync(file.Path);
             if (added.Count > 0) _shownPaletteId = added[0].Id;
@@ -501,7 +501,7 @@ public sealed partial class StudioView
         picker.FileTypeChoices.Add(T("Paleta de Procreate"), [".swatches"]);
         picker.FileTypeChoices.Add(T("Muestras de Adobe"), [".ase"]);
         WinRT.Interop.InitializeWithWindow.Initialize(picker, Window.Handle);
-        var file = await picker.PickSaveFileAsync();
+        var file = await Window.PickAsync(() => picker.PickSaveFileAsync());
         if (file is null) return;
         try
         {

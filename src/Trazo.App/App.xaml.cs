@@ -70,6 +70,11 @@ public partial class App : Application
             return;
         }
         Window.CheckAbandonedSessionsWhenReady();
+        if (MainWindow.IsElevated)
+        {
+            Services.Log.Info("Ejecutándose como administrador: los selectores de archivos no funcionarán");
+            Window.ShowMessage(MainWindow.ElevatedMessage, Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
+        }
         // Archivo .trazo pasado por línea de comandos (doble clic en el Explorador)
         var cmd = argv.FirstOrDefault(a => a.EndsWith(".trazo", StringComparison.OrdinalIgnoreCase));
         if (cmd is not null && File.Exists(cmd)) _ = Window.OpenFileAsync(cmd);
