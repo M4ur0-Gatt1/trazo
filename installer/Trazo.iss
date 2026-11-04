@@ -63,6 +63,19 @@ Root: HKA; Subkey: "Software\Classes\.trazo"; ValueType: string; ValueName: ""; 
 Root: HKA; Subkey: "Software\Classes\Trazo.Project"; ValueType: string; ValueName: ""; ValueData: "Proyecto de Trazo"; Flags: uninsdeletekey; Tasks: association
 Root: HKA; Subkey: "Software\Classes\Trazo.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\Trazo.exe,0"; Tasks: association
 Root: HKA; Subkey: "Software\Classes\Trazo.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Trazo.exe"" ""%1"""; Tasks: association
+; FA-01: Trazo aparece en «Abrir con» para PSD e imágenes (no se cambia el programa predeterminado de nadie)
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Trazo"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Trazo.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".trazo"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".psd"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".png"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".jpg"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".jpeg"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".bmp"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".gif"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".tif"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".tiff"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\Trazo.exe\SupportedTypes"; ValueType: string; ValueName: ".webp"; ValueData: ""
 
 [Run]
 ; runasoriginaluser: si la instalación fue para todos los usuarios (como administrador), Trazo no debe heredar la elevación:

@@ -108,6 +108,35 @@ public sealed class SessionJournal
         return abandoned;
     }
 
+    /// <summary>
+    /// FA-01: ¿tiene otra instancia viva de Trazo este documento abierto? Abrirlo dos veces haría que los dos procesos
+    /// se pisaran los guardados. No borra nada.
+    /// </summary>
+    public static bool IsOpenElsewhere(string folder, string document, int ownProcessId, Func<int, long, bool>? isAlive = null)
+    {
+        isAlive ??= IsProcessAlive;
+        if (!Directory.Exists(folder)) return false;
+        var target = Path.GetFullPath(document);
+        foreach (var file in Directory.EnumerateFiles(folder, "session-*.json"))
+        {
+            SessionEntry? entry;
+            bool same;
+            try
+            {
+                entry = JsonSerializer.Deserialize(File.ReadAllText(file), TrazoJson.Default.SessionEntry);
+                same = entry?.Document is not null
+                    && string.Equals(Path.GetFullPath(entry.Document), target, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+            {
+                continue;
+            }
+            if (!same || entry!.ProcessId == ownProcessId) continue;
+            if (isAlive(entry.ProcessId, entry.ProcessStart)) return true;
+        }
+        return false;
+    }
+
     private static void TryDelete(string file)
     {
         try

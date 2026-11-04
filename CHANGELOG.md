@@ -2,6 +2,12 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
+## Sin publicar
+
+- **Corrección:** con Trazo como programa predeterminado, hacer doble clic en una imagen (PNG, JPG…) abría la galería y no hacía nada. Ahora la importa como obra nueva; un tipo no admitido se avisa, y una obra ya abierta en otra ventana de Trazo no se abre dos veces ([FA-01](docs/specs/FA-01-file-activation.md)).
+- Los avisos y errores quedan 8 s en pantalla (antes desaparecían a los 2,2 s).
+- El instalador añade Trazo a «Abrir con» para PSD e imágenes.
+
 ## 1.3.2 — 2026-11-02
 
 - **Corrección:** si Trazo se abría desde el instalador tras instalarlo «para todos los usuarios», se ejecutaba como administrador y Windows no dejaba importar, abrir ni guardar archivos con el selector, sin ningún aviso. El instalador ya no lo abre como administrador, Trazo avisa si lo está, y todos los selectores avisan si fallan.

@@ -526,6 +526,7 @@
   "Trama": "Screen",
   "Transformar": "Transform",
   "Transformar (V)": "Transform (V)",
+  "Trazo no abre archivos {0}. Abre obras de Trazo, PSD e imágenes (PNG, JPG, BMP, GIF, TIFF, WebP).": "Trazo can't open {0} files. It opens Trazo artworks, PSD files and images (PNG, JPG, BMP, GIF, TIFF, WebP).",
   "Trazo se cerró inesperadamente la última vez. «{0}» {1}.": "Trazo closed unexpectedly last time. “{0}” {1}.",
   "Trazo se está ejecutando como administrador y Windows no deja abrir ni guardar archivos así. Ciérralo y vuelve a abrirlo desde el menú Inicio.": "Trazo is running as administrator, and Windows doesn't allow opening or saving files that way. Close it and open it again from the Start menu.",
   "Triádico": "Triadic",
@@ -580,6 +581,7 @@
   "{0} · {1} · {2:0.#} px": "{0} · {1} · {2:0.#} px",
   "{0}; curva de presión {1:0.00}": "{0}; pressure curve {1:0.00}",
   "«{0}» se enviará a la papelera de reciclaje.": "“{0}” will be moved to the Recycle Bin.",
+  "«{0}» ya está abierta en otra ventana de Trazo.": "“{0}” is already open in another Trazo window.",
   "Ángulo": "Angle",
   "Óleo": "Oil Paint",
   "α bloqueado": "α locked"

@@ -75,11 +75,8 @@ public partial class App : Application
             Services.Log.Info("Ejecutándose como administrador: los selectores de archivos no funcionarán");
             Window.ShowMessage(MainWindow.ElevatedMessage, Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
         }
-        // Archivo .trazo pasado por línea de comandos (doble clic en el Explorador)
-        var cmd = argv.FirstOrDefault(a => a.EndsWith(".trazo", StringComparison.OrdinalIgnoreCase));
-        if (cmd is not null && File.Exists(cmd)) _ = Window.OpenFileAsync(cmd);
-        // y un PSD («Abrir con → Trazo»): se importa como documento nuevo (EX-01)
-        var psd = argv.FirstOrDefault(a => a.EndsWith(".psd", StringComparison.OrdinalIgnoreCase));
-        if (cmd is null && psd is not null && File.Exists(psd)) _ = Window.ImportPsdAsync(psd);
+        // FA-01: archivo pasado por el Explorador (doble clic, «Abrir con»): obra, PSD o imagen. Antes solo .trazo y
+        // .psd; una imagen abría la galería sin hacer nada
+        if (Core.IO.LaunchFile.Pick(argv, File.Exists) is { } file) _ = Window.OpenFromExplorerAsync(file);
     }
 }

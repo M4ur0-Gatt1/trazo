@@ -12,7 +12,7 @@ namespace Trazo.App;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(2.2) };
+    private readonly DispatcherTimer _toastTimer = new();
 
     public MainWindow()
     {
@@ -43,6 +43,8 @@ public sealed partial class MainWindow : Window
         Toast.Severity = severity;
         Toast.IsOpen = true;
         _toastTimer.Stop();
+        // un aviso o un error tiene que dar tiempo a leerlo (antes desaparecían todos a los 2,2 s; FA-01)
+        _toastTimer.Interval = TimeSpan.FromSeconds(severity is InfoBarSeverity.Warning or InfoBarSeverity.Error ? 8 : 2.2);
         _toastTimer.Start();
     }
 
@@ -177,12 +179,48 @@ public sealed partial class MainWindow : Window
             await ImportPsdAsync(file.Path);
             return;
         }
+        await ImportImageAsync(file.Path);
+    }
+
+    /// <summary>
+    /// FA-01: archivo recibido desde el Explorador (doble clic con Trazo como programa predeterminado, «Abrir con»,
+    /// arrastrar sobre el icono). Un .trazo se abre; un PSD o una imagen se importan como obra nueva.
+    /// </summary>
+    internal async Task OpenFromExplorerAsync(string path)
+    {
+        Log.Info("Abrir desde el Explorador: " + path);
+        switch (LaunchFile.Classify(path))
+        {
+            case LaunchKind.Project:
+                if (SessionJournal.IsOpenElsewhere(SessionsFolder, path, Environment.ProcessId))
+                {
+                    ShowMessage(F("«{0}» ya está abierta en otra ventana de Trazo.", Path.GetFileNameWithoutExtension(path)), InfoBarSeverity.Warning);
+                    return;
+                }
+                await OpenFileAsync(path);
+                break;
+            case LaunchKind.Psd:
+                await ImportPsdAsync(path);
+                break;
+            case LaunchKind.Image:
+                await ImportImageAsync(path);
+                break;
+            default:
+                ShowMessage(F("Trazo no abre archivos {0}. Abre obras de Trazo, PSD e imágenes (PNG, JPG, BMP, GIF, TIFF, WebP).", Path.GetExtension(path)), InfoBarSeverity.Error);
+                break;
+        }
+    }
+
+    /// <summary>Una imagen como obra nueva de una capa, guardada en la galería.</summary>
+    internal async Task ImportImageAsync(string path)
+    {
         try
         {
-            using var stream = await file.OpenReadAsync();
+            using var file = File.OpenRead(path);
+            using var stream = file.AsRandomAccessStream();
             using var bmp = await CanvasBitmap.LoadAsync(Device, stream, 96);
             var (w, h) = Core.Documents.CanvasLimits.Fit(bmp.SizeInPixels.Width, bmp.SizeInPixels.Height);
-            var doc = PaintDocument.CreateBlank(Device, w, h, Path.GetFileNameWithoutExtension(file.Name));
+            var doc = PaintDocument.CreateBlank(Device, w, h, Path.GetFileNameWithoutExtension(path));
             doc.Layers[0].Name = T("Imagen");
             using (var ds = doc.Layers[0].Surface.CreateDrawingSession())
                 ds.DrawImage(bmp, new Windows.Foundation.Rect(0, 0, w, h), bmp.Bounds, 1, CanvasImageInterpolation.HighQualityCubic);
@@ -263,6 +301,7 @@ public sealed partial class MainWindow : Window
             return;
         }
         args.Cancel = true;
+        Log.Info("Cerrar la ventana"); // i18n: interno
         if (_closingWindow) return; // segundo clic en la X mientras se guarda
         _closingWindow = true;
         try
