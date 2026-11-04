@@ -1,4 +1,4 @@
-## Trazo 1.3.3 — estudio de pintura para Windows · *painting studio for Windows*
+## Trazo 1.3.4 — estudio de pintura para Windows · *painting studio for Windows*
 
 Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y pantallas con lápiz. Tus obras se guardan en `Documentos\Trazo`, con copia de seguridad `.bak` en cada guardado.
 
@@ -8,8 +8,8 @@ Trazo: pintura con lápiz y dedos en la GPU, para tabletas, portátiles 2 en 1 y
 
 | Archivo · *File* | Para · *For* |
 |---|---|
-| `Trazo-1.3.3-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
-| `Trazo-1.3.3-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
+| `Trazo-1.3.4-x64-setup.exe` | La mayoría de los PC (Intel/AMD) · *Most PCs (Intel/AMD)* |
+| `Trazo-1.3.4-arm64-setup.exe` | Equipos ARM (Surface Pro X / Snapdragon) · *ARM devices* |
 | `…-portable.zip` | Usar sin instalar · *No install: unzip and open `Trazo.exe`* |
 
 Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no pide permisos de administrador. *Requires Windows 10 version 2004 or later; installs per user, no admin rights.*
@@ -19,6 +19,18 @@ Requiere Windows 10 versión 2004 o posterior. Instala solo para tu usuario y no
 El instalador **todavía no tiene firma digital**, así que Windows puede mostrar "Windows protegió su PC". Para instalar: **Más información → Ejecutar de todas formas**. Puedes comprobar la integridad del archivo con `SHA256-*.txt`.
 
 *The installer is **not yet code-signed**, so Windows may show "Windows protected your PC". Choose **More info → Run anyway**. You can check the file with `SHA256-*.txt`.*
+
+### Novedades de la 1.3.4
+
+- **Corrección importante:** Trazo se cerraba solo si movías el lápiz o el ratón justo cuando QuickShape mostraba «Línea creada» (u otra forma). Ya no pasa.
+- **Menos pixelado:** una imagen pequeña se importa agrandada (×2 a ×4) para que lo que dibujes encima se vea nítido. Para una obra que ya tienes: **Acciones › Lienzo › Duplicar la resolución**. Además, el lienzo solo se ve píxel a píxel cuando te acercas mucho.
+- **Mano** para moverte por el lienzo: botón junto al pincel o tecla **H**. El lápiz, el ratón o un dedo arrastran el lienzo sin dibujar.
+
+### What's new in 1.3.4
+
+- **Important fix:** Trazo closed by itself if you moved the pen or mouse right when QuickShape showed "Line created" (or another shape). This no longer happens.
+- **Less pixelation:** small images are imported enlarged (×2 to ×4) so what you draw on top looks sharp. For an existing artwork: **Actions › Canvas › Double the resolution**. The canvas also only shows individual pixels when you zoom in very close.
+- **Hand tool** to move around the canvas: button next to the brush or the **H** key. The pen, mouse or a finger drag the canvas without drawing.
 
 ### Novedades de la 1.3.3
 

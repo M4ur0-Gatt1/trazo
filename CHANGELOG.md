@@ -2,7 +2,7 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.3.4 — 2026-11-04
 
 - **Corrección importante:** Trazo se cerraba solo si se movía el lápiz o el ratón justo cuando QuickShape mostraba «Línea creada» (u otra forma). La tipografía de esa etiqueta se cargaba con una llamada que dejaba entrar el movimiento a mitad del dibujo, y WinUI cerraba la app. Ahora la tipografía se carga una vez, fuera del hilo de la interfaz; lo mismo en «Añadir texto».
 - **Menos pixelado:** una imagen pequeña se importa agrandada (×2 a ×4) para que lo que dibujes encima se vea nítido. Para una obra existente, *Acciones › Lienzo › Duplicar la resolución*. El lienzo solo se ve píxel a píxel cuando cada píxel ocupa 6 de la pantalla (antes, a partir de un zoom de 2,5) ([RS-01](docs/specs/RS-01-resolution.md)).
