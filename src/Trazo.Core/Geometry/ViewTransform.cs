@@ -69,3 +69,33 @@ public sealed class ViewTransform
         return true;
     }
 }
+
+/// <summary>Cómo se escala la imagen del lienzo en pantalla según el zoom.</summary>
+public enum ZoomFilter
+{
+    /// <summary>Alejado: cúbico de alta calidad, sin dientes de sierra.</summary>
+    Smooth,
+    /// <summary>Lineal: suave y rápido.</summary>
+    Linear,
+    /// <summary>Píxel a píxel (vecino más cercano), para ver los píxeles reales de muy cerca.</summary>
+    Pixels,
+}
+
+public static class ZoomFilters
+{
+    /// <summary>
+    /// Píxeles de la pantalla por píxel del lienzo a partir de los que se ven los píxeles reales. Antes era un zoom de
+    /// 2,5 sin contar la escala de la pantalla: con un lienzo pequeño, lo dibujado se veía en escalones al acercarse un
+    /// poco (2026-11-04).
+    /// </summary>
+    public const double PixelsFrom = 6;
+
+    /// <param name="scale">Zoom de la vista (píxeles independientes del dispositivo por píxel del lienzo).</param>
+    /// <param name="rasterizationScale">Escala de la pantalla (1 = 96 ppp, 1,5 = 150 %…).</param>
+    public static ZoomFilter For(double scale, double rasterizationScale)
+    {
+        var physical = scale * rasterizationScale;
+        if (physical >= PixelsFrom) return ZoomFilter.Pixels;
+        return physical < 0.5 ? ZoomFilter.Smooth : ZoomFilter.Linear;
+    }
+}

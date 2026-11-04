@@ -114,6 +114,18 @@ public sealed partial class StudioView
             engine.Begin(new InputPoint(100, 100), ToolKind.Brush, mono, Colors.Blue, 8, 1, SymmetryMode.None, 1);
             foreach (var p in Line(100, 100, 700, 130, 30).Skip(1)) engine.Add(p with { Y = p.Y + MathF.Sin(p.X) * 4 });
             Check("QuickShape reconoce línea", engine.TrySnapShape(1) && engine.Shape?.Kind == ShapeKind.Line);
+            // regresión del 2026-11-04: dibujar la etiqueta «Línea creada» en el lienzo cerraba la app (0xc000027b)
+            Canvas.Invalidate();
+            await Task.Delay(400);
+            Check("QuickShape muestra su etiqueta sin cerrar la app", engine.Shape is not null);
+            Check("la tipografía de la etiqueta se resolvió fuera del hilo de la interfaz", _labelFormat is { IsCompletedSuccessfully: true });
+
+            // NV-01: la mano se activa y se suelta al elegir una herramienta de pintar
+            var toolBefore = Tool;
+            HandTool = true;
+            var handOn = HandButton.IsChecked == true && BrushButton.IsChecked != true && EraserButton.IsChecked != true;
+            Tool = toolBefore;
+            Check("la mano se activa y una herramienta de pintar la suelta", handOn && !HandTool && HandButton.IsChecked != true);
             engine.End();
             Check("QuickShape dibuja", Pixel(shapeLayer, 400, 115).A > 0);
 

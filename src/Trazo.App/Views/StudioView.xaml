@@ -54,6 +54,9 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ToggleButton x:Name="HandButton" Style="{StaticResource BarToggle}" Click="Hand_Click" ToolTipService.ToolTip="{t:Loc S='Mano (H): arrastra para moverte por el lienzo'}">
+                    <FontIcon Glyph="&#xE7C9;" FontSize="20" />
+                </ToggleButton>
                 <ToggleButton x:Name="BrushButton" Style="{StaticResource BarToggle}" Click="Tool_Click" Tag="Brush" ToolTipService.ToolTip="{t:Loc S='Pintar (B) · toca de nuevo para la biblioteca'}">
                     <FontIcon Glyph="&#xEE56;" FontSize="20" />
                 </ToggleButton>

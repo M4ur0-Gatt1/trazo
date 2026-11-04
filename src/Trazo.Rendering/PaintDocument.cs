@@ -504,6 +504,52 @@ public sealed partial class PaintDocument : ObservableObject, IDisposable
         };
     }
 
+    /// <summary>
+    /// RS-01: copia del documento con el lienzo <paramref name="factor"/> veces más grande. Capas y máscaras se escalan
+    /// con interpolación cúbica; propiedades, grupos, fondo y guía se conservan. El historial no (es otro documento).
+    /// </summary>
+    public PaintDocument Resampled(int factor)
+    {
+        if (factor < 1 || !CanvasLimits.CanScale(Width, Height, factor, Layers.Count))
+            throw new ArgumentOutOfRangeException(nameof(factor));
+        int w = Width * factor, h = Height * factor;
+        var d = new PaintDocument(Device, w, h, Name)
+        {
+            FilePath = FilePath, Created = Created, Background = Background, BackgroundVisible = BackgroundVisible,
+            Guide = Guide?.Scaled(factor),
+        };
+        try
+        {
+            foreach (var g in Groups) d.Groups.Add(LayerGroup.From(g.ToProperties()));
+            var dest = new Rect(0, 0, w, h);
+            foreach (var l in Layers)
+            {
+                var n = new Layer(Device, w, h, l.Name) { Id = l.Id };
+                n.Apply(l.ToProperties());
+                using (var ds = n.Surface.CreateDrawingSession())
+                {
+                    ds.Clear(KnownColors.Transparent);
+                    ds.DrawImage(l.Surface, dest, Bounds, 1, CanvasImageInterpolation.HighQualityCubic);
+                }
+                if (l.Mask is { } mask)
+                {
+                    n.Mask = Layer.CreateMask(Device, w, h, KnownColors.White);
+                    using var ds = n.Mask.CreateDrawingSession();
+                    ds.DrawImage(mask, dest, Bounds, 1, CanvasImageInterpolation.HighQualityCubic);
+                }
+                d.Layers.Add(n);
+            }
+            d.ActiveIndex = ActiveIndex;
+            d.IsDirty = true;
+            return d;
+        }
+        catch
+        {
+            d.Dispose();
+            throw;
+        }
+    }
+
     public static async Task<PaintDocument> FromProjectDataAsync(CanvasDevice device, ProjectData p, string? path)
     {
         var d = new PaintDocument(device, p.Width, p.Height, p.Name) { FilePath = path, Created = p.Created };

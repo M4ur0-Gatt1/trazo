@@ -73,6 +73,23 @@ public sealed partial class StudioView : UserControl
 
     // ================= Estado de herramientas =================
 
+    private bool _handTool;
+
+    /// <summary>NV-01: mano para mover el lienzo con el lápiz, el ratón o un dedo. Se suelta al elegir otra herramienta.</summary>
+    private bool HandTool
+    {
+        get => _handTool;
+        set
+        {
+            _handTool = value;
+            _hover = null;
+            RefreshToolUi();
+            Canvas.Invalidate();
+        }
+    }
+
+    private void Hand_Click(object sender, RoutedEventArgs e) => HandTool = !HandTool;
+
     private ToolKind Tool
     {
         get => Enum.TryParse<ToolKind>(_settings.Tool, out var t) ? t : ToolKind.Brush;
@@ -80,6 +97,7 @@ public sealed partial class StudioView : UserControl
         {
             _settings.Tool = value.ToString();
             _settings.Save();
+            _handTool = false; // elegir una herramienta de pintar suelta la mano
             RefreshToolUi();
         }
     }
@@ -123,9 +141,10 @@ public sealed partial class StudioView : UserControl
     private void RefreshToolUi()
     {
         var t = Tool;
-        BrushButton.IsChecked = t == ToolKind.Brush;
-        SmudgeButton.IsChecked = t == ToolKind.Smudge;
-        EraserButton.IsChecked = t == ToolKind.Eraser;
+        HandButton.IsChecked = _handTool;
+        BrushButton.IsChecked = !_handTool && t == ToolKind.Brush;
+        SmudgeButton.IsChecked = !_handTool && t == ToolKind.Smudge;
+        EraserButton.IsChecked = !_handTool && t == ToolKind.Eraser;
         ColorSwatch.Fill = new SolidColorBrush(CurrentColor);
         RefreshSliders();
     }
@@ -200,6 +219,7 @@ public sealed partial class StudioView : UserControl
         _lastSaved = doc.FilePath is { } existing && File.Exists(existing) && !doc.IsDirty ? File.GetLastWriteTime(existing) : null;
         _tips ??= new TipCache(doc.Device);
         _grains ??= new GrainCache(doc.Device);
+        _labelFormat ??= CanvasFonts.RealizeAsync(doc.Device, () => LabelFormat(CanvasFonts.Ui));
         _ops = new LayerOperations(doc);
         _ops.Message += m => Window.ShowMessage(m);
         _engine = new BrushEngine(doc, _ops, _tips, _grains);
@@ -393,9 +413,12 @@ public sealed partial class StudioView : UserControl
             }
             if (!doc.BackgroundVisible) DrawChecker(ds, doc, owned);
 
-            var interp = _view.Scale >= 2.5f ? CanvasImageInterpolation.NearestNeighbor
-                : _view.Scale < 0.5f ? CanvasImageInterpolation.HighQualityCubic
-                : CanvasImageInterpolation.Linear;
+            var interp = ZoomFilters.For(_view.Scale, XamlRoot?.RasterizationScale ?? 1) switch
+            {
+                ZoomFilter.Pixels => CanvasImageInterpolation.NearestNeighbor,
+                ZoomFilter.Smooth => CanvasImageInterpolation.HighQualityCubic,
+                _ => CanvasImageInterpolation.Linear,
+            };
             // PF-01: la parte que no cambia se compone una vez y se reutiliza en cada fotograma
             ds.DrawImage(_composition.Compose(doc, overrides, owned), Vector2.Zero, doc.Bounds, 1, interp);
             DrawSelectionOverlay(ds, doc, owned);
@@ -468,11 +491,20 @@ public sealed partial class StudioView : UserControl
         }
     }
 
+    private static Microsoft.Graphics.Canvas.Text.CanvasTextFormat LabelFormat(string family) =>
+        new() { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = family };
+
+    private Task<Microsoft.Graphics.Canvas.Text.CanvasTextFormat>? _labelFormat;
+    private static readonly Microsoft.Graphics.Canvas.Text.CanvasTextFormat LabelFallbackFormat = LabelFormat(CanvasFonts.System);
+
     private void DrawShapeLabel(CanvasDrawingSession ds)
     {
         if (_engine?.Shape is not { } shape) return;
         var text = shape.DisplayName + T(" creada");
-        using var fmt = new Microsoft.Graphics.Canvas.Text.CanvasTextFormat { FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontFamily = CanvasFonts.Ui };
+        // nunca se resuelve una tipografía propia aquí, dentro de Draw: Win2D lee el archivo con una llamada que procesa
+        // mensajes y WinUI cerraba la app si el lápiz se movía en ese momento (regresión del 2026-11-04). Inter llega ya
+        // resuelta desde un hilo del grupo; mientras tanto, la del sistema
+        var fmt = _labelFormat is { IsCompletedSuccessfully: true } ready ? ready.Result : LabelFallbackFormat;
         using var layout = new Microsoft.Graphics.Canvas.Text.CanvasTextLayout(ds, text, fmt, 400, 30);
         var w = (float)layout.LayoutBounds.Width + 28;
         var x = (ViewSize.X - w) / 2;
@@ -482,7 +514,7 @@ public sealed partial class StudioView : UserControl
 
     private void DrawBrushCursor(CanvasDrawingSession ds)
     {
-        var show = _hover is { } && _settings.BrushCursor && _transform is null && _liquify is null && _mode is InputMode.Idle or InputMode.Draw;
+        var show = _hover is { } && _settings.BrushCursor && !_handTool && _transform is null && _liquify is null && _mode is InputMode.Idle or InputMode.Draw;
         var preview = DateTime.UtcNow < _cursorPreviewUntil;
         if (!show && !preview) return;
         var p = _hover ?? ViewSize / 2;

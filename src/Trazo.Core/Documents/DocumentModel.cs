@@ -141,6 +141,33 @@ public static class CanvasLimits
         return ((int)w, (int)h);
     }
 
+    /// <summary>
+    /// RS-01: lado largo mínimo del lienzo al importar una imagen. Con un lienzo del tamaño de una imagen pequeña,
+    /// lo que se dibuja encima se ve en escalones al acercarse (2026-11-04: una historieta de 1536×1024).
+    /// </summary>
+    public const int ImportMinLongSide = 3000;
+
+    /// <summary>
+    /// Factor entero (1 a 4) por el que se agranda el lienzo al importar una imagen de <paramref name="w"/>×<paramref name="h"/>:
+    /// el menor que llega a <see cref="ImportMinLongSide"/>, sin pasarse de los límites. Entero para que la imagen
+    /// se escale de forma uniforme.
+    /// </summary>
+    public static int ImportScale(int w, int h)
+    {
+        var longSide = Math.Max(w, h);
+        if (longSide <= 0) return 1;
+        var k = Math.Clamp((int)Math.Ceiling(ImportMinLongSide / (double)longSide), 1, 4);
+        while (k > 1 && !CanScale(w, h, k, layers: 1)) k--;
+        return k;
+    }
+
+    /// <summary>¿Cabe el lienzo multiplicado por <paramref name="factor"/> con <paramref name="layers"/> capas?</summary>
+    public static bool CanScale(int w, int h, int factor, int layers)
+    {
+        long sw = (long)w * factor, sh = (long)h * factor;
+        return sw <= MaxSide && sh <= MaxSide && sw * sh <= MaxArea && layers <= MaxLayers((int)sw, (int)sh);
+    }
+
     public static int MaxLayers(int width, int height) =>
         (int)Math.Clamp(LayerBudgetBytes / ((long)width * height * 4), 4, 250);
 

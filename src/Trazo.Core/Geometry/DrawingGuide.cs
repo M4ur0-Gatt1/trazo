@@ -25,6 +25,13 @@ public sealed record DrawingGuide
     /// <summary>Puntos de fuga (1 a 3) para la perspectiva.</summary>
     public IReadOnlyList<Vector2> VanishingPoints { get; init; } = [];
 
+    /// <summary>La misma guía en un lienzo <paramref name="factor"/> veces más grande (RS-01).</summary>
+    public DrawingGuide Scaled(float factor) => this with
+    {
+        Size = Size * factor,
+        VanishingPoints = VanishingPoints.Select(p => p * factor).ToList(),
+    };
+
     public bool IsVisible => Kind != GuideKind.None && (Kind != GuideKind.Perspective || VanishingPoints.Count > 0);
 
     public static readonly float Tan30 = MathF.Tan(MathF.PI / 6);

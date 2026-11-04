@@ -219,7 +219,10 @@ public sealed partial class MainWindow : Window
             using var file = File.OpenRead(path);
             using var stream = file.AsRandomAccessStream();
             using var bmp = await CanvasBitmap.LoadAsync(Device, stream, 96);
-            var (w, h) = Core.Documents.CanvasLimits.Fit(bmp.SizeInPixels.Width, bmp.SizeInPixels.Height);
+            // RS-01: una imagen pequeña se agranda (×2 a ×4) para que lo que se dibuje encima no se vea en escalones
+            var (iw, ih) = ((int)bmp.SizeInPixels.Width, (int)bmp.SizeInPixels.Height);
+            var k = Core.Documents.CanvasLimits.ImportScale(iw, ih);
+            var (w, h) = Core.Documents.CanvasLimits.Fit((double)iw * k, (double)ih * k);
             var doc = PaintDocument.CreateBlank(Device, w, h, Path.GetFileNameWithoutExtension(path));
             doc.Layers[0].Name = T("Imagen");
             using (var ds = doc.Layers[0].Surface.CreateDrawingSession())
@@ -228,6 +231,7 @@ public sealed partial class MainWindow : Window
             doc.IsDirty = true;
             ShowStudio(doc);
             await Studio.SaveAsync();
+            if (k > 1) ShowMessage(F("La imagen ({0}×{1}) se agrandó a {2}×{3} para que lo que dibujes se vea nítido.", iw, ih, w, h));
         }
         catch (Exception e)
         {

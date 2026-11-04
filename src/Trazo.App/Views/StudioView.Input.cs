@@ -110,6 +110,16 @@ public sealed partial class StudioView
         if (_liquify is not null && TryBeginLiquify(pt, type, c)) return;
         if (_guideEdit && TryBeginGuidePoint(pt, type, c)) return;
 
+        // NV-01: con la mano, el lápiz y el botón izquierdo arrastran el lienzo (el dedo, más abajo, como gesto: un dedo
+        // mueve y dos acercan y giran)
+        if (_handTool && type != PointerDeviceType.Touch && _mode == InputMode.Idle
+            && (type == PointerDeviceType.Pen || pt.Properties.IsLeftButtonPressed))
+        {
+            _pan = (c.Id, c.Position, _view.Offset);
+            _mode = InputMode.Pan;
+            return;
+        }
+
         switch (type)
         {
             case PointerDeviceType.Pen:
@@ -175,7 +185,7 @@ public sealed partial class StudioView
         {
             if (_eyedropOnce) { StartEyedrop(c); return; }
             if (_fillOnce) { DoFill(c.Position); return; }
-            if (PenOnly || _adjust is not null || _liquify is not null || _guideEdit) { StartGesture(); return; }
+            if (PenOnly || _handTool || _adjust is not null || _liquify is not null || _guideEdit) { StartGesture(); return; }
             StartDraw(pt, type, null);
             return;
         }
@@ -693,6 +703,7 @@ public sealed partial class StudioView
             case VirtualKey.Escape when _liquify is not null: EndLiquify(); break;
             case VirtualKey.Enter when _liquify is not null: ApplyLiquify(); break;
             case VirtualKey.Escape when _guideEdit: EndGuideEdit(); break;
+            case VirtualKey.H: HandTool = !HandTool; break;
             case VirtualKey.B: Tool = ToolKind.Brush; break;
             case VirtualKey.E: Tool = ToolKind.Eraser; break;
             case VirtualKey.S: Tool = ToolKind.Smudge; break;

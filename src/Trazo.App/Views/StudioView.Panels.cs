@@ -34,7 +34,7 @@ public sealed partial class StudioView
     {
         var button = (ToggleButton)sender;
         var tool = Enum.Parse<ToolKind>((string)button.Tag);
-        if (Tool == tool) ShowBrushLibrary(button, tool);
+        if (Tool == tool && !_handTool) ShowBrushLibrary(button, tool);
         Tool = tool;
     }
 
@@ -875,6 +875,7 @@ public sealed partial class StudioView
         canvas.Items.Add(Item(T("Voltear verticalmente"), Sync(() => _ops!.FlipCanvas(false))));
         canvas.Items.Add(Item(T("Ajustar a la pantalla"), Sync(FitToScreen)));
         canvas.Items.Add(Item(T("Tamaño real (100 %)"), Sync(ShowActualSize)));
+        canvas.Items.Add(Item(F("Duplicar la resolución ({0}×{1})…", doc.Width, doc.Height), DoubleResolutionAsync));
         canvas.Items.Add(new MenuFlyoutSeparator());
         var sym = Sub(T("Guía de simetría"), "");
         foreach (var (mode, label) in new[] { (SymmetryMode.None, T("Ninguna")), (SymmetryMode.Vertical, T("Vertical")), (SymmetryMode.Horizontal, T("Horizontal")), (SymmetryMode.Quadrant, T("Cuadrante")), (SymmetryMode.Radial, T("Radial")) })
@@ -962,9 +963,11 @@ public sealed partial class StudioView
         var box = new TextBox { AcceptsReturn = true, Height = 120, TextWrapping = TextWrapping.Wrap, PlaceholderText = T("Escribe el texto") };
         if (await Dialogs.ShowAsync(XamlRoot, T("Añadir texto"), box, T("Añadir")) != ContentDialogResult.Primary || box.Text.Trim().Length == 0) return;
         var doc = _doc!;
+        // la tipografía se resuelve fuera del hilo de la interfaz (ver CanvasFonts)
+        using var fmt = await CanvasFonts.RealizeAsync(doc.Device, () => new CanvasTextFormat { FontFamily = CanvasFonts.Display, FontSize = Math.Min(doc.Width, doc.Height) / 10f, FontWeight = FontWeights.SemiBold, HorizontalAlignment = CanvasHorizontalAlignment.Center, VerticalAlignment = CanvasVerticalAlignment.Center });
+        if (_doc != doc) return; // se cerró la obra mientras tanto
         var layer = doc.CreateLayer(box.Text.Trim().Split('\r', '\n')[0] is var first && first.Length > 24 ? first[..24] : first);
         using (var ds = layer.Surface.CreateDrawingSession())
-        using (var fmt = new CanvasTextFormat { FontFamily = CanvasFonts.Display, FontSize = Math.Min(doc.Width, doc.Height) / 10f, FontWeight = FontWeights.SemiBold, HorizontalAlignment = CanvasHorizontalAlignment.Center, VerticalAlignment = CanvasVerticalAlignment.Center })
             ds.DrawText(box.Text.Replace("\r", "\n"), new Windows.Foundation.Rect(0, 0, doc.Width, doc.Height), CurrentColor, fmt);
         if (_ops!.Add(layer) is not null) StartTransform();
     }
