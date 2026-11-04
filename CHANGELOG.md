@@ -2,7 +2,7 @@
 
 Las notas de cada versión publicada están en [Releases](https://github.com/M4ur0-Gatt1/trazo/releases). El detalle técnico y las pruebas de cada cambio están en [docs/results](docs/results/).
 
-## Sin publicar
+## 1.3.3 — 2026-11-03
 
 - **Corrección:** con Trazo como programa predeterminado, hacer doble clic en una imagen (PNG, JPG…) abría la galería y no hacía nada. Ahora la importa como obra nueva; un tipo no admitido se avisa, y una obra ya abierta en otra ventana de Trazo no se abre dos veces ([FA-01](docs/specs/FA-01-file-activation.md)).
 - Los avisos y errores quedan 8 s en pantalla (antes desaparecían a los 2,2 s).

@@ -1,7 +1,7 @@
 ; Instalador de Trazo (Inno Setup 6). Compilar con:
-;   ISCC.exe /DAppVersion=1.3.2 /DArch=x64 /DSourceDir=..\artifacts\publish\win-x64 installer\Trazo.iss
+;   ISCC.exe /DAppVersion=1.3.3 /DArch=x64 /DSourceDir=..\artifacts\publish\win-x64 installer\Trazo.iss
 #ifndef AppVersion
-  #define AppVersion "1.3.2"
+  #define AppVersion "1.3.3"
 #endif
 #ifndef Arch
   #define Arch "x64"
