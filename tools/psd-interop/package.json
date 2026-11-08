@@ -5,6 +5,6 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "ag-psd": "31.0.3"
+    "ag-psd": "33.0.0"
   }
 }
